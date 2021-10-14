@@ -209,7 +209,7 @@ def Send_ADB(ExistingConnection):
     Response = Response.strip().split("\r\n")
     retcode = Response[-1]
     output = "\n".join(Response[:-1])
-    
+    logger.info("Formatted response: " + output)
     return {"retcode": retcode, "output": output}
     #return Response
 
@@ -241,7 +241,10 @@ def _adb():
 def _disconnectadb():
     host = request.args.get('host')
     logger.info("ADB_Driver: disconnect host: " + host)
-    del ADBHostList[host]       
+    try:
+        del ADBHostList[host]       
+    except:
+        logger.info("Delete of entry from cache failed... Not cached?")
     logger.info("Hostlist is now ")
     logger.info(ADBHostList)
     return "Disconnected"
