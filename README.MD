@@ -64,8 +64,8 @@ Restart meta and you should be good to go.
 ## How to use
 ADB and Broadlink can be used to call them over http. Assuming meta is running as 192.168.0.100, yo can use http://192.168.0.100:5000?xxx.
 The xxx part is described in the repositories from my custom drivers:
--
--
+- https://github.com/Ton-O/NEEO-Meta-ADB
+- 
 
 
 

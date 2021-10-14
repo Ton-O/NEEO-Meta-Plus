@@ -126,7 +126,7 @@ def Convert_Broadlink_to_GC(stream):
     #First convert Broadlink-format to Lirc
     data = bytearray.fromhex(''.join(stream))
     durations = to_microseconds(data)
-    print("Broadlink: durations",durations)
+    logger.info("Broadlink: durations" +durations)
     #Then convert format from Lirc to GC
     result = lirc2gc(durations)
     return result
@@ -142,28 +142,39 @@ def Connect_Broadlink():
    host = request.args.get('host')
    type = int(request.args.get('type'),16) 
    mac  = bytearray.fromhex(request.args.get('mac'))
-   print("host, type, mac:",host,type,mac)
+   logger.info("host, type, mac:",host,type,mac)
    dev = broadlink.gendevice(type, (host, 80), mac)
-   print("We have a device") 
+   logger.info("We have a device") 
    dev.auth()
-   print('dev=',dev)
+   logger.info('dev='+dev)
    return dev
 
+def CheckADB_alreadyConnected():
+    global ADBDevice
+    host = request.args.get('host')
+    logger.info("ADB_Driver: host: " + host)
+    logger.info("ADB_Driver: connecting to host: " +host)
+    try:                                            # Checking if we are already connected.
+       ADBDevice = ADBHostList[host]["ADBSocket"]       
+       return  1
+    except:
+        logger.info("No ADB-connection yet with " + host)
+        return 0
 
 def Connect_ADB():
     global ADBDevice
     host = request.args.get('host')
-    print("ADB_Driver: host:",host)
-    logger.info("ADB_Driver: connecting to host: "+host)
+    logger.info("ADB_Driver: host: " + host)
+    logger.info("ADB_Driver: connecting to host: " +host)
     try:                                            # Checking if we are already connected.
        ADBDevice = ADBHostList[host]["ADBSocket"]       
        return 
     except:
-        logger.info("Setting up connection ADB with "+host)
+        logger.info("Setting up connection ADB with " + host)
 
     ADBDevice = AdbDeviceTcp(host, 5555, default_transport_timeout_s=5.)
     ## Load the public and private keys so we can connect to Android and authenticate ourself (also for future use) 
-    adbkey = '/home/pi/meta/.ssh/adbkey'
+    adbkey = '/home/pi/meta/.ssh/adb_key'
     with open(adbkey) as f:
         priv = f.read()
 
@@ -178,24 +189,27 @@ def Connect_ADB():
     logger.info(ADBHostList)
     return
 
-def Send_ADB():
+def Send_ADB(ExistingConnection):
     global ADBDevice
     logger.info(ADBDevice)
     # Send a shell command
     Command = request.args.get('command')
     AsRoot = request.args.get('root',default='')
-    print("Asroot is:",AsRoot)
+    logger.info("Asroot is: " + AsRoot)
     if AsRoot == 'yes':  
         Response = ADBDevice.root()
-    print("Command is:",Command)
-    Response = ADBDevice.shell(Command)
+    logger.info("Command is: " + Command)
+    try:
+      Response = ADBDevice.shell(Command)
+    except ():
+      logger.info("Command failed, reconnecting and retrying")
     if Response is None:
         return {}
-
+    logger.info("Response is: "+ Response)
     Response = Response.strip().split("\r\n")
     retcode = Response[-1]
     output = "\n".join(Response[:-1])
-
+    
     return {"retcode": retcode, "output": output}
     #return Response
 
@@ -207,27 +221,38 @@ def index():
 
 @app.route('/QUIT')
 def quit():
-    print("Received shutdown request")
+    logger.info("Received shutdown request")
     # return 'Quitting'
     shutdown_server()
     return 'Server shutting down...'    
   
 @app.route('/adb',  methods=['GET','POST'])
 def _adb():
-    print("ADB_Driver:")
-    ADBDevice = Connect_ADB()  
-    print("ADB_Driver: Connection to device succeeded")
-    Response = Send_ADB()
+    logger.info("ADB_Driver:")
+    ExistingConnection=CheckADB_alreadyConnected()
+    if not ExistingConnection:
+       ADBDevice = Connect_ADB()  
+       logger.info("ADB_Driver: Connection to device succeeded")
+    Response = Send_ADB(ExistingConnection)
     return Response 
 
 
+@app.route('/disconnectadb',  methods=['GET','POST'])
+def _disconnectadb():
+    host = request.args.get('host')
+    logger.info("ADB_Driver: disconnect host: " + host)
+    del ADBHostList[host]       
+    logger.info("Hostlist is now ")
+    logger.info(ADBHostList)
+    return "Disconnected"
+
 @app.route('/xmit',  methods=['GET','POST'])
 def _xmit():
-    print("Broadlink_Driver: xmit-request")
+    logger.info("Broadlink_Driver: xmit-request")
     dev = Connect_Broadlink()  
-    print("Broadlink_Driver: Connection to Broadlink succeeded")
+    logger.info("Broadlink_Driver: Connection to Broadlink succeeded")
     data = request.args.get('stream')
-    print("Broadlink_Driver: Sending data", data)
+    logger.info("Broadlink_Driver: Sending data" + data)
     SendThis = bytearray.fromhex(data)
     dev.send_data(SendThis)
     return 'OK'
@@ -235,47 +260,47 @@ def _xmit():
 
 @app.route('/xmitGC', methods=['GET','POST'])
 def _xmitGC():
-    print("Broadlink_Driver: Send GC requested")
+    logger.info("Broadlink_Driver: Send GC requested")
     dev = Connect_Broadlink()  
-    print("Broadlink_Driver: Connection to Broadlink succeeded")
+    logger.info("Broadlink_Driver: Connection to Broadlink succeeded")
     data = request.args.get('stream')
-    print("Broadlink_Driver: Input data", data)
+    logger.info("Broadlink_Driver: Input data " + data)
 
     # Now convert the Global Cache format to our format
-    print("Broadlink_Driver: GC data", data)    
+    logger.info("Broadlink_Driver: GC data " + data)    
     ConvData = Convert_GC_to_Broadlink(data)    
-    print("Broadlink_Driver: Conversion done, sending this data", ConvData)
+    logger.info("Broadlink_Driver: Conversion done, sending this data " + ConvData)
     SendThis = bytearray.fromhex(ConvData)
     dev.send_data(SendThis)
     return 'OK'
 
 @app.route('/GCToBroad', methods=['GET','POST'])
 def ConvertBroadtoGC(Stream):
-    print("Broadlink_Driver: Conversion GC to Broadlink  requested")
+    logger.info("Broadlink_Driver: Conversion GC to Broadlink  requested")
     # Now convert the Global Cache format to our format
     ConvData = Convert_GC_to_Broadlink(Stream)    
-    print("Broadlink_Driver: Conversion done, returning this data", ConvData)
+    logger.info("Broadlink_Driver: Conversion done, returning this data " + ConvData)
     #SendThis = bytearray.fromhex(ConvData)
     SendThis = ConvData    
     return SendThis
 
 @app.route('/BroadtoGC', methods=['GET','POST'])
 def BroadtoGC():
-    print("Broadlink_Driver: Conversion Broadlink to GC  requested")
+    logger.info("Broadlink_Driver: Conversion Broadlink to GC  requested")
     data = request.args.get('stream')
-    print("Broadlink_Driver: Input data", data)
+    logger.info("Broadlink_Driver: Input data " + data)
     ConvData = ConvertBroadtoGC(data)
     # Now convert the Global Cache format to our format
-    print("Broadlink_Driver: GC data", ConvData)    
+    logger.info("Broadlink_Driver: GC data " + ConvData)    
     return ConvData 
 
 @app.route('/rcve',  methods=['GET','POST'])
 def _rcve():
     #data = request.args.get['stream']
-    print("Broadlink_Driver: Learning requested")
+    logger.info("Broadlink_Driver: Learning requested")
     dev = Connect_Broadlink()
-    print("Broadlink_Driver: Connection to Broadlink succeeded")    
-    print("Broadlink_Driver: Learning for",TIMEOUT,"ms")
+    logger.info("Broadlink_Driver: Connection to Broadlink succeeded")    
+    logger.info("Broadlink_Driver: Learning for " + TIMEOUT +"ms")
     dev.enter_learning()
     start = time.time()
     while time.time() - start < TIMEOUT:
@@ -287,10 +312,10 @@ def _rcve():
         else:
             break
     else:
-        #print("No data received...")
+        #logger.info("No data received...")
         return 'timeout'
     Learned = ''.join(format(x, '02x') for x in bytearray(data))
-    print("Broadlink_Driver: Learned:", Learned)
+    logger.info("Broadlink_Driver: Learned: " + Learned)
     return Learned
 
 @app.route('/rcveGC',  methods=['GET','POST'])
@@ -299,7 +324,7 @@ def _rcveGC():
     return ConvertBroadtoGC(Learned)
 
 def main():
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', port=5384)
 
         
 if __name__ == '__main__':
