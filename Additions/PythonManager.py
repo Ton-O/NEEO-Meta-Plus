@@ -142,11 +142,11 @@ def Connect_Broadlink():
    host = request.args.get('host')
    type = int(request.args.get('type'),16) 
    mac  = bytearray.fromhex(request.args.get('mac'))
-   logger.info("host, type, mac: {host} {type} {mac}")
+   logger.info(f"host, type, mac: {host} {type} {mac}")
    dev = broadlink.gendevice(type, (host, 80), mac)
    logger.info("We have a device") 
    dev.auth()
-   logger.info('dev={dev}')
+   logger.info(f'dev={dev}')
    return dev
 
 def CheckADB_alreadyConnected():
