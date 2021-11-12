@@ -2,7 +2,9 @@
 ## What's this?
 
 This repository contains my modifications/addons for JAC459's meta (https://github.com/jac459/meta).
-I've placed this information on Github to save it and share it for others. Feel free to use it and don't hesitate to ask any questions, but use it at your own risk.
+As JAC459 and my road have seperated, this repository (and all other NEEO/META related ones under this account) are compliant to a snapsnot of meta from 2021-11; I will make no effort anymore to stay compatible with newer versions of meta.
+If you want to use this repository, feel free and don't hesitate to ask any questions, but use it at your own risk and with this constraint in mind. 
+Requests or questions on how to use this with newer versions of meta will not be accepted/answered. 
 
 ## Additions:
 # PythonManager.py
