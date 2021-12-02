@@ -4,7 +4,9 @@ This repository contains an alternate version of meta, originally released by ja
 Good question! The original version of jac is excellent! So why an alternate one?
 The reason is simple: just like me, jac develops meta mostly for his own needs, but shares the code to others so they can profit from it.
 If he sees fit, he adds pieces to meta for others. I've created many additions to meta and offered them to be included into the original release of meta.
+
 However, that process became too slow or requests weren't honored at all (which is the perogative from an author, of-course).
+
 As these changes are essential for the drivers that I produce (especially for KODI), I started maintaining a separate verison of meta which included new releases from JAC and my own changes.
 That became too much time-consuming, so I decided to take the current version of JAC's meta, duplicate that into my own github repository and stopped looking at the original meta as that basis fits all my needs.
 
