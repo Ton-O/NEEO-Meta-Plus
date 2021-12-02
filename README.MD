@@ -40,7 +40,7 @@ As it delivers functions that used to be included, but don't work anymore (or co
 
 This module acts as an external interface that can be called through http and delivers: 
 
-A) An interface to ADB, in order to control Android devices from your NEEO remote.\  
+A) An interface to ADB, in order to control Android devices from your NEEO remote.  
 B) An interface to Broadlink that allows sending and learning Infrared codes. It can be fed with more than one protocol: native NEEO (Global Cache), Broadlink. This allows you to send all kinds of Infrared-signals via a small Broadlink device, connected wirelessly, making it possible to control devices that are out of reach of your Brain; for example within a cabinet.
 
 ## Modifications:
