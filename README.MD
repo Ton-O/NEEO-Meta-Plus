@@ -67,7 +67,7 @@ Pythonmanager relies on a couple of packages to perform its work:
 # MetaController.js and ProcessingManager.js
 These have Tinkerhub-mdns and Telnet-client as prerequisiste. Install them with npm install Tinkerhub-mdns and npm install Telnet-client
 
-## Install (please note that I'm shoing whats required, but that I'm creating an install-script that will automate all these steps)
+## Install (please note that I'm showing whats required, but that I'm creating an install-script that will automate all these steps)
 # PythonManager
 Simply place Pythonmanager.py in the same location as meta.
 Then  install the prereqs, running from the meta directory:
