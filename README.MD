@@ -38,7 +38,8 @@ Requests or questions on how to use Meta-Plus with newer versions of meta will n
 This module is a standalone module that was included as integral part of metadriver, but was abondoned when JAC transformed metadiver into meta.
 As it delivers functions that used to be included, but don't work anymore (or completely different), I decided to release this module so it can be used by others as well.
 
-This module acts as an external interface that can be called through http and delivers:
+This module acts as an external interface that can be called through http and delivers: 
+
 A) An interface to ADB, in order to control Android devices from your NEEO remote.
 B) An interface to Broadlink that allows sending and learning Infrared codes. It can be fed with more than one protocol: native NEEO (Global Cache), Broadlink. This allows you to send all kinds of Infrared-signals via a small Broadlink device, connected wirelessly, making it possible to control devices that are out of reach of your Brain; for example within a cabinet.
 
