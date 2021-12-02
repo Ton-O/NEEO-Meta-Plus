@@ -65,9 +65,9 @@ Pythonmanager relies on a couple of packages to perform its work:
 - Broadlink-python; the interface that does most of the work contacting BRoadlink devices
 - PM2; Strictly not required, you can start PythonManager in multiple ways. But PM2 is probably in use for meta already.
 # MetaController.js and ProcessingManager.js
-These have Tinkerhub-mdns as prerequisiste.
+These have Tinkerhub-mdns and Telnet-client as prerequisiste. Install them with npm install Tinkerhub-mdns and npm install Telnet-client
 
-## Install
+## Install (please note that I'm shoing whats required, but that I'm creating an install-script that will automate all these steps)
 # PythonManager
 Simply place Pythonmanager.py in the same location as meta.
 Then  install the prereqs, running from the meta directory:
@@ -77,7 +77,7 @@ Then  install the prereqs, running from the meta directory:
 
 Once done, and if you're planning to use ADB, you can generate a keypair that can be used by ADB (it's not a regular ssh keypair but a customized pair, specific for ADB):
 - start python
-- run this in the python intrpreter
+- run this in the python interpreter
 from adb_shell.auth.keygen import keygen
 keygen('/home/pi/meta/.ssh/adb_key')
 
