@@ -19,7 +19,7 @@ If you decide to use Meta-Plus, then you can get into issues in the future with 
 Though thats a good idea, there are some (good) reasons for not doing that:
 - First it will take an awfull amount of time.
 - Second, some changes are simply not compatible. Discovery for example is based on a totally different solution, yet is at the heart of meta.
-- Third, the current version of meta is basically quite stable (though still containing bugs, a number that I fixed in Meta-Plus), so whats the need for it...
+- Third, the current version of meta is basically quite stable and hasn't been extended for months (though still containing bugs, a number that I fixed in Meta-Plus), so whats the need for it...
 - Fourth: I did that for a long period, but there was no interest in the changes I offered to be integrated; so I've turned away from meta-development and started Meta-Plus.
 
 ## Can I use Meta-Plus and what support do you offer?
