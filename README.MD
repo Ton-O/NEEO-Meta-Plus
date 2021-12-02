@@ -1,29 +1,60 @@
-### Modifications / addons for NEEO/META
-## What's this?
+## Whats this??
+This repository contains an alternate version of meta, originally released by jac459 (https://github.com/jac459/meta).
 
-This repository contains my modifications/addons for JAC459's meta (https://github.com/jac459/meta).
-As JAC459 and my road have seperated, this repository (and all other NEEO/META related ones under this account) are compliant to a snapsnot of meta from 2021-11; I will make no effort anymore to stay compatible with newer versions of meta.
-If you want to use this repository, feel free and don't hesitate to ask any questions, but use it at your own risk and with this constraint in mind. 
-Requests or questions on how to use this with newer versions of meta will not be accepted/answered. 
+## Why an alternate version? 
+Good question! The original version of jac is excellent! In fact (credits where credits due...), I should add that it's a masterpiece... I bow for what he has achieved!!
+So why an alternate one?
+The reason is simple: just like me, jac develops meta mostly for his own needs, but shares the code to others so they can profit from it.
+If he sees fit, he adds pieces to meta for others. I've created many additions to meta and offered them to be included into the original release of meta.
+
+However, that process became too slow or requests weren't honored at all (which is the perogative from an author, of-course).
+
+As these changes are essential for the drivers that I produce (especially for KODI), I started maintaining a separate verison of meta which included new releases from JAC and my own changes.
+That became too much time-consuming, so I decided to take the current version of JAC's meta, duplicate that into my own github repository and stopped looking at the original meta as that basis fits all my needs.
+
+In short: this meta-Plus is a copy of jAC's meta with a lot of extra functions that I see as necessary, but it is a one-time copy of the original version... the basis of meta-plus will not be kept in sync with the original meta.
+
+## Why should I use an outdated version of meta?
+Thats completely up to you! I'm not forcing you to do so;-). 
+If you want to use drivers that I develop (KODI, ADB, Telnet, Broadlink, Tasmota) then you need Meta-Plus. if you're happy with the original meta, please use that one.
+If you decide to use Meta-Plus, then you can get into issues in the future with drivers that are developed for the original meta. Not necessaryly, but it could.
+But thats easily avoided: just keep your original meta running where it is and add Meta-Plus to a separate device so it can live together with its brother. Both can talk to the same NEEO (brain/remote/app) and an extra raspberry pi doesn't cost much nowadays (or use a virtual/docker machine).
+
+## Why don't you just keep Meta-Plus in sync with Meta?
+Though thats a good idea, there are some (good) reasons for not doing that:
+- First it will take an awfull amount of time.
+- Second, some changes are simply not compatible. Discovery for example is based on a totally different solution, yet is at the heart of meta.
+- Third, the current version of meta is basically quite stable and hasn't been extended for months (though still containing bugs, a number that I fixed in Meta-Plus), so whats the need for it...
+- Fourth: I did that for a long period, but there was no interest in the changes I offered to be integrated; so I've turned away from meta-development and started Meta-Plus.
+
+## Can I use Meta-Plus and what support do you offer?
+As said above, I've created Meta-Plus basically for myself so drivers like Kodi, ADB, Telnet and Tasmota can be used fully, not crippled.
+Since I put all my work onto github, you are free to use it. It's free, I'm not going to ask you for donations (in fact, I've decline them in the past), the only thing I'm asking you is to tell me you are using it (ozothe clown et life dit com). 
+If you experience any issues, you are welcome to report them through github-issues. I'm happy to look at them and try to fix them if I see fit, just do not expect gurantees.
+Requests or questions on how to use Meta-Plus with newer versions of meta will not be accepted/answered. 
 
 ## Additions:
 # PythonManager.py
-This module is a standalone module that was included as integral part of meta, but was abondoned by the owner of META.
-As it delivers functions that used to be included, but don't work anymore (or completely different), I decided to release this module so it can be use dby others as well.
+This module is a standalone module that was included as integral part of metadriver, but was abondoned when JAC transformed metadiver into meta.
+As it delivers functions that used to be included, but don't work anymore (or completely different), I decided to release this module so it can be used by others as well.
 
 This module acts as an external interface that can be called through http and delivers:
 A) An interface to ADB, in order to control Android devices from your NEEO remote.
-B) An interface to Broadlink that allows sending and learning Infrared codes. It can be fed with more than one protocol: native NEEO (Global Cache), Broadlink. This allows you to send Infrared via a small Broadlink device, connected wirelessly, making it possible to control devices that are ot of reach of your Brain; for example within a cabinet. 
+B) An interface to Broadlink that allows sending and learning Infrared codes. It can be fed with more than one protocol: native NEEO (Global Cache), Broadlink. This allows you to send all kinds of Infrared-signals via a small Broadlink device, connected wirelessly, making it possible to control devices that are out of reach of your Brain; for example within a cabinet.
 
 ## Modifications:
-# Danger zone.....
-This is the danger zone as it contains modified modules that may introduce instability. 
-In all honesty, this risk is very low as no functions are changed, only code is added. Nevertheless, please remember this IS a risk. 
-# MetaController.js and ProcessingManager.js
-Both modules contain modifications on the meta-versions delivered by JAC459 for one single functinality: fixing the sometimes incorrectly working discovery procedure used in native meta. 
-I've developed the KODI-driver for Meta and have received multile reports of people not being able to discover their KODI-instances. According to my analysis, the used procerdure by meta is the main reason for this. This issue is reported to the owner of meta and might be fixed in the future or it may stay this way.  So I added another discovery-meth9d to meta, that is much more succesful. 
-This required extra code to meta that is included in these two modules.
-I will do my best to keep changres minimally and up-to-date when new version of meta will be released, but cannot guaranty 100% compatibility  over all new releases. 
+# MetaController.js, ProcessingManager.js and directoryHelper.js
+Changes in these modules will:
+- add an alternative discovery method as the original one causes problems to many people
+- add support for connections to multiple MQTT-brokers  
+- add support for MQTT-gets without the need for a listener
+- fix the missing cleanup routines for websocket and mqtt
+- add suppport for listheaders in drectories
+- add a smart search algorithm to browse through longer directory listings (used within KODI, but can be used in any driver).
+- add support for telnet connections
+- add support for ADB-connections over the network
+- add support for sending and learning Infrared codes using both the brain and Broadlink-devices, using various formats; 
+- .....
 
 ## Prerequisites
 # PythonManager
