@@ -16,6 +16,7 @@ In short: this meta-Plus is a copy of jAC's meta with a lot of extra functions t
 Thats completely up to you! I'm not forcing you to do so;-). 
 If you want to use drivers that I develop (KODI, ADB, Telnet, Broadlink, Tasmota) then you need Meta-Plus. if you're happy with the original meta, please use that one.
 If you decide to use Meta-Plus, then you can get into issues in the future with drivers that are developed for the original meta. Not necessaryly, but it could.
+But thats easily avoided: just keep your original meta running where it is and add Meta-Plus to a separate device so it can live together with its brother. Both can talk to the same NEEO (brain/remote/app) and an extra raspberry pi doesn't cost much nowadays (or use a virtual/docker machine).
 
 ## Why don;t you just keep Meta-Plus in sync with Meta?
 Though thats a good idea, there are some (good) reasons for not doing that:
