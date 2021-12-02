@@ -1,7 +1,8 @@
 ## Whats this??
 This repository contains an alternate version of meta, originally released by jac459 (https://github.com/jac459/meta).
 ## Why an alternate version? 
-Good question! The original version of jac is excellent! So why an alternate one?
+Good question! The original version of jac is excellent! In fact (credits where credits due...), I should add that it's a masterpiece... I bow for what he has achieved!!
+So why an alternate one?
 The reason is simple: just like me, jac develops meta mostly for his own needs, but shares the code to others so they can profit from it.
 If he sees fit, he adds pieces to meta for others. I've created many additions to meta and offered them to be included into the original release of meta.
 
