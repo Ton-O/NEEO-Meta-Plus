@@ -1,7 +1,7 @@
-import fs from "fs";
-import path from 'path';
+const  fs = require ( "fs");
+const path = require ( 'path');
 
-import { createLogger,transports,format} from 'winston';
+const { createLogger,transports,format} = require ( 'winston');
 
 const { combine, timestamp, json } = format;
 const logger = createLogger({
@@ -20,17 +20,17 @@ const logger = createLogger({
      ]
  });
 
-import express from 'express';
+const express = require ( 'express');
 
 const server = express();
-import bodyParser from 'body-parser';
- import {
+const bodyParser = require ( 'body-parser');
+ const {
     AndroidRemote,
     RemoteKeyCode,
     RemoteDirection
-} from "androidtv-remote";
+} = require ( "androidtv-remote");
 
-import { resolve } from "path";
+const { resolve } = require ( "path")_;
 
 var Connections = []
 var MyandroidRemote;
@@ -92,8 +92,8 @@ return new Promise(function (resolve, reject) {
 async function HandleDownload(MyType,MyElement,res)
 {
     MyType = MyType.toLowerCase();                  
-    if (["images","irdevices","devices","firmware","cloudstatus"].includes(MyType))
-        {var Path = "/opt/meta/NoCloud/"+MyType
+    if (["images","irdevices","devices","firmware"].includes(MyType))
+        {var Path = "/opt/meta/NoCloud"+MyType
         var FilePath = Path + "/"+MyElement
         var ResolvedPath = path.resolve(FilePath);         // Resolve the path that is defined to the actual path
         if (ResolvedPath.substring(0,Path.length) == Path) // And check to see if the path is not manipulated to download files that aren;t supposed to.
