@@ -1,3 +1,15 @@
+## What's version V1.1 and Why?
+This new version of meta-plus builds upon the previous version (See 'Whats this??' below) but adds:
+- adds a number of protocols that weren't in meta-plus before.
+- improves a number of protocols tghat were in it already
+- Supports "live after NEEO stopped their cloud servers"
+## How can I get this new version?
+I've created this version for my own needs, so the way I work with NEEO and meta is tested and facilitated by tools.
+That means that meta runs "as designed" as a docker-image. Other installation methods will work as well, bit then you're on your own to get it set-up and configured.
+
+So, to answer this question: just download the docker image from my repository on the docker hub, it complete replaces the image if you've got it running now already.  
+You will have to make a modification to the cp6.js program from NEEO that runds on your brain. To be able to do so, your NEEO brain has to be hacked as described before. Then you can replace the file '/opt/cp6/cp6.js' by the new version provided here (<== not yet provided in thios repository)
+
 ## Whats this??
 This repository contains an alternate version of meta, originally released by jac459 (https://github.com/jac459/meta).
 
