@@ -93,7 +93,7 @@ async function HandleDownload(MyType,MyElement,res)
 {
     MyType = MyType.toLowerCase();                  
     if (["images","irdevices","devices","firmware"].includes(MyType))
-        {var Path = "/opt/meta/NoCloud"+MyType
+        {var Path = "/opt/meta/NoCloud/"+MyType
         var FilePath = Path + "/"+MyElement
         var ResolvedPath = path.resolve(FilePath);         // Resolve the path that is defined to the actual path
         if (ResolvedPath.substring(0,Path.length) == Path) // And check to see if the path is not manipulated to download files that aren;t supposed to.
