@@ -30,7 +30,7 @@ const bodyParser = require ( 'body-parser');
     RemoteDirection
 } = require ( "androidtv-remote");
 
-const { resolve } = require ( "path")_;
+const { resolve } = require ( "path");
 
 var Connections = []
 var MyandroidRemote;
