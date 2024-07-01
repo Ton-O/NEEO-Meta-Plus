@@ -32,7 +32,7 @@ var mqttClient;
 //Disable the NEEO library console warning.
 console.error = console.info = console.debug = console.warn = console.trace = console.dir = console.dirxml = console.group = console.groupEnd = console.time = console.timeEnd = console.assert = console.profile = function() {};
 function metaLog(message) {
-  let initMessage = { component:'meta', type:LOG_TYPE.INFO, content:'', deviceId: null };
+  let initMessage = { component:'meta', type:LOG_TYPE.ERROR, content:'', deviceId: null };
   let myMessage = {...initMessage, ...message}
   return metaMessage (myMessage);
 } 
@@ -151,7 +151,7 @@ function networkDiscovery() {
 
 
       setTimeout(() => {
-        metaLog({type:LOG_TYPE.INFO, content:"stopping discovery process."});
+        metaLog({type:LOG_TYPE.WARNING, content:"stopping discovery process."});
         mdns.destroy();
       }, 300000);
     }) 
@@ -187,41 +187,51 @@ function getHelper (HelpTable, prop, deviceId) {
 }
 
 function getIndividualActivatedDrivers(files, driverList, driverIterator) {
-  return new Promise(function (resolve, reject) {
+return new Promise(function (resolve, reject) {
+  try {
     if (files) {
       if (driverIterator < files.length) {
-        if (!files[driverIterator].endsWith(DATASTOREEXTENSION)){ //To separate from datastore
-          metaLog({content:'Activating drivers: ' + files[driverIterator]});
-          fs.readFile(path.join(activatedModule,files[driverIterator]), (err, data) => {
-            if (data) {
-              try {
-                const driver = JSON.parse(data);
-                driver.filename = files[driverIterator];
-                if (driver.template) { //persisted variables management
-                  driver.template.filename = files[driverIterator];
+        if (files[driverIterator].endsWith(".json")) {
+           if (!files[driverIterator].endsWith(DATASTOREEXTENSION)){ //To separate from datastore
+            metaLog({content:'Activating drivers: ' + files[driverIterator]});
+            fs.readFile(path.join(activatedModule,files[driverIterator]), (err, data) => {
+              if (data) {
+                try {
+                  const driver = JSON.parse(data);
+                  driver.filename = files[driverIterator];
+                  if (driver.template) { //persisted variables management
+                    driver.template.filename = files[driverIterator];
+                  }
+                  driverList.push(driver);
                 }
-                driverList.push(driver);
-              }
-              catch (err) {
-                metaLog({type:LOG_TYPE.ERROR, content:' Parsing driver : ' + files[driverIterator]});
+                catch (err) {
+                  metaLog({type:LOG_TYPE.ERROR, content:' Parsing driver : ' + files[driverIterator]});
+                  metaLog({type:LOG_TYPE.ERROR, content:err});
+                }
+              } // if (data)
+              if (err) {
+                metaLog({type:LOG_TYPE.ERROR, content:'Loading the driver file : ' + files[driverIterator]});
                 metaLog({type:LOG_TYPE.ERROR, content:err});
+              }  //if (err)
+              resolve(getIndividualActivatedDrivers(files, driverList, driverIterator+1));
+            }) //readFile
+          }  // .endsWith(DATASTOREEXTENSION)
+          else {//console.log("Skipping datastore",files[driverIterator]);
+              resolve(getIndividualActivatedDrivers(files, driverList, driverIterator+1));
               }
+        } //endsWith(".json"
+        else {metaLog({type:LOG_TYPE.ERROR, content:'Skipping unknown extension '+files[driverIterator]});
+             resolve(getIndividualActivatedDrivers(files, driverList, driverIterator+1));
             }
-            if (err) {
-              metaLog({type:LOG_TYPE.ERROR, content:' Loading the driver file : ' + files[driverIterator]});
-              metaLog({type:LOG_TYPE.ERROR, content:err});
-          }
-            resolve(getIndividualActivatedDrivers(files, driverList, driverIterator+1));
-          })
-        }
-        else {resolve(getIndividualActivatedDrivers(files, driverList, driverIterator+1));}
-      } 
+      } //(driverIterator < files.length)
       else { 
         resolve(driverList)
        }
     }
     else {resolve([])
     }
+  }
+  catch (err) {metaLog({type:LOG_TYPE.ERROR, content:"Error occurred during driver load "+err})}
   })
 }
 
@@ -329,7 +339,7 @@ function instanciationHelper(controller, givenResult, jsonDriver) {
     }
     recontructedDriver = controller.vault.readVariables(recontructedDriver, DEFAULT);
     metaLog({type:LOG_TYPE.VERBOSE, content:'Driver has been reconstructed.'});
-    metaLog({type:LOG_TYPE.DEBUG, content:recontructedDriver});
+    //metaLog({type:LOG_TYPE.DEBUG, content:recontructedDriver});
 
     return JSON.parse(recontructedDriver);
   }
@@ -389,6 +399,7 @@ function discoveryDriverPreparator(controller, driver, deviceId) {
             metaLog({type:LOG_TYPE.ERROR, content:'Driver has no ToInitiate Persisted Variable.'});
             metaLog({type:LOG_TYPE.ERROR, content:err});
           })
+
       }
       else {
         resolve();
@@ -536,6 +547,7 @@ function executeDriverCreation (driver, hubController, passedDeviceId) {
         theDevice.setIcon(driver.icon)
       }
       if (driver.alwayson) {
+        metaLog({deviceId: deviceId, type:LOG_TYPE.INFO, content:"Driver "+driver.name+" requested with always ON "});
         theDevice.addCapability("alwaysOn");
       }
       if (theDevice.supportsTiming()) {theDevice.defineTiming({ powerOnDelayMs: 200, sourceSwitchDelayMs: 50, shutdownDelayMs: 100 })};
@@ -554,9 +566,14 @@ function executeDriverCreation (driver, hubController, passedDeviceId) {
           }
         }
       }
-
       controller.vault.initialiseVault(getDataStorePath(driver.filename)).then(() => {//Retrieve the value form the vault
-
+      if (driver.discover)
+        if (driver.discover.useHub)
+          {metaLog({deviceId: deviceId, type:LOG_TYPE.VERBOSE, content:"Trying to get HUB-datastore from: "+driver.discover.useHub})
+          let bb = controller.vault.initialiseHubVault(path.join(settings.activeLibrary,driver.discover.useHub + '-DataStore.json'))
+          if (bb == "")
+            metaLog({deviceId: deviceId, type:LOG_TYPE.ERROR, content:"HUB-datastore not available..."})
+        }
       //CREATING CONTROLLERS
       assignControllers(controller, driver, deviceId);
 
@@ -567,6 +584,9 @@ function executeDriverCreation (driver, hubController, passedDeviceId) {
       }
       if (driver.socketIO) {
         controller.addConnection({"name":"socketIO", "descriptor":driver.socketIO, "connector":"", "deviceId":deviceId})
+      }
+      if (driver.net) {
+        controller.addConnection({"name":"net", "descriptor":driver.net, "connector":"", "deviceId":deviceId})
       }
       if (driver.jsontcp) {
         controller.addConnection({"name":"jsontcp", "descriptor":driver.jsontcp, "connector":"", "deviceId":deviceId})
@@ -582,12 +602,10 @@ function executeDriverCreation (driver, hubController, passedDeviceId) {
       if (driver.repl) {
         controller.addConnection({"name":"repl", "descriptor":driver.repl, "connector":"", "deviceId":deviceId})
       }
-    console.log("Done adding all connections")
       //Registration
       if (driver.register) {
         //need to test internal variable here.... same story than discovery my friend...
 //        prepareCommand(controller, driver.register.commandset, deviceId, 0).then(()=> {
-        
           theDevice.enableRegistration(
           {
             type: 'SECURITY_CODE',
@@ -598,42 +616,52 @@ function executeDriverCreation (driver, hubController, passedDeviceId) {
             register: (credentials) => getRegistrationCode(controller, credentials, driver, deviceId),
             isRegistered: () => {return new Promise(function (resolve, reject) {isDeviceRegistered(controller, driver, deviceId).then((res)=>{resolve(res)})})},
           })
-//      })
       }
 
       //DISCOVERY  
       if (driver.discover) {
         metaLog({deviceId: deviceId, type:LOG_TYPE.WARNING, content:'Creating discovery process for ' + controller.name});
+
         theDevice.enableDiscovery(
           {
             headerText: driver.discover.welcomeheadertext,
             description: driver.discover.welcomedescription,
             enableDynamicDeviceBuilder: true,
           },
-          
-          (targetDeviceId) => {console.log("meta.js ",targetDeviceId)
-            return new Promise(function (resolve, reject) {
-              const formatedTable = [];
-              metaLog({deviceId: deviceId, type:LOG_TYPE.INFO, content:'Discovering this device:'});
-              metaLog({deviceId: deviceId, type:LOG_TYPE.INFO, content:targetDeviceId});
-              if (targetDeviceId) {
-                let ind = controller.discoveredDevices.findIndex(dev => {return dev.id == targetDeviceId});
-                if (ind>=0) {
-                  metaLog({deviceId: deviceId, type:LOG_TYPE.INFO, content:"DRIVER CACHE USED"});
-                  formatedTable.push(controller.discoveredDevices[ind]);
-                  resolve(formatedTable); 
-                  return;
-                }
+          (targetDeviceId) => {
+              let ind0 = controller.discoveredDevices.findIndex(dev => {return dev.id == targetDeviceId});
+              if (ind0>=0) {
+                metaLog({deviceId: deviceId, type:LOG_TYPE.INFO, content:"And we have found it"});
+                metaLog({deviceId: deviceId, type:LOG_TYPE.VERBOSE, content:'Skipping duplicate discovery of device:'}); 
+                metaLog({deviceId: deviceId, type:LOG_TYPE.VERBOSE, content:targetDeviceId});
               }
-              console.log("meta.js continue")
-              discoveryDriverPreparator(controller, driver, deviceId).then((driverList) => {
-                console.log("META.JS DRIVERLIST",driverList.length)
-                discoveredDriverListBuilder(driverList, formatedTable, 0, controller, targetDeviceId, driver).then((outputTable) => {
-                  outputTable.forEach(output => {if (controller.discoveredDevices.findIndex(dev => {dev.id == output.id})<0) {controller.discoveredDevices.push(output)}});
-                  resolve(outputTable); 
+              else {
+                metaLog({deviceId: deviceId, type:LOG_TYPE.INFO, content:"Device was not created before: "});
+                metaLog({deviceId: deviceId, type:LOG_TYPE.VERBOSE, content:targetDeviceId});
+                return new Promise(function (resolve, reject) {
+                  const formatedTable = [];
+
+                  metaLog({deviceId: deviceId, type:LOG_TYPE.INFO, content:'Discovering this device:'});
+                  metaLog({deviceId: deviceId, type:LOG_TYPE.INFO, content:targetDeviceId});
+
+                  if (targetDeviceId) {
+                    let ind = controller.discoveredDevices.findIndex(dev => {return dev.id == targetDeviceId});
+                    if (ind>=0) {
+                      metaLog({deviceId: deviceId, type:LOG_TYPE.INFO, content:"DRIVER CACHE USED"});
+                      formatedTable.push(controller.discoveredDevices[ind]);
+                      resolve(formatedTable); 
+                      return;
+                    }
+                  }
+                  discoveryDriverPreparator(controller, driver, deviceId).then((driverList) => {
+                    discoveredDriverListBuilder(driverList, formatedTable, 0, controller, targetDeviceId, driver).then((outputTable) => {
+                      outputTable.forEach(output => {if (controller.discoveredDevices.findIndex(dev => {dev.id == output.id})<0) {controller.discoveredDevices.push(output)}});
+                      resolve(outputTable); 
+                    })
+                  })
                 })
-              })
-            })
+
+              }
           }
         )
       }
@@ -916,18 +944,18 @@ function enableMQTT (cont, deviceId) {
       }
   })
 }
-
 //MAIN
 process.chdir(__dirname);
 
 if (process.argv.length>2) {
   try {
+
     if (process.argv[2]) {
       let arguments = JSON.parse(process.argv[2]);
       if (arguments.Brain) {
         brainConsoleGivenIP = arguments.Brain;
       }
-      if (arguments.LogSeverity) {
+      if (arguments.LogSeverity) {console.log("setting metamessage init level")
         initialiseLogSeverity(arguments.LogSeverity);
       }
       if (arguments.Components) {
@@ -946,6 +974,7 @@ if (process.argv.length>2) {
     process.exit();
   }
 }
+metaLog({type:LOG_TYPE.INFO, content:'META Starting'});
 
 getConfig().then(() => {
     networkDiscovery();

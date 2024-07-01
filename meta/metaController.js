@@ -22,12 +22,15 @@ const CLI = 'cli';
 const REPL = 'repl';
 const WEBSOCKET = 'webSocket';
 const SOCKETIO = 'socketIO';
+const NET = 'net';
+const TELNET = 'telnet';
+const LOGLEVEL = 'loglevel';
 const JSONTCP = 'jsontcp';
 const MQTT = 'mqtt';
 const WOL = 'wol';
 const MDNS = 'mDNS';
 const dnssd = 'dnssd';
-const { ProcessingManager, httpgetProcessor, httprestProcessor, httpgetSoapProcessor, httppostProcessor, cliProcessor, staticProcessor, webSocketProcessor, jsontcpProcessor, mqttProcessor, socketIOProcessor, mDNSProcessor, dnssdProcessor, wolProcessor, replProcessor } = require('./ProcessingManager');
+const { ProcessingManager, httpgetProcessor, httprestProcessor, httpgetSoapProcessor, httppostProcessor, cliProcessor, staticProcessor, webSocketProcessor, jsontcpProcessor, mqttProcessor, socketIOProcessor, NetProcessor,TelnetProcessor,LogLevelProcessor,mDNSProcessor, dnssdProcessor, wolProcessor, replProcessor } = require('./ProcessingManager');
 const { metaMessage, LOG_TYPE } = require("./metaMessage");
 
 const processingManager = new ProcessingManager();
@@ -38,6 +41,9 @@ const myCliProcessor = new cliProcessor();
 const myStaticProcessor = new staticProcessor();
 const myWebSocketProcessor = new webSocketProcessor();
 const mySocketIOProcessor = new socketIOProcessor();
+const myNetProcessor = new NetProcessor();
+const myTelnetProcessor = new TelnetProcessor();
+const myLogLevelProcessor = new LogLevelProcessor();
 const myWolProcessor = new wolProcessor();
 const myJsontcpProcessor = new jsontcpProcessor();
 const myMqttProcessor = new mqttProcessor();
@@ -99,7 +105,6 @@ module.exports = function controller(driver) {
       //we add the interrested devices list to this listener. Interrested concept is needed for hub listener where the observer for one device may interest other devices.
       params.interested = [];
       params.interested.push(params.deviceId);
-
 
       if (params.evalwrite) {
          params.evalwrite.forEach(pEw => {//for dynamic devices, tracking of which variables to write on.
@@ -226,7 +231,6 @@ module.exports = function controller(driver) {
       if (givenResult && !(typeof(givenResult) in {'string':'', 'number':'', 'boolean':''}) ) {//in case the response is a json object, convert to string
         givenResult = JSON.stringify(givenResult);
       }
-     
       if (typeof(inputChain) == 'string') {
         if (inputChain.startsWith('DYNAMIK ')) {
           if (givenResult && (typeof(givenResult) == 'string' )) {
@@ -237,7 +241,7 @@ module.exports = function controller(driver) {
           while (inputChain != inputChain.replace(Pattern, givenResult)) {
             inputChain = inputChain.replace(Pattern, givenResult);
           }
-          metaLog({type:LOG_TYPE.DEBUG, content:'Assign To Before Eval. ' + inputChain});
+          metaLog({type:LOG_TYPE.VERBOSE, content:'Assign To Before Eval. ' + inputChain});
           let evaluatedValue = eval(inputChain.split('DYNAMIK ')[1]);
           metaLog({type:LOG_TYPE.VERBOSE, content:'Assign To After Eval. ' + evaluatedValue});
           return evaluatedValue;
@@ -261,12 +265,11 @@ module.exports = function controller(driver) {
 //    metaLog({type:LOG_TYPE.VERBOSE, content:evalwrite, deviceId:deviceId});
     if (evalwrite) { //case we want to write inside a variable
       evalwrite.forEach(evalW => {
-        if (evalW.deviceId) {deviceId = evalW.deviceId} //this is specific for listeners and discovery, when one command should be refreshing data of multiple devices (example hue bulbs)
-        
+        if (evalW.deviceId) {deviceId = evalW.deviceId} //this is specific for listeners and discovery, when one command should be refreshing data of multiple devices (example hue bulbs)        
         //process the value
         let finalValue = self.vault.readVariables(evalW.value, deviceId);
         finalValue = self.assignTo(RESULT, finalValue, result);
-        metaLog({type:LOG_TYPE.INFO, content:"Value to EvalWrite: " + finalValue, deviceId:deviceId});
+        metaLog({type:LOG_TYPE.VERBOSE, content:"Value to EvalWrite: " + finalValue, deviceId:deviceId});
         self.vault.writeVariable(evalW.variable, finalValue, deviceId); 
       });
     }
@@ -277,9 +280,9 @@ module.exports = function controller(driver) {
       evaldo.forEach(evalD => {
         if (evalD.test == '' || evalD.test == true) {evalD.test = true;} //in case of no test, go to the do function
         let finalDoTest = self.vault.readVariables(evalD.test, deviceId);// prepare the test to assign variable and be evaluated.
-        metaLog({type:LOG_TYPE.INFO, content:"Intermediate Result to evaldo: " + finalDoTest, deviceId:deviceId});
+        metaLog({type:LOG_TYPE.VERBOSE, content:"Intermediate Result to evaldo: " + finalDoTest, deviceId:deviceId});
         finalDoTest = self.assignTo(RESULT, finalDoTest, result);
-        metaLog({type:LOG_TYPE.INFO, content:"Result to evaldo: " + finalDoTest, deviceId:deviceId});
+        metaLog({type:LOG_TYPE.VERBOSE, content:"Result to evaldo: " + finalDoTest, deviceId:deviceId});
         if (finalDoTest) {
           if (evalD.then && evalD.then != '')
           {
@@ -339,6 +342,15 @@ module.exports = function controller(driver) {
     else if (commandtype == SOCKETIO) {
       processingManager.processor = mySocketIOProcessor;
     }
+    else if (commandtype == NET) {
+      processingManager.processor = myNetProcessor;
+    }
+    else if (commandtype == TELNET) {
+      processingManager.processor = myTelnetProcessor;
+    }
+    else if (commandtype == LOGLEVEL) {
+      processingManager.processor = myLogLevelProcessor;
+    }
     else if (commandtype == WOL) {
       processingManager.processor = myWolProcessor;
     }
@@ -377,8 +389,6 @@ module.exports = function controller(driver) {
 
   this.wrapUpProcessor = function(commandtype, deviceId) { // close communication protocoles
     return new Promise(function (resolve, reject) {
-      console.log("Wrapup for",commandtype,deviceId)
-
       self.assignProcessor(commandtype); //to get the correct processing manager.
       processingManager.wrapUp(self.getConnection(commandtype, deviceId))
         .then((result) => {
@@ -395,6 +405,7 @@ module.exports = function controller(driver) {
         self.assignProcessor(commandtype);
         const connection = self.getConnection(commandtype, deviceId);
         command = self.vault.readVariables(command, deviceId);
+
         command = self.assignTo(RESULT, command, '');
         const params = {'command' : command, 'connection' : connection};
         metaLog({type:LOG_TYPE.VERBOSE, content:'Final command to be processed: '+command+ ' - ' + commandtype, deviceId:deviceId});
@@ -403,7 +414,7 @@ module.exports = function controller(driver) {
             metaLog({type:LOG_TYPE.DEBUG, content:'Result of the command to be processed: '+result, deviceId:deviceId});
             resolve(result);
           })
-          .catch((err) => {reject (err);});
+          .catch((err) => {console.log("MC Rejected process",err);reject (err);});
       }
       catch (err) {
         metaLog({type:LOG_TYPE.VERBOSE, content:'Error when executing the command:', deviceId:deviceId});
@@ -444,6 +455,7 @@ module.exports = function controller(driver) {
   };
 
   this.queryProcessor = function (data, query, commandtype, deviceId) { // process any command according to the target protocole
+
     return new Promise(function (resolve, reject) {
       try {
         self.assignProcessor(commandtype);
@@ -456,24 +468,33 @@ module.exports = function controller(driver) {
         else {
           myQueryT = query;
         }
+
         for (let index = 0; index < myQueryT.length; index++) { //process all the query result in parallele.
+
           const mypromise = new Promise ((resolve, reject) => {
             myQueryT[index] = self.vault.readVariables(myQueryT[index], deviceId);
             const params = {'query' : myQueryT[index], 'data' : data};
+
             processingManager.query(params).then((data) => {
               resolve(data);
             });
           });
+
           promiseT.push(mypromise);
         }
+
         Promise.all(promiseT).then((values) => {
+
           metaLog({type:LOG_TYPE.DEBUG, content:'Result of all query processors : ' + values, deviceId:deviceId});
+
           if (values.length == 1) {
             resolve(values[0]);
           }
           else {
+
             const result = [];
             if (values[0]) {
+
                 for (let index = 0; index < values[0].length; index++) {
                   const cell = [];
                   for (let index2 = 0; index2 < values.length; index2++) {
@@ -509,7 +530,7 @@ module.exports = function controller(driver) {
           if (listener.interestedAndUsing.findIndex(devId => {return devId == deviceId})<0) {
             listener.interestedAndUsing.push(deviceId);
           } //CHANGE IN LISTENER LOGIC AS WE LISTEN PROCESSOR ANYWAY
-            metaLog({type:LOG_TYPE.INFO, content:"Listener will listen to command: " + listener.command, deviceId:deviceId});
+            metaLog({type:LOG_TYPE.DEBUG, content:"Listener will listen to command: " + listener.command, deviceId:deviceId});
             self.listenProcessor(listener, deviceId);
 
         }
@@ -520,7 +541,7 @@ module.exports = function controller(driver) {
   
   this.actionManager = function (deviceId, commandtype, command, queryresult, evaldo, evalwrite) {
     return new Promise(function (resolve, reject) {
-      try {
+//      try {
         self.commandProcessor(command, commandtype, deviceId)
         .then((result) => {
           self.queryProcessor(result, queryresult, commandtype, deviceId).then((result) => {
@@ -538,8 +559,9 @@ module.exports = function controller(driver) {
           if (evaldo) {self.evalDo(evaldo, result, deviceId);}
           resolve('Error during the post command processing' + result);
         }); 
-      }
-      catch {reject('Error while processing the command.');}
+  /*    }
+      catch {
+      reject('Error while processing the command.');}*/
     });
   };
 
@@ -567,7 +589,10 @@ module.exports = function controller(driver) {
   
   this.onButtonPressed = function(name, deviceId) {
     return new Promise(function (resolve, reject) {
-      metaLog({type:LOG_TYPE.WARNING, content:'[CONTROLLER] - ' + name + ' - button pressed', deviceId:deviceId});
+      if (name.substr(0,2)!="__")
+        metaLog({type:LOG_TYPE.WARNING, content:'[CONTROLLER] - ' + name + ' - button pressed', deviceId:deviceId});
+      else 
+        metaLog({type:LOG_TYPE.VERBOSE, content:'[CONTROLLER] - ' + name + ' - button pressed', deviceId:deviceId});
       if (name == '__INITIALISE') {//Device resources and connection management.
         self.initialise(deviceId);
       }
@@ -582,6 +607,7 @@ module.exports = function controller(driver) {
           self.wrapUpProcessor(connection.name, deviceId);
         });
       }
+
       if (name == '__PERSIST') {//Device resources and connection management.
         self.vault.snapshotDataStore();
       }
@@ -594,7 +620,7 @@ module.exports = function controller(driver) {
         if (theButton.command != undefined){ 
           self.actionManager(deviceId, theButton.type, theButton.command, theButton.queryresult, theButton.evaldo, theButton.evalwrite)
           .then(()=>{
-            metaLog({type:LOG_TYPE.VERBOSE, content:'Button Action Done.', deviceId:deviceId});
+            metaLog({type:LOG_TYPE.VERBOSE, content:'Button ' + name + '  done.', deviceId:deviceId});
             resolve('Action done.');
           })
           .catch((err) => { 
