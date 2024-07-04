@@ -1358,15 +1358,14 @@ process(params) {
             }
           else
             try {
+            try 
+            {
+              metaLog({type:LOG_TYPE.INFO, content:"Connector: "+_this.listenerConnections[_this.connectionIndex].connector.pendingData});
+            }
+            catch(err) {console.log("Error showing pendingData ",err)}
               if (params.command.CallType == "exec")
-                try {let Myresult=''; // first clear the response-queue, so we can capture OUR response.
-                  do {
-                    _this.listenerConnections[_this.connectionIndex].connector.read(params.command.message,
-                      (Myresult) => { 
-                        console.log("return from read:",Myresult)
-                      })  
-                  } while (Myresult!='')
-              _this.listenerConnections[_this.connectionIndex].connector.Qexec(params.command.message,
+                try {
+              _this.listenerConnections[_this.connectionIndex].connector.exec(params.command.message,
                   (err,Myresult) => { 
                   try {
                     if (err != null)
@@ -1390,26 +1389,30 @@ process(params) {
               }
               catch (err) {console.log("Telnetclient suffered a fatal exec error:",err);reject(err)}
               else     
-              if (params.command.CallType == "dExec") {
-                metaLog({type:LOG_TYPE.DEBUG, content:"delayed exec"});
-                metaLog({type:LOG_TYPE.DEBUG, content:"Exec delayed exec "+params.command.message});
-//              _this.listenerConnections[_this.connectionIndex].connector.exec(params.command.message,
-                _this.Qexec(_this.listenerConnections[_this.connectionIndex].connector,params.command.message,
-                (result,Myresult) => { 
+              if (params.command.CallType == "dexec") {
+                metaLog({type:LOG_TYPE.ERROR, content:"Delaying call " +params.command.message});
+                setTimeout(() => {
+                  metaLog({type:LOG_TYPE.ERROR, content:"doing call " +params.command.message});
+                  _this.listenerConnections[_this.connectionIndex].connector.exec(params.command.message,
+                (
+                  result,Myresult) => { 
                   try {
-                  if (Myresult == undefined || Myresult == '')
-                      {resolve('');
-                  }
-                  console.log("PM continue 5")
-
-                  Myresult=Myresult.toString('utf8').replace(/\r/g, '').replace(/\'/g, '"');
-                  Myresult="{\"Message\":\""+Myresult+"\"}";
-                  if (typeof(Myresult) == "string" )
-                    Myresult = JSON.parse(Myresult);
-                  resolve(Myresult); 
+                    if (Myresult == undefined || Myresult == '')
+                        {resolve('');
+                    }
+                    else 
+                    {
+                      Myresult=Myresult.toString('utf8').replace(/\r/g, '').replace(/\'/g, '"');
+                      Myresult="{\"Message\":\""+Myresult+"\"}";
+                      if (typeof(Myresult) == "string" )
+                        Myresult = JSON.parse(Myresult);
+                      resolve(Myresult); 
+                      }
                   }
                   catch (err) {metaLog({type:LOG_TYPE.ERROR, content:"Error handling promise to exec " +err});}
-                })
+                  })
+                },                  
+                params.command.delaytime ? params.command.delaytime :2500)                
               }
                 else
                 if (params.command.CallType == "send")
