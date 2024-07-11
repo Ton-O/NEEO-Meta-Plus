@@ -33,12 +33,10 @@ const bodyParser = require ( 'body-parser');
 const { resolve } = require ( "path");
 
 var Connections = []
-var MyandroidRemote;
+var myAndroidRemote;
 var MyHost;
 var MyCert = {cert: "",key:""}
 var NewCode
-var answer;
-var ac;
 var Coderequested=false;
 
 
@@ -51,39 +49,38 @@ return new Promise(function (resolve, reject) {
     remote_port : 6466,
     name : 'androidtv-remote', 
     cert : MyCerts}
-    MyandroidRemote = new AndroidRemote(host, options)
-    var rl;
-    MyandroidRemote.on('secret', () => {
-        logger.debug(`We need a new secret; provide this via web interface port 6468 please`);
+    myAndroidRemote = new AndroidRemote(host, options)
+    myAndroidRemote.on('secret', () => {
+        logger.debug(`We need a new secret; provide this via web interface please (for example: port http://10.0.1.99:6468/secret?secret=1cba6d )`);
         Coderequested=true;                 // set signal that we need a secret code (provided via web-interface of this container)
         }
     )
 
-    MyandroidRemote.on('powered', (powered) => {
+    myAndroidRemote.on('powered', (powered) => {
         logger.debug(`Powered: ${powered}`);
     });
 
-    MyandroidRemote.on('volume', (volume) => {
+    myAndroidRemote.on('volume', (volume) => {
         logger.debug(`Volume: ${volume.level} / ${volume.maximum} | Muted : " + ${volume.muted}`);
     });
 
-    MyandroidRemote.on('current_app', (current_app) => {
+    myAndroidRemote.on('current_app', (current_app) => {
         logger.debug(`Current App : ${current_app}`);
     });
 
-    MyandroidRemote.on('error', (error) => {
+    myAndroidRemote.on('error', (error) => {
         logger.debug(`Error: ${error}`);
     });
 
-    MyandroidRemote.on('unpaired', () => {
+    myAndroidRemote.on('unpaired', () => {
         logger.debug(`Unpaired`);
     });
 
-    MyandroidRemote.on('ready',  () => {
+    myAndroidRemote.on('ready',  () => {
         logger.debug(`Connection with GoogleTV is ready`);
-        resolve(MyandroidRemote)
+        resolve(myAndroidRemote)
     });
-    MyandroidRemote.start().then (() => {
+    myAndroidRemote.start().then (() => {
     })
     
   })
@@ -100,7 +97,7 @@ async function HandleDownload(MyType,MyElement,res)
             {logger.info(`Request to download type  ${MyType} ${MyElement}`)
             //var myFile = new File(ResolvedPath);
             if (fs.existsSync(ResolvedPath))
-                {logger.info(`File succesafuly downloaded: ${ResolvedPath}`)
+                {logger.info(`File successfuly downloaded: ${ResolvedPath}`)
                     res.download(ResolvedPath)
                 }
             else
@@ -123,19 +120,21 @@ async function FillInCodeRequest(code)
 {
     logger.info("Sending code");
     logger.info(code);
-    MyandroidRemote.sendCode(code);
+    myAndroidRemote.sendCode(code);
     logger.info("Need to get new certificate")
     let NewCert = MyCert;
     if (NewCert.key.length == 0)  { 
         logger.info("Need to get new certificate")
-        NewCert = MyandroidRemote.getCertificate();
+        NewCert = myAndroidRemote.getCertificate();
         logger.info(`Writing certificates to .ssh`)    
-        fs.writeFile('/opt/meta/.ssh/GoogleCert.pem',  JSON.stringify(NewCert.cert), function(err) {
-            if (err) throw err;
+        fs.writeFile('/opt/meta/.ssh/GoogleCert.pem',  JSON.stringify(NewCert.cert), (err) =>
+            { if (err)
+                throw err;
             logger.info('Write cert complete');
             });  
-        fs.writeFile('/opt/meta/.ssh/GoogleKey.pem',    JSON.stringify(NewCert.key), function(err) {
-            if (err) throw err;
+        fs.writeFile('/opt/meta/.ssh/GoogleKey.pem',    JSON.stringify(NewCert.key), (err) => 
+            {if (err) 
+                throw err;
             logger.info('Write key complete');
             });  
     }
@@ -147,7 +146,7 @@ async function LoadCert()
         if (err) {
             logger.info("No certificates to load")
         } else {
-            logger.info("Certificates available, we now load them")
+            logger.info("Certificates available, we will now load them")
             let cert = fs.readFileSync('/opt/meta/.ssh/GoogleCert.pem')
             let key = fs.readFileSync('/opt/meta/.ssh/GoogleKey.pem')
             MyCert.cert = JSON.parse(cert)
@@ -157,7 +156,7 @@ async function LoadCert()
 }
 async function Handle_NewSecretCode(Newcode) 
 {let MyMessage;
-    //http://192.168.73.194:6468/secret?secret=fced8e
+    //http://10.0.0.99:6468/secret?secret=fced8e
     logger.info(`Received secret code: ${Newcode}`);
     if (Coderequested == true)
     {    MyMessage =  "Thank you for code " + Newcode;
@@ -166,7 +165,6 @@ async function Handle_NewSecretCode(Newcode)
     }
     else
          MyMessage =  "Thanks for providing this code, but no pairing code was asked for....";        
-
     logger.info(MyMessage);
     return MyMessage;
 
@@ -286,7 +284,6 @@ async function sendAppLink(AppLink) {
             default:
                 res.json({"Status": "Error"});
                 logger.info(`resolve default`)
- //               resolve()
                 return;
                 break;
     }
@@ -296,25 +293,24 @@ async function sendAppLink(AppLink) {
 function GetConnection(MyHost) {
   return new Promise(function (resolve, reject) {
 
-    let Connecton = ""
     logger.debug(`Checking availability of connection`);
     let connectionIndex = Connections.findIndex((con) => {return con.Host == MyHost});
     if  (connectionIndex < 0) {
         logger.debug(`Connection not yet created, doing now for: ${MyHost}`)
         getSession(MyHost,MyCert).then ((Connection) => { 
 	        GotSession(Connection);
-            MyandroidRemote = Connection;
+            myAndroidRemote = Connection;
             resolve(Connection); 
         })
 	}
     else {
-        MyandroidRemote = Connections[connectionIndex].Connector
-        resolve(MyandroidRemote)
+        myAndroidRemote = Connections[connectionIndex].Connector
+        resolve(myAndroidRemote)
     }
     })
  }
 function GotSession(Connection) {
-    MyandroidRemote = Connection 
+    myAndroidRemote = Connection 
     Connections.push({"Host": MyHost, "Connector": Connection});
 }
 main();
