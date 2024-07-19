@@ -1358,15 +1358,10 @@ process(params) {
             }
           else
             try {
-            try 
-            {
-              metaLog({type:LOG_TYPE.INFO, content:"Connector: "+_this.listenerConnections[_this.connectionIndex].connector.pendingData});
-            }
-            catch(err) {console.log("Error showing pendingData ",err)}
               if (params.command.CallType == "exec")
                 try {
-              _this.listenerConnections[_this.connectionIndex].connector.exec(params.command.message,
-                  (err,Myresult) => { 
+                  _this.listenerConnections[_this.connectionIndex].connector.exec(params.command.message,
+                      (err,Myresult) => { 
                   try {
                     if (err != null)
                       {metaLog({type:LOG_TYPE.ERROR, content:"Cmd failed: "+err})
@@ -1397,22 +1392,22 @@ process(params) {
                 (
                   result,Myresult) => { 
                   try {
-                    if (Myresult == undefined || Myresult == '')
-                        {resolve('');
-                    }
-                    else 
-                    {
-                      Myresult=Myresult.toString('utf8').replace(/\r/g, '').replace(/\'/g, '"');
-                      Myresult="{\"Message\":\""+Myresult+"\"}";
-                      if (typeof(Myresult) == "string" )
-                        Myresult = JSON.parse(Myresult);
-                      resolve(Myresult); 
+                  if (Myresult == undefined || Myresult == '')
+                      {resolve('');
                       }
-                  }
-                  catch (err) {metaLog({type:LOG_TYPE.ERROR, content:"Error handling promise to exec " +err});}
-                  })
-                },                  
-                params.command.delaytime ? params.command.delaytime :2500)                
+                      else 
+                      {
+                        Myresult=Myresult.toString('utf8').replace(/\r/g, '').replace(/\'/g, '"');
+                        Myresult="{\"Message\":\""+Myresult+"\"}";
+                        if (typeof(Myresult) == "string" )
+                          Myresult = JSON.parse(Myresult);
+                        resolve(Myresult); 
+                        }
+                    }
+                    catch (err) {metaLog({type:LOG_TYPE.ERROR, content:"Error handling promise to exec " +err});}
+                })
+              },                  
+              params.command.delaytime ? params.command.delaytime :2500)                
               }
                 else
                 if (params.command.CallType == "send")

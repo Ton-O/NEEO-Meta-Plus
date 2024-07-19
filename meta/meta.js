@@ -546,6 +546,15 @@ function executeDriverCreation (driver, hubController, passedDeviceId) {
       if (driver.icon) {
         theDevice.setIcon(driver.icon)
       }
+      if (driver.deviceCapabilities) {
+        try {
+        driver.deviceCapabilities.forEach(capa => {
+            metaLog({deviceId: deviceId, type:LOG_TYPE.INFO, content:"Driver "+driver.name+" has device capability "+capa+"added"});
+            theDevice.addCapability(capa);
+        })
+    }
+    catch (err) {console.log("Handling device capabilities got an error",err)}
+      }      
       if (driver.alwayson) {
         metaLog({deviceId: deviceId, type:LOG_TYPE.INFO, content:"Driver "+driver.name+" requested with always ON "});
         theDevice.addCapability("alwaysOn");
