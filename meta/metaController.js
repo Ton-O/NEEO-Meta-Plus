@@ -43,6 +43,7 @@ const myWebSocketProcessor = new webSocketProcessor();
 const mySocketIOProcessor = new socketIOProcessor();
 const myNetProcessor = new NetProcessor();
 const myTelnetProcessor = new TelnetProcessor();
+const NEEOAPIProcessor = new NEEOAPIProcessor();
 const myLogLevelProcessor = new LogLevelProcessor();
 const myWolProcessor = new wolProcessor();
 const myJsontcpProcessor = new jsontcpProcessor();
@@ -347,6 +348,9 @@ module.exports = function controller(driver) {
     }
     else if (commandtype == TELNET) {
       processingManager.processor = myTelnetProcessor;
+    }
+    else if (commandtype == NEEOAPI) {
+      processingManager.processor = NEEOAPIProcessor;
     }
     else if (commandtype == LOGLEVEL) {
       processingManager.processor = myLogLevelProcessor;

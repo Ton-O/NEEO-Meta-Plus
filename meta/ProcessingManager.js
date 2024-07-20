@@ -8,7 +8,7 @@ const rpc = require('json-rpc2');
 const lodash = require('lodash');
 var xml2js = require('xml2js');
 const { parserXMLString, xmldom } = require("./metaController");
-const { variablesVault } = require(path.join(__dirname,'variablesVault'));
+//const { variablesVault } = require(path.join(__dirname,'variablesVault'));
 const got = require('got');
 const Net = require('net');
 const {Telnet} = require('telnet-client'); 
@@ -16,6 +16,8 @@ const {Telnet} = require('telnet-client');
 const Promise = require('bluebird');
 const mqtt = require('mqtt');
 const util = require('util');
+const fs = require('fs');
+
 
 const CONSTANTS =  {KEY_DELAY: 100,
   CONNECTION_STATE: {
@@ -25,7 +27,6 @@ const CONSTANTS =  {KEY_DELAY: 100,
     AUTHENTICATED: 3,
     CONNECTED: 4
   }}
-
 const settings = require(path.join(__dirname,'settings'));
 //const { connect } = require("socket.io-client");
 var socket = "";
@@ -47,7 +48,6 @@ const { retry } = require("statuses");
 const { MDNSServiceDiscovery } = require('tinkerhub-mdns');
 const find = require('local-devices');
 const { Console } = require("console");
-
 
 console.error = console.info = console.debug = console.warn = console.trace = console.dir = console.dirxml = console.group = console.groupEnd = console.time = console.timeEnd = console.assert = console.profile = function() {};
 function metaLog(message) {
@@ -1288,9 +1288,7 @@ exports.LogLevelProcessor = LogLevelProcessor;
 var __importDefault = (this && this.__importDefault) || function (mod) {
   return (mod && mod.__esModule) ? mod : { "default": mod };
 };
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.TelnetClient = void 0;
-const telnet_client_1 = __importDefault(require("telnet-client"));
+
 class TelnetProcessor {
   constructor() {
 
@@ -1642,6 +1640,58 @@ startListen(params, deviceId) {
   }
 }
 exports.TelnetProcessor = TelnetProcessor;
+
+class NEEOAPIProcessor {
+  constructor() {
+  };
+  initiate(connection) {
+    return new Promise(function (resolve, reject) {
+      resolve();
+    });
+  }
+  process(params) {
+    if (typeof (params.command) == 'string') { params.command = JSON.parse(params.command); };
+    metaLog({type:LOG_TYPE.VERBOSE, content:"NEEOAPI CALL "+params.command});
+    return new Promise(function (resolve, reject) {
+        fs.readFile(__dirname + '/config.js', (err, config) => {
+          var URL = "HTTP://"+JSON.parse(config).brainip+":3000/v1/api/"+params.command.verb+"/7220086763497193472"
+          metaLog({type:LOG_TYPE.DEBUG, content:"NEEOAPI URL: "+URL})
+          got(URL)
+            .then(function (result) {
+              metaLog({type:LOG_TYPE.VERBOSE, content:"NEEOAPI result:"+result.body});
+              resolve(result.body);
+            })
+            .catch((err) => {
+              metaLog({type:LOG_TYPE.ERROR, content:err});
+              resolve();
+            });
+        })
+    })
+  }
+  query(params) {
+    return new Promise(function (resolve, reject) {
+      if (params.query) {
+        try {
+          if (typeof (params.data) == 'string') { params.data = JSON.parse(params.data); };
+          resolve(JSONPath(params.query, params.data));
+        }
+        catch (err) {
+          metaLog({type:LOG_TYPE.ERROR, content:err});
+        }
+      }
+      else { resolve(params.data); }
+    });
+  }
+  startListen(params, deviceId) {
+    return new Promise(function (resolve, reject) {
+      resolve('');
+    })
+    }
+  stopListen(listener) {
+    return;    
+  }
+}
+exports.NEEOAPIProcessor = NEEOAPIProcessor;
 
 class cliProcessor {
   initiate(connection) {
