@@ -155,7 +155,7 @@ class variablesVault {
       else {
         metaLog({type:LOG_TYPE.WARNING, content:"Variable " + name + " with device " + deviceId + " not found. Can't assign value.", deviceId:deviceId});
       }
-      metaLog({type:LOG_TYPE.VERBOSE, content:"Done Writing in variable: " + name + " value: " + value,deviceId:deviceId});
+      //metaLog({type:LOG_TYPE.VERBOSE, content:"Done Writing in variable: " + name + " value: " + value,deviceId:deviceId});
 
     }
 

@@ -97,7 +97,7 @@ async function HandleDownload(MyType,MyElement,res)
             {logger.info(`Request to download type  ${MyType} ${MyElement}`)
             //var myFile = new File(ResolvedPath);
             if (fs.existsSync(ResolvedPath))
-                {logger.info(`File successfuly downloaded: ${ResolvedPath}`)
+                {logger.info(`File successfully downloaded: ${ResolvedPath}`)
                     res.download(ResolvedPath)
                 }
             else
