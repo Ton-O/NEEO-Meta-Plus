@@ -53,14 +53,14 @@ class directoryHelper {
           }
           if (finalNextTest) {
             if (evalN.then && evalN.then != '')
-            {
-              self.currentFeederIndex = self.feederH.findIndex((feed) => {return (feed.name == evalN.then)});
+            { self.currentFeederIndex = self.feederH.findIndex((feed) => {return (feed.name == evalN.then)});
             }
           }
           else { 
             if (evalN.or && evalN.or != '')
             {
               self.currentFeederIndex = self.feederH.findIndex((feed) => {return (feed.name == evalN.or)});
+
             }
           }
         })
@@ -120,6 +120,7 @@ class directoryHelper {
           tmpCommandSet = JSON.parse(tmpCommandSet);
           self.controller.evalWrite(tmpCommandSet.evalwrite, PastQueryValue, deviceId);
           self.controller.evalDo(tmpCommandSet.evaldo, PastQueryValue, deviceId);
+
         }// Ton-O  Below seems to be a bug in directoryhandler: calling evalnext while handling an itemaction
         //         it may result in random jumps based on not propery initialised commandsetIndex
         if (commandSetIndex<=self.feederH[self.currentFeederIndex].commandset.length) {
@@ -174,12 +175,12 @@ class directoryHelper {
 //        self.currentCommandResult = [];//initialise as new commands will be done now.
         // Ton-o keyboardsearch <----- Most of the code for keyboardsearch is added here. 
         // For keyboardsearch an extra initial processing phase is added: creating a SMART list out of all entries in self.cacheList
-        // This list is cached in a new array: ResultItems that lives alongside self.cacheList, but is used when deling with keyboardsearch
-        // The normal (old) processing is then executed as second stage, collecting entries from ResultList, flagging browse&actionidentifier as "SearchID=" so we know elsewhere the content is from ResultList   
+        // This list is cached in a new array: ResultItems that lives alongside self.cacheList, but is used when dealing with keyboardsearch
+        // The normal (old) processing is then executed as second stage, now collecting entries from ResultList, flagging browse&actionidentifier as "SearchID=" so we know elsewhere the content is from ResultList   
         try {
-
+           
           self.fillTheList(deviceId, allconfigs, params, 0, 0).then(() => {//self.cacheList, allconfigs, params, indentCommand
-        metaLog({type:LOG_TYPE.VERBOSE, content:"params: " + JSON.stringify(params) + " - browseIdentifier: " + params.browseIdentifier + " - actionIdentifier: " + params.actionIdentifier + " - current feeder: " + self.currentFeederIndex, deviceId:deviceId});
+            metaLog({type:LOG_TYPE.VERBOSE, content:"params: " + JSON.stringify(params) + " - browseIdentifier: " + params.browseIdentifier + " - actionIdentifier: " + params.actionIdentifier + " - current feeder: " + self.currentFeederIndex, deviceId:deviceId});
             //Feed the neeo list
             self.ResultItems = []
             // End search
@@ -189,84 +190,60 @@ class directoryHelper {
             var NextEntry;
             var reLoop = false;
             var inBrowseList = [] // Array is a temp cache to eliminate duplicate entries with keyboardsearch
-            if (self.cacheList[0].itemtype == 'keyboardsearch')  { //Extra stage is only required if we have a keyboardsearch 
-              //  loop to add uppercase title to every entry
-              // THIS HAS BEEN REMOVED:  and remove trailing "the " (because of imperfect sort)
-              for (i = 0; i < self.cacheList.length; i++) {            
-                let curEntry = ((typeof(self.cacheList[i].myPastQuery) == 'string')?self.cacheList[i].myPastQuery:JSON.stringify(self.cacheList[i].myPastQuery))
-          //      if (curEntry.substring(0,4).toLowerCase() == "the ") { // remove trailing "the " (imperfect sort)
-          //        self.cacheList[i].sortTitle = curEntry.substring(4,).toUpperCase()
-                  // Remove leading "the " in the titles; KODI sorts lists correctly, but leaves the "the" in front of the title
-          //      }
-                //else 
-                self.cacheList[i].sortTitle = curEntry.toUpperCase()
+
+            if (self.cacheList.length > 0&&self.cacheList[0].itemtype == 'keyboardsearch')  { //Extra stage is only required if we have a keyboardsearch 
+              //console.log("NewKeyboardSearch");
+              try {
+              self.ResultItems = []
+              let KeyboardLen = self.keyboardBuffer.length;
+              var reg;
+              var found;
+              var ExtraChars
+              // Here we are adding the "Back-entry"....
+              self.ResultItems.push({"SEARCHPARM":"**BACK**","RESULTENTRIES":-1,"NAMEFOUND":"**BACK**","ACTION":"BACK"})
+
+              if (KeyboardLen) {
+                reg =  RegExp('\\b'+self.keyboardBuffer,'gi')
+                ExtraChars = 1;
               }
-              // Next loop is the "smartening algorithm": it attempts to create a compact output list
+              else { 
+//                reg = RegExp('\\b[A-Z0-9]','g')
+                reg = RegExp('^.','g')
+                ExtraChars = 0;
+              }
               for (i = 0; i < self.cacheList.length-1; i++) {
-                let curEntry = self.cacheList[i].sortTitle           // curEntry is the first item that creates an output group
-                let KeyboardLen = self.keyboardBuffer.length;
-                // Does the entry matches the keyboard buffer so far? If not, skip the entry
-                if (!KeyboardLen||self.keyboardBuffer == curEntry.substring(0,KeyboardLen)) { //match input?
-                  FirstBuffer = curEntry.substring(0,KeyboardLen+1); // Set FirstBuffer: prepare next group: include next char
-                                                                     // FirstBuffer is always previous keyboardbuffer +1 character 
-                  RESULTENTRIES = 1;                                 // start counting the nr items in this group
-                  NextEntry =  self.cacheList[i+1].sortTitle         // 
-                  if (NextEntry.substring(0,KeyboardLen+1)  != FirstBuffer) { // If next entry doesn;t matych, we're done with this group alrerady
-                    self.ResultItems.push({"SEARCHPARM":FirstBuffer,"RESULTENTRIES":RESULTENTRIES,"NAMEFOUND":curEntry,"ACTION":self.cacheList[i].action})
-                  }  // We now have a group of at least 2 entries, now be gready and get most matching characters in curEntry and the next ones
-                  else do { //Loop here, determining the most matching characters within the FirstBuffer; 
-                      let tpos = RESULTENTRIES;
-                      reLoop = false;
-                      let x = 0;  // i, a = curEntry
-                      let y = 0;  // j, b = NextEntry
-                      let maxLen = Math.min(curEntry.length,NextEntry.length)
-                      var SecondBuffer  = "";            
-                      for(x=0;x<maxLen;x++)  // find first non-matching character between curEntry and nextEntry
-                      {
-                       if (curEntry[x] != NextEntry[y])
-                         break;
-                       SecondBuffer += curEntry[x];
-                       y++;
-                      }
-                      let len2ndBuffer = SecondBuffer.length;
-                      // second loop: determine the greediest string of all entries matching firstbuffer
-                      for (let j=i+RESULTENTRIES;j<self.cacheList.length+1;j++) {
-                        if (j>=self.cacheList.length) { // force a break when we've read the last record
-                          if (tpos==1)
-                            self.ResultItems.push({"SEARCHPARM":curEntry,"RESULTENTRIES":tpos,"NAMEFOUND":curEntry,"ACTION":self.cacheList[i].action})
-                          else 
-                            self.ResultItems.push({"SEARCHPARM":SecondBuffer,"RESULTENTRIES":tpos,"NAMEFOUND":curEntry,"ACTION":self.cacheList[i].action})
-                            i=j
-                          break;
-                        }
-                          NextEntry = self.cacheList[j].sortTitle
-                        if (NextEntry.substring(0,KeyboardLen+1)  != FirstBuffer) { // Done with this letter?
-                          if (tpos==1)
-                            self.ResultItems.push({"SEARCHPARM":curEntry,"RESULTENTRIES":tpos,"NAMEFOUND":curEntry,"ACTION":self.cacheList[i].action})
-                          else 
-                            self.ResultItems.push({"SEARCHPARM":SecondBuffer,"RESULTENTRIES":tpos,"NAMEFOUND":curEntry,"ACTION":self.cacheList[i].action})
-                          i=i+tpos-1;   // continue main loop starting after the last one we processed
-                          break 
-                        }
-                        else {
-                          if (NextEntry.substring(0,len2ndBuffer) != SecondBuffer ) {
-                            reLoop=true;
-                            break
-                          }
-                          else {
-                            tpos++;
-                          }
-                        }
-                      }                      
-                    } while (reLoop); // We've NOT read last record and NextEnrry still falls within First&SecondBuffer
-                } 
+                let curEntry = ((typeof(self.cacheList[i].myPastQuery) == 'string')?self.cacheList[i].myPastQuery:JSON.stringify(self.cacheList[i].myPastQuery))
+                do 
+                  {found = reg.exec(curEntry);
+                    if (found) {
+                      let ResultSoFar = curEntry.substring(found.index,found.index+found[0].length+ExtraChars).toUpperCase()
+                      let AlreadyThere = self.ResultItems.findIndex((entry)  => {
+                          return ResultSoFar == entry.SEARCHPARM.toUpperCase()})
+                      if (AlreadyThere==-1) 
+                        self.ResultItems.push({"SEARCHPARM":ResultSoFar,"RESULTENTRIES":1,"NAMEFOUND":curEntry,"ACTION":self.cacheList[i].action})
+                      else
+                        self.ResultItems[AlreadyThere].RESULTENTRIES=self.ResultItems[AlreadyThere].RESULTENTRIES+1;
+                      
+                    }
+                  }
+                while (found);
               }
+            self.ResultItems.sort(function(a, b){
+              if(a.SEARCHPARM < b.SEARCHPARM) { return -1; }
+              if(a.SEARCHPARM > b.SEARCHPARM) { return 1; }
+              return 0;
+          });
+
             }
+            catch(err){console.log("Error in KeyBoardSearch:",err)}
+            }
+
             // KEYBOARDSEARCH: Now that we've established proper keyboard-entries (and know the number of them), 
             // we can create a directory 
             // 
             let neeoList;
-            let UsedNrItems = (self.cacheList[0].itemtype == 'keyboardsearch')?self.ResultItems.length:self.cacheList.length;
+            let UsedNrItems = (self.cacheList.length > 0 &&self.cacheList[0].itemtype == 'keyboardsearch')?self.ResultItems.length:self.cacheList.length;
+
             neeoList = neeoapi.buildBrowseList({
               title: allconfigs.name,
               totalMatchingItems: UsedNrItems,
@@ -338,7 +315,7 @@ class directoryHelper {
                     uiAction:  'reload'//uiAction: ""
                   });
                   inBrowseList.push(theTitle)  // Signal that this item is now in the list (for duplicuate suppression)
-                }//else console.log("We had to remove a duplicate entry:", theTitle)
+                } 
               }
               // Ton-o keyboardsearch done for now
               else { // Ton-O Fix uiAction: NEEO-API only inspects listitems for uiAction if itemaction is filled 
@@ -373,35 +350,48 @@ class directoryHelper {
         let rLabel;
         return new Promise(function (resolve, reject) {
           if (indentCommand < allconfigs.commandset.length) {
-            //new jult 2021
+            //new july 2021
             //self.cacheList, allconfigs, params, indentCommand
             let commandSet = allconfigs.commandset[indentCommand];
             let processedCommand = self.controller.vault.readVariables(commandSet.command, deviceId);
             processedCommand = self.controller.assignTo(BROWSEID, processedCommand, params.browseIdentifier);
-            metaLog({type:LOG_TYPE.VERBOSE, content:'Final processed Command:', deviceId:deviceId});
-            metaLog({type:LOG_TYPE.VERBOSE, content:processedCommand, deviceId:deviceId});
+            metaLog({type:LOG_TYPE.DEBUG, content:'Final processed Command:', deviceId:deviceId});
+            metaLog({type:LOG_TYPE.DEBUG, content:processedCommand, deviceId:deviceId});
             // Ton-O Keyboardsearch <--- added cache for keyboardsearch, no need for repetitive reads during keyboard-processing
             // need to add expiration for cache
             if (commandSet.itemtype == 'keyboardsearch') {
-              self.keyboardBuffer = self.controller.vault.readVariables("$KEYBOARDSEARCH", deviceId)
+              let tempBuffer = self.controller.vault.readVariables("$KEYBOARDSEARCH", deviceId)
+              if (self.keyboardBuffer == "**BACK**") {  // This is a special case where we remove 1 char from the keyboard search
+                if (tempBuffer.length >0) {
+                  self.keyboardBuffer = tempBuffer.substring(0,tempBuffer.length-1)     
+                  self.controller.vault.writeVariable("KEYBOARDSEARCH", self.keyboardBuffer, deviceId); 
+                }
+                else
+                  self.keyboardBuffer = tempBuffer
+              }
+              else
+                  self.keyboardBuffer = tempBuffer
             }
             let ExecprocessedCommandType = commandSet.type;  // prepare normal execution
             let ExecprocessedCommand = processedCommand;  // prepare normal execution
             let QueryCached = false
             if (commandSet.itemtype == 'keyboardsearch'&& commandSet.type!="static") {  
-              if (self.LastSearchQuery == processedCommand) {
+              if (self.LastSearchQuery == processedCommand) { // did we do the same query already before?
                 ExecprocessedCommandType = 'static'  // trick the command processor, provide empty command 
                 ExecprocessedCommand = '{}'
-               QueryCached = true
-               metaLog({type:LOG_TYPE.VERBOSE, content:'Changing repeated query into static {}', deviceId:deviceId});
+                QueryCached = true                  // And set signal that we used this trick.
+                metaLog({type:LOG_TYPE.VERBOSE, content:'Changing repeated query into static {}', deviceId:deviceId});
               }
             }
             self.controller.commandProcessor(ExecprocessedCommand, ExecprocessedCommandType, deviceId)
             // Ton-O Keyboardsearch done
-            .then((result) => {            
+            .then((result) => {       
                 if (QueryCached) {
                   result = self.LastSearchQueryResult
+                  try {
                   metaLog({type:LOG_TYPE.VERBOSE, content:'Using cached result; length='+result.length, deviceId:deviceId});
+                  }
+                  catch (err) {metaLog({type:LOG_TYPE.VERBOSE, content:'Error '+err, deviceId:deviceId});}
                 }
                 else if (commandSet.itemtype == 'keyboardsearch'&&commandSet.type !='static') {    //for all but static, cache result
                   self.LastSearchQuery = processedCommand;
@@ -422,13 +412,24 @@ class directoryHelper {
                 rBrowse = self.controller.vault.readVariables(commandSet.itembrowse, deviceId); 
                 self.controller.queryProcessor(result, commandSet.queryresult, commandSet.type, deviceId).then ((tempResultList) => {
                   let resultList = [];
+                  if (commandSet.itemtype == 'csv') {    //for all but static, cache result
+                      console.log("csv, now processing result",tempResultList)
+                      let bb;
+                      if (!Array.isArray(tempResultList)) 
+                         bb = tempResultList.split(",")
+                      else
+                         bb = tempResultList[0].split(",")
+                      for (let thepos = 0;thepos < bb.length;thepos++) {
+                        resultList.push(bb[thepos])
+                      }
+                    }
+                  else 
                   if (!Array.isArray(tempResultList)) {//must be an array so make it an array if not
                     if (tempResultList) {
                     resultList.push(tempResultList);
                     }
                   }
                   else {resultList = tempResultList;}
-
                   resultList.forEach(oneItemResult => { //As in this case, $Result is a table, transform $Result to get every part of the table as one $Result
                     let action = undefined;
                     if (rAction) {
@@ -467,7 +468,7 @@ class directoryHelper {
                 metaLog({type:LOG_TYPE.ERROR, content:err, deviceId:deviceId});
               });
           }
-          else {
+          else {                  
             resolve(self.cacheList);
           }
         })
@@ -484,8 +485,8 @@ class directoryHelper {
     };
 
     this.handleCurrentAction = function (deviceId, params) {
-      metaLog({type:LOG_TYPE.INFO, content:'Handle directoryaction: ', deviceId:deviceId});
-      metaLog({type:LOG_TYPE.INFO, content:params.actionIdentifier, deviceId:deviceId});
+      metaLog({type:LOG_TYPE.INFO, content:'Handle directory action: ', deviceId:deviceId});
+      metaLog({type:LOG_TYPE.INFO, content:params, deviceId:deviceId});
 
       return new Promise(function (resolve, reject) {
         //here, the action identifier is the result.  

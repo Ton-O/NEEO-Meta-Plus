@@ -76,6 +76,31 @@ class variablesVault {
       })
     }
 
+    this.initialiseHubVault= function(filename,drivername) {
+      //return //new Promise(function (resolve, reject) {
+
+        if (filename) {
+          self.dataStore = filename;
+            //Initialise the variable to datastore value.
+          // self.variables = []; can't do that for multiple discovered devices
+
+            self.getDataFromDataStore(filename).then((DS) => {
+              if (DS) {
+                DS.forEach(element => {               
+
+                    self.addVariable(getExternalName(element.name), element.value, getDeviceId(element.name), true);
+                });
+                return 1;
+
+              }
+            });
+            return "";
+          }
+        else {//nothing to do
+        }
+      //})
+    }
+
     this.addVariable = function(name, value, deviceId, persisted) {
       let internalVariableName = toInternalName(name, deviceId);
       persisted = persisted || false;
@@ -121,20 +146,17 @@ class variablesVault {
       metaLog({type:LOG_TYPE.VERBOSE, content:"Writing in variable: " + name + " value: " + value,deviceId:deviceId});
       let internalVariableName = toInternalName(name, deviceId);
       let foundVar = self.variables.find(elt => {return elt.name == internalVariableName});
-      if (!foundVar) {
-        metaLog({type:LOG_TYPE.WARNING, content:"The variable you are requesting doesn\'t seems to be properly declared: " + name,deviceId:deviceId});
-      }
       if (foundVar) {
-        //if (!(foundVar.value === value)) {// If the value changed.
           foundVar.value = value; //Write value here
           foundVar.observers.forEach(element => { //invoke all observers
             element.theFunction(deviceId, foundVar.value);
           });
-        //}
       }
       else {
         metaLog({type:LOG_TYPE.WARNING, content:"Variable " + name + " with device " + deviceId + " not found. Can't assign value.", deviceId:deviceId});
       }
+      //metaLog({type:LOG_TYPE.VERBOSE, content:"Done Writing in variable: " + name + " value: " + value,deviceId:deviceId});
+
     }
 
     this.readVariables = function(inputChain, deviceId) { //replace in the input chain, all the variables found of the same deviceId
@@ -147,15 +169,18 @@ class variablesVault {
       if (typeof(preparedResult) == 'object') {
         preparedResult = JSON.stringify(preparedResult);
       }
+
       if (typeof(preparedResult) == 'string') {
         self.variables.forEach(variable => {
           if (variable.name.startsWith(deviceId+getBuiltNameSeparator())) {//we get the full name including the deviceId
+
             let token = variablePattern.pre + getExternalName(variable.name);//get only the name variable
             while (preparedResult != preparedResult.replace(token, variable.value)) {
               preparedResult = preparedResult.replace(token, variable.value);
             }
           }
         })
+
       }
       return preparedResult;
     }
@@ -163,7 +188,8 @@ class variablesVault {
     this.retrieveValueFromDataStore = function (name, deviceId) {
       return new Promise(function (resolve, reject) {
       
-        let internalVariableName = toInternalName(name, deviceId);        
+        let internalVariableName = toInternalName(name, deviceId); 
+
         self.getDataFromDataStore().then((store) => {
           if (store) {
             let valueIndex = store.findIndex((key) => {return key.name == internalVariableName});
@@ -177,24 +203,26 @@ class variablesVault {
       })
     } 
 
-    this.getDataFromDataStore = function () {
+    this.getDataFromDataStore = function (useThisFilename) {
       return new Promise(function (resolve, reject) {
         try {
-          if (self.dataStore) {
-            fs.readFile(self.dataStore, (err, data) => {
+          let myFilename = (useThisFilename!=undefined?useThisFilename:self.dataStore)
+
+          if (myFilename) {
+            fs.readFile(myFilename, (err, data) => {
               if (data) {
                 try {
                   resolve(JSON.parse(data));
                 }
                 catch (err) {
-                  metaLog({type:LOG_TYPE.ERROR, content:'Your Datastore ' + self.dataStore + ' doesn\'t seems to have a good JSON format'});
+                  metaLog({type:LOG_TYPE.ERROR, content:'Your Datastore ' + myFilename + ' doesn\'t seems to have a good JSON format'});
                   metaLog({type:LOG_TYPE.ERROR, content:err});
                 }
               }
               else {resolve(undefined);}
               if (err) {
                 if (err.code == 'ENOENT') {
-                  metaLog({type:LOG_TYPE.VERBOSE, content:'This device has no dataStore.'});
+                  metaLog({type:LOG_TYPE.VERBOSE, content:'This device has no dataStore. '+myFilename});
                 }
                 else {
                   metaLog({type:LOG_TYPE.ERROR, content:'Error accessing the datastore file.'});
