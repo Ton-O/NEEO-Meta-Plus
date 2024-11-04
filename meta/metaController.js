@@ -30,7 +30,7 @@ const MQTT = 'mqtt';
 const WOL = 'wol';
 const MDNS = 'mDNS';
 const dnssd = 'dnssd';
-const { ProcessingManager, httpgetProcessor, httprestProcessor, httpgetSoapProcessor, httppostProcessor, cliProcessor, staticProcessor, webSocketProcessor, jsontcpProcessor, mqttProcessor, socketIOProcessor, NetProcessor,TelnetProcessor,LogLevelProcessor,mDNSProcessor, dnssdProcessor, wolProcessor, replProcessor } = require('./ProcessingManager');
+const { ProcessingManager, httpgetProcessor, httprestProcessor, httpgetSoapProcessor, httppostProcessor, cliProcessor, staticProcessor, webSocketProcessor, jsontcpProcessor, mqttProcessor, socketIOProcessor, NetProcessor,TelnetProcessor,NEEOAPIProcessor,LogLevelProcessor,mDNSProcessor, dnssdProcessor, wolProcessor, replProcessor } = require('./ProcessingManager');
 const { metaMessage, LOG_TYPE } = require("./metaMessage");
 
 const processingManager = new ProcessingManager();

@@ -8,7 +8,7 @@ const rpc = require('json-rpc2');
 const lodash = require('lodash');
 var xml2js = require('xml2js');
 const { parserXMLString, xmldom } = require("./metaController");
-//const { variablesVault } = require(path.join(__dirname,'variablesVault'));
+const { variablesVault } = require(path.join(__dirname,'variablesVault'));
 const got = require('got');
 const Net = require('net');
 const {Telnet} = require('telnet-client'); 
@@ -16,8 +16,6 @@ const {Telnet} = require('telnet-client');
 const Promise = require('bluebird');
 const mqtt = require('mqtt');
 const util = require('util');
-const fs = require('fs');
-
 
 const CONSTANTS =  {KEY_DELAY: 100,
   CONNECTION_STATE: {
@@ -27,6 +25,7 @@ const CONSTANTS =  {KEY_DELAY: 100,
     AUTHENTICATED: 3,
     CONNECTED: 4
   }}
+
 const settings = require(path.join(__dirname,'settings'));
 //const { connect } = require("socket.io-client");
 var socket = "";
@@ -48,6 +47,7 @@ const { retry } = require("statuses");
 const { MDNSServiceDiscovery } = require('tinkerhub-mdns');
 const find = require('local-devices');
 const { Console } = require("console");
+
 
 console.error = console.info = console.debug = console.warn = console.trace = console.dir = console.dirxml = console.group = console.groupEnd = console.time = console.timeEnd = console.assert = console.profile = function() {};
 function metaLog(message) {
@@ -1288,7 +1288,9 @@ exports.LogLevelProcessor = LogLevelProcessor;
 var __importDefault = (this && this.__importDefault) || function (mod) {
   return (mod && mod.__esModule) ? mod : { "default": mod };
 };
-
+//Object.defineProperty(exports, "__esModule", { value: true });
+//exports.TelnetClient = void 0;
+//const telnet_client_1 = __importDefault(require("telnet-client"));
 class TelnetProcessor {
   constructor() {
 
@@ -1355,10 +1357,20 @@ process(params) {
             reject({"message":'Cannot send command, login is required'})
             }
           else
-            try {
-              if (params.command.CallType == "exec")
-                try {
-                  _this.listenerConnections[_this.connectionIndex].connector.exec(params.command.message,
+            {let CommandParms={};
+            if (params.command.TelnetParms!=undefined)
+              if (typeof params.command.TelnetParms == "string") 
+                CommandParms = JSON.parse(params.command.TelnetParms);
+              else 
+                CommandParms = params.command.TelnetParms;
+            var DelayExec = 0;   // No delay by default; if dexec is specified in our parms, we'll actually delay
+            if (params.command.CallType == "dexec" || params.command.CallType == "exec")
+              {if (params.command.CallType == "dexec")
+              DelayExec=params.command.delaytime ? params.command.delaytime :2500;
+              try 
+                {console.log("New style exec adding parameter")
+                  setTimeout(() => 
+                    {_this.listenerConnections[_this.connectionIndex].connector.exec(params.command.message,CommandParms,
                       (err,Myresult) => { 
                   try {
                     if (err != null)
@@ -1379,50 +1391,25 @@ process(params) {
                   }
                   catch (err) {console.log("pr 7.6");metaLog({type:LOG_TYPE.ERROR, content:"Error handling promise to exec " +err});}
                 })
+                    },DelayExec) 
               }
               catch (err) {console.log("Telnetclient suffered a fatal exec error:",err);reject(err)}
-              else     
-              if (params.command.CallType == "dexec") {
-                metaLog({type:LOG_TYPE.ERROR, content:"Delaying call " +params.command.message});
-                setTimeout(() => {
-                  metaLog({type:LOG_TYPE.ERROR, content:"doing call " +params.command.message});
-                  _this.listenerConnections[_this.connectionIndex].connector.exec(params.command.message,
-                (
-                  result,Myresult) => { 
-                  try {
-                  if (Myresult == undefined || Myresult == '')
-                      {resolve('');
-                      }
-                      else 
-                      {
-                        Myresult=Myresult.toString('utf8').replace(/\r/g, '').replace(/\'/g, '"');
-                        Myresult="{\"Message\":\""+Myresult+"\"}";
-                        if (typeof(Myresult) == "string" )
-                          Myresult = JSON.parse(Myresult);
-                        resolve(Myresult); 
-                        }
-                    }
-                    catch (err) {metaLog({type:LOG_TYPE.ERROR, content:"Error handling promise to exec " +err});}
-                })
-              },                  
-              params.command.delaytime ? params.command.delaytime :2500)                
               }
                 else
                 if (params.command.CallType == "send")
-                  try {
-                  _this.listenerConnections[_this.connectionIndex].connector.send(params.command.message,() => {});
+                try 
+                  {_this.listenerConnections[_this.connectionIndex].connector.send(params.command.message,() => {});
                   }
                 catch (err) {console.log("Telnetclient suffered a fatal send error:",err);reject(err)}
-
                 else
                   {metaLog({type:LOG_TYPE.ERROR, content:"Telnet connection has invalid Telnetparms.Type:"+params.command.CallType});
                   reject("InvalidTelnetType");
                   }
             }
-            catch (err) {console.log("pr 11");metaLog({type:LOG_TYPE.ERROR, content:"failed promise "+err});}
           }
       else
-          resolve('')}
+          resolve('')
+      }
     catch (err) {metaLog({type:LOG_TYPE.ERROR, content:"Process error "+err})
                   reject('Process error');}
   })
