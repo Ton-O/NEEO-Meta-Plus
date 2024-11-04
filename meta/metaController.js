@@ -23,6 +23,7 @@ const REPL = 'repl';
 const WEBSOCKET = 'webSocket';
 const SOCKETIO = 'socketIO';
 const NET = 'net';
+const NEEOAPI = 'neeoapi';
 const TELNET = 'telnet';
 const LOGLEVEL = 'loglevel';
 const JSONTCP = 'jsontcp';
