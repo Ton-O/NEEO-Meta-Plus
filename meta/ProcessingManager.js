@@ -1258,8 +1258,6 @@ class LogLevelProcessor {
   process(params) {
     return new Promise(function (resolve, reject) { 
       metaLog({type:LOG_TYPE.ALWAYS, content:"Loglevel processor in ProcessManager; params: "});
-      metaLog({type:LOG_TYPE.ALWAYS, content:params});
-//        console.log("Loglevel processor in ProcessManager; params:",params);
           let TheParts=params.command.split(",")
           if (!TheParts.length)     // Nothing speciified?
             metaLog({type:LOG_TYPE.ALWAYS, content:"Oops, error in loglevel processor:"+err});
