@@ -419,7 +419,8 @@ module.exports = function controller(driver) {
             metaLog({type:LOG_TYPE.DEBUG, content:'Result of the command to be processed: '+result, deviceId:deviceId});
             resolve(result);
           })
-          .catch((err) => {console.log("MC Rejected process",err);reject (err);});
+          .catch((err) => {metaLog({type:LOG_TYPE.ERROR, content:"metaCcontroller: Process was rejected: "+err,deviceId:deviceId});
+                          reject (err);});
       }
       catch (err) {
         metaLog({type:LOG_TYPE.VERBOSE, content:'Error when executing the command:', deviceId:deviceId});

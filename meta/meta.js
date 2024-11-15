@@ -266,7 +266,7 @@ function createDevices () {
     getActivatedDrivers().then((drivers) => {
       const driverCreationTable = [];
       drivers.forEach((driver) => {
-        driverCreationTable.push(executeDriverCreation(driver))
+        driverCreationTable.push(executeDriverCreation(driver));
       })
       Promise.all(driverCreationTable).then((driverTab) => {
         driverTable = driverTab;
@@ -548,12 +548,12 @@ function executeDriverCreation (driver, hubController, passedDeviceId) {
       }
       if (driver.deviceCapabilities) {
         try {
-        driver.deviceCapabilities.forEach(capa => {
+          driver.deviceCapabilities.forEach(capa => {
             metaLog({deviceId: deviceId, type:LOG_TYPE.INFO, content:"Driver "+driver.name+" has device capability "+capa+"added"});
             theDevice.addCapability(capa);
-        })
-    }
-    catch (err) {console.log("Handling device capabilities got an error",err)}
+          })
+        }
+        catch (err) {console.log("Handling device capabilities got an error",err)}
       }      
       if (driver.alwayson) {
         metaLog({deviceId: deviceId, type:LOG_TYPE.INFO, content:"Driver "+driver.name+" requested with always ON "});
@@ -964,7 +964,7 @@ if (process.argv.length>2) {
       if (arguments.Brain) {
         brainConsoleGivenIP = arguments.Brain;
       }
-      if (arguments.LogSeverity) {console.log("setting metamessage init level")
+      if (arguments.LogSeverity) {
         initialiseLogSeverity(arguments.LogSeverity);
       }
       if (arguments.Components) {

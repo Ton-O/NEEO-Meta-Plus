@@ -14,20 +14,31 @@ const LOG_LEVEL = {'QUIET':[LOG_TYPE.ALWAYS],
 var mySeverity = null;
 var mySeverityText = null;
 var myComponents = [];
-console.log("Init myComponents:",Array.isArray(myComponents),myComponents.length)
-if (mySeverity == null) {
-    if (settings.LogSeverity) { mySeverity = LOG_LEVEL[settings.LogSeverity];mySeverityText = settings.LogSeverity; } // Did the user override this setting during runtime?
-        else 
-            {mySeverity == LOG_LEVEL.QUIET; 
-            mySeverityText = "QUIET"
+if (mySeverity == null) { 
+    if (settings.LogSeverity) // Getting loglevel from the settigns.json file (note, can be overwritten by passing argument at runtime)
+        { mySeverity = LOG_LEVEL[settings.LogSeverity];
+        mySeverityText = settings.LogSeverity;  // Did the user override this setting during runtime?
         }
-}
+    else 
+        {mySeverity == LOG_LEVEL.QUIET; 
+        mySeverityText = "QUIET"
+        }
+    }
+metaMessage({component:"metaMessage",type:LOG_TYPE.ALWAYS, content:"Loglevel "+mySeverityText});
 
+function DisplayLoglevels()
+{
+    metaMessage({component:"metaMessage",type:LOG_TYPE.ALWAYS, content:"Global log severity: "+mySeverityText});
+    myComponents.forEach(LogComp => {
+        metaMessage({component:"metaMessage",type:LOG_TYPE.ALWAYS, content:"Global log severity: component " + LogComp.Name + " " + LogComp.TextLevel})
+    })
+}
 function OverrideLoglevel(NewLogLevel,Module) {
     if (Module != undefined && Module != '')
         {if (Module == "ALL")
             {if (NewLogLevel=="")
-                metaMessage({component:"metaMessage",type:LOG_TYPE.ALWAYS, content:"Cannot remove global loglevel "+mySeverityText});
+                {metaMessage({component:"metaMessage",type:LOG_TYPE.ALWAYS, content:"Cannot remove global loglevel "+mySeverityText});
+            }
             else
                 {metaMessage({component:"metaMessage",type:LOG_TYPE.ALWAYS, content:"MetaCore is overriding global loglevel to "+NewLogLevel});
                 mySeverity = LOG_LEVEL[NewLogLevel];
@@ -49,23 +60,38 @@ function OverrideLoglevel(NewLogLevel,Module) {
             if (NewLogLevel!="")    // In case it is not a remove            
                 {metaMessage({component:"metaMessage",type:LOG_TYPE.ALWAYS, content:"Setting log for component "+Module+" from "+oldLogLevel+" to "+NewLogLevel});
                 myComponents.push({Name:Module,LOG_LEVEL:LOG_LEVEL[NewLogLevel],TextLevel:NewLogLevel});
-                }
+            }
             else
-                metaMessage({component:"metaMessage",type:LOG_TYPE.ALWAYS, content:"Component "+Module+" is now following global loglevel "+mySeverityText});
+                {metaMessage({component:"metaMessage",type:LOG_TYPE.ALWAYS, content:"2 Component "+Module+" is now following global loglevel "+mySeverityText});
+                }
             }
         }
     else
-    metaMessage({component:"metaMessage",type:LOG_TYPE.ALWAYS, content:"MetaCore without module; overriding global loglevel to "+NewLogLevel})
-    }
+        {metaMessage({component:"metaMessage",type:LOG_TYPE.ALWAYS, content:"MetaCore without module; overriding global loglevel to "+NewLogLevel})
+        mySeverity = LOG_LEVEL[NewLogLevel];
+        mySeverityText = NewLogLevel;
+        }
+}
 
-function initialiseLogSeverity(sever) { mySeverity = LOG_LEVEL[sever];mySeverityText = sever}
-function initialiseLogComponents(comp) {myComponents = comp;}
+function initialiseLogSeverity(sever) 
+{ 
+      mySeverity = LOG_LEVEL[sever];mySeverityText = sever;
+      if (mySeverity==undefined)
+        {metaMessage({component:"metaMessage",type:LOG_TYPE.ALWAYS, content:"Unknown Loglevel requested; 'QUIET' substituted "+sever})
+        mySeverity = LOG_LEVEL["QUIET"];mySeverityText = "QUIET";
+        }
+      metaMessage({component:"metaMessage",type:LOG_TYPE.VERBOSE, content:"inited Loglevel "+mySeverityText});
+}
+function initialiseLogComponents(comp) 
+{
+    myComponents = comp;
+}
 
 function metaMessage(message) {
 
-
-let CompIndex = myComponents.findIndex((Comp) => {return Comp.Name == message.component    });
-if (mySeverity ) {//&& myComponents) {
+try {
+    let CompIndex = myComponents.findIndex((Comp) => {return Comp.Name == message.component    });
+    if (mySeverity ) {//&& myComponents) {
         if ((CompIndex == -1 && mySeverity.includes(message.type)) 
             ||(CompIndex != -1   && myComponents[CompIndex].LOG_LEVEL.includes(message.type)    // Check modue specific
         )) 
@@ -74,9 +100,11 @@ if (mySeverity ) {//&& myComponents) {
             if (Array.isArray(message.content)) { console.log('\x1b[0m\x1b[2m', JSON.stringify(message.content), '\x1b[0m') };
             }
         }
-    
+    }
+    catch(err) {console.log("Err in metamessage",err)}
 }
 
+exports.DisplayLoglevels = DisplayLoglevels;
 exports.OverrideLoglevel = OverrideLoglevel;
 exports.metaMessage = metaMessage;
 exports.LOG_TYPE = LOG_TYPE;

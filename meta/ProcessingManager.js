@@ -41,7 +41,7 @@ const { connect } = require("socket.io-client");
 const meta = require(path.join(__dirname,'meta'));
 //LOGGING SETUP AND WRAPPING
 //Disable the NEEO library console warning.
-const { metaMessage, LOG_TYPE,OverrideLoglevel } = require("./metaMessage");
+const { metaMessage, LOG_TYPE,OverrideLoglevel,DisplayLoglevels } = require("./metaMessage");
 const { startsWith, slice } = require("lodash");
 const { retry } = require("statuses");
 const { MDNSServiceDiscovery } = require('tinkerhub-mdns');
@@ -1260,11 +1260,14 @@ class LogLevelProcessor {
       metaLog({type:LOG_TYPE.ALWAYS, content:"Loglevel processor in ProcessManager; params: "});
       metaLog({type:LOG_TYPE.ALWAYS, content:params});
 //        console.log("Loglevel processor in ProcessManager; params:",params);
-        try {
           let TheParts=params.command.split(",")
-          OverrideLoglevel(TheParts[0],TheParts[1]);
-        }
-        catch (err) {console.log("Oops, error in loglevel processor:",err)}
+          if (!TheParts.length)     // Nothing speciified?
+            metaLog({type:LOG_TYPE.ALWAYS, content:"Oops, error in loglevel processor:"+err});
+          else 
+          if (TheParts.length==1)     // List loglevels?
+            DisplayLoglevels();
+          else 
+            OverrideLoglevel(TheParts[0],TheParts[1]);
       resolve('OK')
     });
   }
@@ -1981,81 +1984,83 @@ class mqttProcessor {
       _this.promiseResolve = resolve;
       _this.promiseReject  = reject;
       params.command = JSON.parse(params.command);
+      if (params.connection == undefined)
+        {resolve('No MQTT-connection given')
+        return;
+      }
       if  (!params.connection.connections) { params.connection.connections = []};
-
       _this.MQTT_IP = (params.command.connection!=undefined&&params.command.connection!="") ?params.command.connection:_this.MQTT_IP = 'mqtt://'+ settings.mqtt 
       _this.connectionIndex = params.connection.connections.findIndex((con) => {return con.descriptor == _this.MQTT_IP});
       if  (_this.connectionIndex < 0) { //checking if connection exist
-        try {
-          metaLog({type:LOG_TYPE.VERBOSE, content:'New connection for MQTT on: ' + _this.MQTT_IP});
-          mqttClient = mqtt.connect(_this.MQTT_IP, {clientId:"ProcessorConn"+process.hrtime()}); // Connect to the designated mqtt broker, use a unique clientid
-          mqttClient.setMaxListeners(0); //CAREFULL OF MEMORY LEAKS HERE.
-          params.connection.connections.push({"descriptor": _this.MQTT_IP, "connector": mqttClient});
-          _this.connectionIndex = params.connection.connections.length - 1;
-        }
-        catch (err) {metaLog({type:LOG_TYPE.ERROR, content:'Error setting up MQTT-connection ' + err});}
-      }
-      try {
-//      metaLog({type:LOG_TYPE.DEBUG, content:params.connection.connections[_this.connectionIndex].connector});
-      var MQTTSubscribed = false;
-      if ((params.command.replytopic)||(params.command.topic&&!params.command.message)) {//here we get a value from a topic
-        if (params.command.replytopic)
-          _this.GetThisTopic = params.command.replytopic;   
-        else 
-          _this.GetThisTopic = params.command.topic;
-        _this.CheckOnMessage = true;
-
-        if (params.connection.connections[_this.connectionIndex].getRequests==undefined) params.connection.connections[_this.connectionIndex].getRequests = [];
-        // next actions store the "Get-request"in an array and sets a timer to wait for a response
-        for (_this.RequestItem=0;_this.RequestItem<_this.Handlers.length;_this.RequestItem++) 
-            if (_this.HandlerDetails[_this.RequestItem].availableEntry==undefined||_this.HandlerDetails[_this.RequestItem].availableEntry) {
-              metaLog({type:LOG_TYPE.WARNING, content:"temp Selected request slot: "+_this.RequestItem})
-              params.connection.connections[_this.connectionIndex].getRequests.push({"ID":_this.RequestItem,"topic": _this.GetThisTopic});
-              _this.HandlerDetails[_this.RequestItem].availableEntry=false;
-              _this.HandlerDetails[_this.RequestItem].connectionIndex=_this.connectionIndex;
-              _this.HandlerDetails[_this.RequestItem].params=params;// JSON.parse(JSON.stringify(params));
-              _this.HandlerDetails[_this.RequestItem].GetTopic=_this.GetThisTopic;
-              _this.timerSet(_this.RequestItem, function() {
-                metaLog({type:LOG_TYPE.ERROR, content:"Timeout waiting for MQTT-topic "+_this.expiringentry});
-                //metaLog({type:LOG_TYPE.ERROR, content:_this.HandlerDetails[_this.expiringentry].GetTopic});
-                //_this.CleanupRequest(_this.expiringentry)
-                reject('');return;            
-              },   10000);               
-              break;
-            }
-        // Now that we've setup an element in "get0-request array", use message-handler from that entry: _this.Handlers[_this.RequestItem] 
-        params.connection.connections[_this.connectionIndex].connector.on('message', _this.Handlers[_this.RequestItem]);
-        metaLog({type:LOG_TYPE.VERBOSE, content:"Subscribing to " + _this.GetThisTopic });  // and subscribe to topic    
-        params.connection.connections[_this.connectionIndex].connector.subscribe(_this.GetThisTopic);
-        MQTTSubscribed=true;
-        }
-  
-      }
-      catch (err) {metaLog({type:LOG_TYPE.ERROR, content:"error in message handler " +err})}
-
-      try {
-          // Next is a bit complex: if we have a message to send **OR** No listen action started and no message to send? Then send a message (though it will be empty)
-      if (params.command.message || (!MQTTSubscribed && !params.command.message)) {    
-        metaLog({type:LOG_TYPE.VERBOSE, content:'MQTT publishing ' + params.command.message + ' to ' + params.command.topic + ' with options : ' + params.command.options});
-        try {
-          metaLog({type:LOG_TYPE.VERBOSE, content:"Publishing on " + params.connection.connections[_this.connectionIndex].descriptor});
-          params.connection.connections[_this.connectionIndex].connector.publish(params.command.topic, params.command.message, (params.command.options ? JSON.parse(params.command.options) : ""));
-          if (params.command.replytopic== undefined) { //Only resolve when not waiting on response
-            metaLog({type:LOG_TYPE.DEBUG, content:"No replytopic, so we'll return immediately"})
-            resolve('');
+          try {
+            metaLog({type:LOG_TYPE.VERBOSE, content:'New connection for MQTT on: ' + _this.MQTT_IP});
+            mqttClient = mqtt.connect(_this.MQTT_IP, {clientId:"ProcessorConn"+process.hrtime()}); // Connect to the designated mqtt broker, use a unique clientid
+            mqttClient.setMaxListeners(0); //CAREFULL OF MEMORY LEAKS HERE.
+            params.connection.connections.push({"descriptor": _this.MQTT_IP, "connector": mqttClient});
+            _this.connectionIndex = params.connection.connections.length - 1;
           }
-          else 
-          metaLog({type:LOG_TYPE.DEBUG, content:"Replytopic, so we'll wait for a response on MQTT " +params.command.replytopic})
+          catch (err) {metaLog({type:LOG_TYPE.ERROR, content:'Error setting up MQTT-connection ' + err});}
         }
-        catch (err) {
-          metaLog({type:LOG_TYPE.ERROR, content:'Meta found an error processing the MQTT command'});
-          metaLog({type:LOG_TYPE.ERROR, content:err});
+        try {
+  //      metaLog({type:LOG_TYPE.DEBUG, content:params.connection.connections[_this.connectionIndex].connector});
+        var MQTTSubscribed = false;
+        if ((params.command.replytopic)||(params.command.topic&&!params.command.message)) {//here we get a value from a topic
+          if (params.command.replytopic)
+            _this.GetThisTopic = params.command.replytopic;   
+          else 
+            _this.GetThisTopic = params.command.topic;
+          _this.CheckOnMessage = true;
+
+          if (params.connection.connections[_this.connectionIndex].getRequests==undefined) params.connection.connections[_this.connectionIndex].getRequests = [];
+          // next actions store the "Get-request"in an array and sets a timer to wait for a response
+          for (_this.RequestItem=0;_this.RequestItem<_this.Handlers.length;_this.RequestItem++) 
+              if (_this.HandlerDetails[_this.RequestItem].availableEntry==undefined||_this.HandlerDetails[_this.RequestItem].availableEntry) {
+                metaLog({type:LOG_TYPE.WARNING, content:"temp Selected request slot: "+_this.RequestItem})
+                params.connection.connections[_this.connectionIndex].getRequests.push({"ID":_this.RequestItem,"topic": _this.GetThisTopic});
+                _this.HandlerDetails[_this.RequestItem].availableEntry=false;
+                _this.HandlerDetails[_this.RequestItem].connectionIndex=_this.connectionIndex;
+                _this.HandlerDetails[_this.RequestItem].params=params;// JSON.parse(JSON.stringify(params));
+                _this.HandlerDetails[_this.RequestItem].GetTopic=_this.GetThisTopic;
+                _this.timerSet(_this.RequestItem, function() {
+                  metaLog({type:LOG_TYPE.ERROR, content:"Timeout waiting for MQTT-topic "+_this.expiringentry});
+                  //metaLog({type:LOG_TYPE.ERROR, content:_this.HandlerDetails[_this.expiringentry].GetTopic});
+                  //_this.CleanupRequest(_this.expiringentry)
+                  reject('');return;            
+                },   10000);               
+                break;
+              }
+          // Now that we've setup an element in "get0-request array", use message-handler from that entry: _this.Handlers[_this.RequestItem] 
+          params.connection.connections[_this.connectionIndex].connector.on('message', _this.Handlers[_this.RequestItem]);
+          metaLog({type:LOG_TYPE.VERBOSE, content:"Subscribing to " + _this.GetThisTopic });  // and subscribe to topic    
+          params.connection.connections[_this.connectionIndex].connector.subscribe(_this.GetThisTopic);
+          MQTTSubscribed=true;
+          }
+    
+        }
+        catch (err) {metaLog({type:LOG_TYPE.ERROR, content:"error in message handler " +err})}
+
+        try {
+            // Next is a bit complex: if we have a message to send **OR** No listen action started and no message to send? Then send a message (though it will be empty)
+        if (params.command.message || (!MQTTSubscribed && !params.command.message)) {    
+          metaLog({type:LOG_TYPE.VERBOSE, content:'MQTT publishing ' + params.command.message + ' to ' + params.command.topic + ' with options : ' + params.command.options});
+          try {
+            metaLog({type:LOG_TYPE.VERBOSE, content:"Publishing on " + params.connection.connections[_this.connectionIndex].descriptor});
+            params.connection.connections[_this.connectionIndex].connector.publish(params.command.topic, params.command.message, (params.command.options ? JSON.parse(params.command.options) : ""));
+            if (params.command.replytopic== undefined) { //Only resolve when not waiting on response
+              metaLog({type:LOG_TYPE.DEBUG, content:"No replytopic, so we'll return immediately"})
+              resolve('');
+            }
+            else 
+            metaLog({type:LOG_TYPE.DEBUG, content:"Replytopic, so we'll wait for a response on MQTT " +params.command.replytopic})
+          }
+          catch (err) {
+            metaLog({type:LOG_TYPE.ERROR, content:'Meta found an error processing the MQTT command'});
+            metaLog({type:LOG_TYPE.ERROR, content:err});
+          }
         }
       }
-    }
-    catch (err) {metaLog({type:LOG_TYPE.VERBOSE, content:"error in publish part " +err})}
-    
-  })
+      catch (err) {metaLog({type:LOG_TYPE.VERBOSE, content:"error in publish part " +err})}
+    })
 }
 
   query(params) {
