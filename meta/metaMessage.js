@@ -51,7 +51,7 @@ function OverrideLoglevel(NewLogLevel,Module) {
             if (CompIndex!= -1) {
                 for (var i = myComponents.length - 1; i >= 0; i--) {
                     if (myComponents[i].Name === Module) 
-                        {oldLogLevel = myComponents.TextLevel;
+                        {oldLogLevel = myComponents[i].TextLevel;
                         metaMessage({component:"metaMessage",type:LOG_TYPE.ALWAYS, content:"Removing old loglevel "+ oldLogLevel + " for component "+Module});
                         myComponents.splice(i, 1);
                         }
