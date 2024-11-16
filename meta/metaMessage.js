@@ -32,6 +32,9 @@ function DisplayLoglevels()
     myComponents.forEach(LogComp => {
         metaMessage({component:"metaMessage",type:LOG_TYPE.ALWAYS, content:"Global log severity: component " + LogComp.Name + " " + LogComp.TextLevel})
     })
+    let MyResult = JSON.parse(JSON.stringify(myComponents));
+    MyResult.push({Name:"ALL",LOG_LEVEL:mySeverity,TextLevel:mySeverityText});
+    return MyResult;
 }
 function OverrideLoglevel(NewLogLevel,Module) {
     if (Module != undefined && Module != '')

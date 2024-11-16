@@ -1263,14 +1263,15 @@ class LogLevelProcessor {
             metaLog({type:LOG_TYPE.ALWAYS, content:"Oops, error in loglevel processor:"+err});
           else 
           if (TheParts.length==1)     // List loglevels?
-            DisplayLoglevels();
+            {let MyLogLevels = DisplayLoglevels();
+            resolve(MyLogLevels);
+            }
           else 
             OverrideLoglevel(TheParts[0],TheParts[1]);
       resolve('OK')
     });
   }
   query(params) {
-
     return new Promise(function (resolve, reject) {
         resolve(params.data)
     });
