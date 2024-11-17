@@ -136,8 +136,9 @@ class directoryHelper {
       else {
         //console.log("navigating else branch");
         if (params.history != undefined && params.history.length>0 && params.offset==0 && self.previousOffset == 0) {//case where we browse backward
-           //console.log("Browse backwards");
           self.currentFeederIndex = self.browseHistory[params.history.length];
+          if (self.currentFeederIndex==undefined)
+            self.currentFeederIndex = 0;
           metaLog({type:LOG_TYPE.VERBOSE, content:'current feeder' + self.currentFeederIndex, deviceId:deviceId});
         }
         else if ( params.offset != undefined && params.offset>0)  {
@@ -349,7 +350,7 @@ class directoryHelper {
         let rImage;
         let rLabel;
         return new Promise(function (resolve, reject) {
-          if (indentCommand < allconfigs.commandset.length) {
+          if (allconfigs != undefined &&indentCommand < allconfigs.commandset.length) {
             //new july 2021
             //self.cacheList, allconfigs, params, indentCommand
             let commandSet = allconfigs.commandset[indentCommand];

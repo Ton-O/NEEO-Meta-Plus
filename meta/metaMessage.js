@@ -41,11 +41,14 @@ function OverrideLoglevel(NewLogLevel,Module) {
         {if (Module == "ALL")
             {if (NewLogLevel=="")
                 {metaMessage({component:"metaMessage",type:LOG_TYPE.ALWAYS, content:"Cannot remove global loglevel "+mySeverityText});
+                return -4;
+
             }
             else
                 {metaMessage({component:"metaMessage",type:LOG_TYPE.ALWAYS, content:"MetaCore is overriding global loglevel to "+NewLogLevel});
                 mySeverity = LOG_LEVEL[NewLogLevel];
                 mySeverityText = NewLogLevel;
+                return 0;
                 }
             }
         else    
@@ -57,22 +60,26 @@ function OverrideLoglevel(NewLogLevel,Module) {
                         {oldLogLevel = myComponents[i].TextLevel;
                         metaMessage({component:"metaMessage",type:LOG_TYPE.ALWAYS, content:"Removing old loglevel "+ oldLogLevel + " for component "+Module});
                         myComponents.splice(i, 1);
+                        return 4;
                         }
                    }
                 }
             if (NewLogLevel!="")    // In case it is not a remove            
                 {metaMessage({component:"metaMessage",type:LOG_TYPE.ALWAYS, content:"Setting log for component "+Module+" from "+oldLogLevel+" to "+NewLogLevel});
                 myComponents.push({Name:Module,LOG_LEVEL:LOG_LEVEL[NewLogLevel],TextLevel:NewLogLevel});
+                return 8;
             }
             else
-                {metaMessage({component:"metaMessage",type:LOG_TYPE.ALWAYS, content:"2 Component "+Module+" is now following global loglevel "+mySeverityText});
-                }
+                {metaMessage({component:"metaMessage",type:LOG_TYPE.ALWAYS, content:"Component "+Module+" is now following global loglevel "+mySeverityText});
+                return 12;
+            }
             }
         }
     else
         {metaMessage({component:"metaMessage",type:LOG_TYPE.ALWAYS, content:"MetaCore without module; overriding global loglevel to "+NewLogLevel})
         mySeverity = LOG_LEVEL[NewLogLevel];
         mySeverityText = NewLogLevel;
+        return 16;
         }
 }
 
