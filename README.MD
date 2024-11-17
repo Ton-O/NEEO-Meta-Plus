@@ -13,6 +13,15 @@ And lastly, I've setup a Docker based version of the Brain..... This version has
 As this Docker Brain version is still experimental, I'm not releasing that, but it looks very promising. 
 Please note: I've built this alternative version of Jac's masterpiece "meta" for my own purposes and I'm sharing it "as is" to others.... No commerical reasoning, therefore no strings attached as well. And you still need the NEEO hardware (namely the remote) so I'm not trying to outsmart NEEO (or its current owner CM). 
 
+In order to get "free from the vanished NEEO-cloud", I made a number of changes to the Central Module of NEEO-brain, to reroute a number of critical cloud-accessess to local calls.
+For that, I added functionality on meta-Plus to host a number of file types:
+- pictures. 
+- Firmware
+- channels 
+- devices (plus IR-info)
+These objects are served as HTTP-objects  by the GoogleTV.js module (over port 6468).
+In the same area, I added a protocol to execute NEEO-API calls. Examples are forcing refresh (clear cache) of pictures for the Renmote.  
+
 
 ==================== SNIP ====================
 ## What's version V1.1 and Why?
