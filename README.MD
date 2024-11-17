@@ -1,3 +1,21 @@
+## Woah... V2.2 already??? What happened??
+I have been making many, many changes to this alternative meta - a driver to utilize NEEO with many custom device drivers.
+These chang4s have now ben consolidated in new releases, starting with V2.0.
+## What was changed (and why)?
+Well, NEEO-public servers have been shutdown and with that, a number of "accidents" have started to occur.
+I took a deep dive in the NEEO-firmware and made a number of changes that allow the NEEO-rain and -remotes to keep working as they were.
+Second, I made a number of additional protocols available to meta-plus (a more versatile MQTT, Websocket enhancements, Telnet and "some others".
+One of the others is a very important one: dynamic loglevels.
+With this version, you are now able to keep you meta-installatiopn completely (well, 99.99%) silent, but in case of debugging required, you can set loglevels
+on each component dynamically through NEEO's remote WITHOUT making changes to meta or restarting it. To this end, one has a global loglevel (the one you set when starting mneta) and a loglevel per major component of meta-Plus. All of these loglevels can be set individually to the level that suits you best for debugging.
+FOr this, changes have been mnade to the metaCore.json driver (source located in one of my other repositories).
+Also, "some other changes" are being made to allow meta-Plus to run in docker (which was possible for a long time already, now it's even easier).
+And lastly, I've setup a version of the Brain, running as a docker image..... This version has roughly 80% of the normal Brain functionality but is lightning fast compared top the dedicated hardware. Some hurdles still need to be taken (hence the 80% coverage), like Infrared transmission, easy connection of the Docker-Brain with the normal TR2; biggest issue is the functionality of the "network-chip in Brain", the JN5168-chip. That chip run s most of the wifi and related special functions but also controls via GPIO, the In fraRed leds. But, I'm working on  it.
+As this Docker Brain version is still experimental, I'm not releasing that, but it looks very promising. 
+Please note: I've built this alternative version of Jac's masterpiece "meta" for my own purposes and I'm sharing it "as is" to others.... No commerical reasoning, therefore no strings attached as well. 
+
+
+==================== SNIP ====================
 ## What's version V1.1 and Why?
 This new version of meta-plus builds upon the previous version (See 'Whats this??' below) but adds:
 - adds a number of protocols that weren't in meta-plus before.
