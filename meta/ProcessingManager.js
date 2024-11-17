@@ -1267,8 +1267,16 @@ class LogLevelProcessor {
             resolve(MyLogLevels);
             }
           else 
-            OverrideLoglevel(TheParts[0],TheParts[1]);
-      resolve('OK')
+            {let RC = OverrideLoglevel(TheParts[0],TheParts[1]);
+            if (RC<0)
+              {metaLog({type:LOG_TYPE.ALWAYS,content:"RC from loglevel-override="+RC});
+              reject("Override loglevel failed"+RC);
+              }
+            else
+              {metaLog({type:LOG_TYPE.ALWAYS,content:"Loglevel changed okay: "+RC});
+              resolve('OK')
+            }
+            }
     });
   }
   query(params) {
