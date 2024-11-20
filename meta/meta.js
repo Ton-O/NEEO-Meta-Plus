@@ -16,7 +16,7 @@ const BUTTONHIDE = '__';
 const DATASTOREEXTENSION = 'DataStore.json';
 const DEFAULT = 'default'; //NEEO SDK deviceId default value for devices
 const mqtt = require('mqtt');
-const { metaMessage, LOG_TYPE, initialiseLogComponents, initialiseLogSeverity } = require("./metaMessage");
+const { metaMessage, LOG_TYPE, initialiseLogComponents, initialiseLogSeverity,OverrideLoglevel } = require("./metaMessage");
 
 config = [{brainip : '', brainport : ''}];
 function returnBrainIp() { return config.brainip;}
@@ -367,10 +367,10 @@ function discoveryDriverPreparator(controller, driver, deviceId) {
       if (driver.discover) {
             controller.vault.retrieveValueFromDataStore("ToInitiate","default").then((ToInitiate)=>{
               if (ToInitiate == undefined) {ToInitiate = true;}
-              metaLog({deviceId: deviceId, type:LOG_TYPE.INFO, content:"ToInitiate " + ToInitiate});
+              metaLog({deviceId: deviceId, type:LOG_TYPE.VERBOSE, content:"ToInitiate " + ToInitiate});
               prepareCommand(controller, driver.discover.initcommandset, deviceId, ToInitiate?0:(driver.discover.initcommandset?driver.discover.initcommandset.length:0)).then(()=> {
               let instanciationTable = [];
-              metaLog({deviceId: deviceId, type:LOG_TYPE.INFO, content:"Driver Discovery preparation."});
+              metaLog({deviceId: deviceId, type:LOG_TYPE.DEBUG, content:"Driver Discovery preparation."});
                 controller.initiateProcessor(driver.discover.command.type).then(() => {
                   controller.commandProcessor(driver.discover.command.command, driver.discover.command.type, deviceId).then((result)=>{
                       controller.queryProcessor(result, driver.discover.command.queryresult, driver.discover.command.type, deviceId).then((result) => {
@@ -640,18 +640,15 @@ function executeDriverCreation (driver, hubController, passedDeviceId) {
           (targetDeviceId) => {
               let ind0 = controller.discoveredDevices.findIndex(dev => {return dev.id == targetDeviceId});
               if (ind0>=0) {
-                metaLog({deviceId: deviceId, type:LOG_TYPE.INFO, content:"And we have found it"});
-                metaLog({deviceId: deviceId, type:LOG_TYPE.VERBOSE, content:'Skipping duplicate discovery of device:'}); 
-                metaLog({deviceId: deviceId, type:LOG_TYPE.VERBOSE, content:targetDeviceId});
+                metaLog({deviceId: deviceId, type:LOG_TYPE.DEBUG, content:"And we have found it"});
+                metaLog({deviceId: deviceId, type:LOG_TYPE.DEBUG, content:'Skipping duplicate discovery of device:'+targetDeviceId}); 
               }
               else {
-                metaLog({deviceId: deviceId, type:LOG_TYPE.INFO, content:"Device was not created before: "});
-                metaLog({deviceId: deviceId, type:LOG_TYPE.VERBOSE, content:targetDeviceId});
+                metaLog({deviceId: deviceId, type:LOG_TYPE.DEBUG, content:"Device was not created before: "+targetDeviceId});
                 return new Promise(function (resolve, reject) {
                   const formatedTable = [];
 
-                  metaLog({deviceId: deviceId, type:LOG_TYPE.INFO, content:'Discovering this device:'});
-                  metaLog({deviceId: deviceId, type:LOG_TYPE.INFO, content:targetDeviceId});
+                  metaLog({deviceId: deviceId, type:LOG_TYPE.DEBUG, content:'Discovering this device: '+targetDeviceId});
 
                   if (targetDeviceId) {
                     let ind = controller.discoveredDevices.findIndex(dev => {return dev.id == targetDeviceId});
@@ -964,11 +961,22 @@ if (process.argv.length>2) {
       if (arguments.Brain) {
         brainConsoleGivenIP = arguments.Brain;
       }
-      if (arguments.LogSeverity) {
-        initialiseLogSeverity(arguments.LogSeverity);
+      if (arguments.CompLevel)
+      {initialiseLogSeverity("QUIET");
+        try 
+        {arguments.CompLevel.forEach(function(obj) 
+            { OverrideLoglevel(obj.LogSeverity,obj.Component)})
+        }
+        catch (err) {console.log("Error in arguments CompLevel",err)}
       }
-      if (arguments.Components) {
-        initialiseLogComponents(arguments.Components);
+      else
+        {
+        if (arguments.LogSeverity) {
+          initialiseLogSeverity(arguments.LogSeverity);
+        }
+        if (arguments.Components) {
+          initialiseLogComponents(arguments.Components);
+        }
       }
     }
     else {
@@ -977,14 +985,16 @@ if (process.argv.length>2) {
     }
   }
   catch (err)
-  {
+  {console.log("Catch error setting loglevel",err)
     metaLog({type:LOG_TYPE.FATAL, content:'Wrong arguments: ' + process.argv[2] + (process.argv.length>3? ' ' + process.argv[3]: '') + ' You can try for example node meta \'{"Brain":"192.168.1.144","LogSeverity":"INFO","Components":["meta"]}\', Or example: node meta \'{"Brain":"localhost","LogSeverity":"VERBOSE","Components":["metaController", "variablesVault"]}\', all items are optionals, LogSeverity can be VERBOSE, INFO, WARNING or QUIET, components can be meta, metaController, variablesVault, processingManager, sensorHelper, sliderHeper, switchHelper, imageHelper or directoryHelper if you want to focus the logs on a specific function. If components is empty, all modules are shown.'});
     metaLog({type:LOG_TYPE.FATAL, content:err});
     process.exit();
   }
 }
+else
+      initialiseLogSeverity("QUIET");
 metaLog({type:LOG_TYPE.INFO, content:'META Starting'});
-
+console.log("Starting meta")
 getConfig().then(() => {
     networkDiscovery();
     mqttClient = mqtt.connect('mqtt://' + settings.mqtt, {clientId:settings.mqttClientId}); // Always connect to the local mqtt broker

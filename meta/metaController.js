@@ -1,4 +1,3 @@
-
 'use strict';
 const path = require('path');
 const { imageHelper } = require(path.join(__dirname,'imageHelper'));
@@ -389,7 +388,13 @@ module.exports = function controller(driver) {
           metaLog({type:LOG_TYPE.ERROR, content:err});
           reject (err);
         });
-    });    
+    })
+    .catch((err) => {
+      metaLog({type:LOG_TYPE.ERROR, content:'Error during initiation with commandtype : ' + commandtype, deviceId:deviceId});
+      metaLog({type:LOG_TYPE.ERROR, content:err});
+      reject (err);
+    });
+
   };
 
   this.wrapUpProcessor = function(commandtype, deviceId) { // close communication protocoles
@@ -419,7 +424,8 @@ module.exports = function controller(driver) {
             metaLog({type:LOG_TYPE.DEBUG, content:'Result of the command to be processed: '+result, deviceId:deviceId});
             resolve(result);
           })
-          .catch((err) => {metaLog({type:LOG_TYPE.ERROR, content:"metaCcontroller: Process was rejected: "+err,deviceId:deviceId});
+          .catch((err) => {metaLog({type:LOG_TYPE.DEBUG, content:"metaCcontroller: Process was rejected: ",deviceId:deviceId});
+                          metaLog({type:LOG_TYPE.DEBUG, content:err,deviceId:deviceId});
                           reject (err);});
       }
       catch (err) {
@@ -427,7 +433,7 @@ module.exports = function controller(driver) {
         metaLog({type:LOG_TYPE.VERBOSE, content:command, deviceId:deviceId});
         metaLog({type:LOG_TYPE.VERBOSE, content:err, deviceId:deviceId});
       } 
-    })  
+    })
   };
 
   this.listenProcessor = function(listener, deviceId) { // process any command according to the target protocole
@@ -640,4 +646,3 @@ module.exports = function controller(driver) {
     })
   };
 };
-
