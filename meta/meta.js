@@ -16,7 +16,7 @@ const BUTTONHIDE = '__';
 const DATASTOREEXTENSION = 'DataStore.json';
 const DEFAULT = 'default'; //NEEO SDK deviceId default value for devices
 const mqtt = require('mqtt');
-const { metaMessage, LOG_TYPE, initialiseLogComponents, initialiseLogSeverity,OverrideLoglevel } = require("./metaMessage");
+const { metaMessage, LOG_TYPE, initialiseLogComponents, initialiseLogSeverity,OverrideLoglevel, getLoglevels } = require("./metaMessage");
 
 config = [{brainip : '', brainport : ''}];
 function returnBrainIp() { return config.brainip;}
@@ -953,6 +953,7 @@ function enableMQTT (cont, deviceId) {
 //MAIN
 process.chdir(__dirname);
 
+
 if (process.argv.length>2) {
   try {
 
@@ -993,8 +994,8 @@ if (process.argv.length>2) {
 }
 else
       initialiseLogSeverity("QUIET");
-metaLog({type:LOG_TYPE.INFO, content:'META Starting'});
-console.log("Starting meta")
+metaLog({type:LOG_TYPE.ALWAYS, content:'META Starting'});
+
 getConfig().then(() => {
     networkDiscovery();
     mqttClient = mqtt.connect('mqtt://' + settings.mqtt, {clientId:settings.mqttClientId}); // Always connect to the local mqtt broker

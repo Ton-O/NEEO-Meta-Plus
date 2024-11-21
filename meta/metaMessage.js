@@ -1,5 +1,6 @@
 const path = require('path');
 const settings = require(path.join(__dirname,'settings'));
+const logmodules = require(path.join(__dirname,'logComponents'));
 
 
 const LOG_TYPE = {'ALWAYS':{Code:'A', Color:'\x1b[33m'}, 'INFO':{Code:'I', Color:'\x1b[32m'}, 'VERBOSE':{Code:'V', Color:'\x1b[36m'}, 'WARNING':{Code:'W', Color:'\x1b[35m'}, 'ERROR':{Code:'E', Color:'\x1b[31m'}, 'FATAL':{Code:'F', Color:'\x1b[41m'}, 'DEBUG':{Code:'V', Color:'\x1b[36m'}, 'HUH':{Code:'A', Color:'\x1b[5m'}}
@@ -26,15 +27,22 @@ if (mySeverity == null) {
     }
 metaMessage({component:"metaMessage",type:LOG_TYPE.ALWAYS, content:"Loglevel "+mySeverityText});
 
-function DisplayLoglevels()
-{
-    metaMessage({component:"metaMessage",type:LOG_TYPE.ALWAYS, content:"Global log severity: "+mySeverityText});
-    myComponents.forEach(LogComp => {
-        metaMessage({component:"metaMessage",type:LOG_TYPE.ALWAYS, content:"Global log severity: component " + LogComp.Name + " " + LogComp.TextLevel})
-    })
-    let MyResult = JSON.parse(JSON.stringify(myComponents));
-    MyResult.push({Name:"ALL",LOG_LEVEL:mySeverity,TextLevel:mySeverityText});
-    return MyResult;
+function getLoglevels()
+{   try {
+        let logArray = [];
+        logArray.push({Name:"ALL",LOG_LEVEL:mySeverity,TextLevel:mySeverityText});
+        logmodules.MetaComponents.forEach((metaComponent) => 
+            {let CompIndex =myComponents.findIndex((Comp) => {return Comp.Name == metaComponent    });
+            if (CompIndex!= -1) 
+                logArray.push(myComponents[CompIndex]);
+                //console.log(myComponents[CompIndex].Name,myComponents[CompIndex].TextLevel)
+            else
+                //console.log(metaComponent,"follows global")
+                logArray.push({Name:metaComponent,LOG_LEVEL:"",TextLevel:"Following global"});
+        })
+        return logArray;
+}
+catch (err) {console.log(err)}
 }
 function OverrideLoglevel(NewLogLevel,Module) {
     if (Module != undefined && Module != '')
@@ -114,7 +122,7 @@ try {
     catch(err) {console.log("Err in metamessage",err)}
 }
 
-exports.DisplayLoglevels = DisplayLoglevels;
+exports.getLoglevels = getLoglevels;
 exports.OverrideLoglevel = OverrideLoglevel;
 exports.metaMessage = metaMessage;
 exports.LOG_TYPE = LOG_TYPE;

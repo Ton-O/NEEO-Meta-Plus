@@ -41,7 +41,7 @@ const { connect } = require("socket.io-client");
 const meta = require(path.join(__dirname,'meta'));
 //LOGGING SETUP AND WRAPPING
 //Disable the NEEO library console warning.
-const { metaMessage, LOG_TYPE,OverrideLoglevel,DisplayLoglevels } = require("./metaMessage");
+const { metaMessage, LOG_TYPE,OverrideLoglevel,getLoglevels } = require("./metaMessage");
 const { startsWith, slice } = require("lodash");
 const { retry } = require("statuses");
 const { MDNSServiceDiscovery } = require('tinkerhub-mdns');
@@ -1263,7 +1263,7 @@ class LogLevelProcessor {
             metaLog({type:LOG_TYPE.ALWAYS, content:"Oops, error in loglevel processor:"+err});
           else 
           if (TheParts.length==1)     // List loglevels?
-            {let MyLogLevels = DisplayLoglevels();
+            {let MyLogLevels = getLoglevels();
             resolve(MyLogLevels);
             }
           else 
