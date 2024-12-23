@@ -1011,6 +1011,8 @@ getConfig().then(() => {
     .then (() => {
       metaLog({type:LOG_TYPE.WARNING, content:"Connecting to the neeo brain."});
       setupNeeo().then(() => {
+        metaLog({type:LOG_TYPE.ALWAYS, content:'META Started up succesfully'});
+
        
       })
     })  
