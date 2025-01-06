@@ -884,10 +884,8 @@ function runNeeo () {
     };
     metaLog({type:LOG_TYPE.INFO, content:"Current directory: " + __dirname});
     metaLog({type:LOG_TYPE.INFO, content:"Trying to start the meta."});
-// export brain-url to environment variables
     process.env.BRAINIP = neeoSettings.brain;
     process.env.BRAINPORT = neeoSettings.port;
-    
     neeoapi.startServer(neeoSettings)
       .then((result) => {
         metaLog({type:LOG_TYPE.INFO, content:"Driver running, you can search it on the neeo app."});
