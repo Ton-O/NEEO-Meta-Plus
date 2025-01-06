@@ -1255,18 +1255,42 @@ class LogLevelProcessor {
       resolve();
     });
   }
+
   process(params) {
     return new Promise(function (resolve, reject) { 
       metaLog({type:LOG_TYPE.ALWAYS, content:"Loglevel processor in ProcessManager"});
           let TheParts=params.command.split(",")
           if (!TheParts.length)     // Nothing speciified?
-            metaLog({type:LOG_TYPE.ALWAYS, content:"Oops, error in loglevel processor:"+err});
+            metaLog({type:LOG_TYPE.ALWAYS, content:"Oops, error in loglevel processor: no parms"});
           else 
           if (TheParts.length==1)     // List loglevels?
-            {let MyLogLevels = getLoglevels();
-            resolve(MyLogLevels);
+            {if (TheParts[0] == "SHOWLOGLEVEL")
+                {let MyLogLevels = getLoglevels();
+                resolve(MyLogLevels);
+                }
+            else
+              if (TheParts[0] == "SHOWBRAINLOGLEVEL")
+                {console.log("Show BrainLoglevel")
+                  got("http://"+process.env.BRAINIP+":3000/v1/api/GetLogLevels")
+                  .then(function (result) {
+                    console.log("Type:", typeof result.body)
+                  if (typeof result.body == "string")
+                        result.body = JSON.parse(result.body)
+                  console.log("returning ok",result.body)
+                  console.log("isarray:", Array.isArray(result.body))
+                  console.log("Type:", typeof result.body)
+                  resolve(result.body);
+//                    resolve(result.body[0]);
+                  })
+                  .catch((err) => {
+                    metaLog({type:LOG_TYPE.ERROR, content:err});
+                    resolve();
+                  });
+                }
+              else
+                metaLog({type:LOG_TYPE.ALWAYS, content:"Oops, error in loglevel processor: unknow request "+TheParts[0]});  
             }
-          else 
+          else
             {let RC = OverrideLoglevel(TheParts[0],TheParts[1]);
             if (RC<0)
               {metaLog({type:LOG_TYPE.ALWAYS,content:"RC from loglevel-override="+RC});
@@ -1275,13 +1299,26 @@ class LogLevelProcessor {
             else
               {metaLog({type:LOG_TYPE.ALWAYS,content:"Loglevel changed okay: "+RC});
               resolve('OK')
-            }
+              }
             }
     });
   }
   query(params) {
-    return new Promise(function (resolve, reject) {
+    console.log("Querying loglevel",params)
+/*    return new Promise(function (resolve, reject) {
         resolve(params.data)
+    });*/
+    return new Promise(function (resolve, reject) {
+      if (params.query) {
+        try {
+          if (typeof (params.data) == 'string') { params.data = JSON.parse(params.data); };
+          resolve(JSONPath(params.query, params.data));
+        }
+        catch (err) {
+          metaLog({type:LOG_TYPE.ERROR, content:err});
+        }
+      }
+      else { resolve(params.data); }
     });
   }
   startListen(params, deviceId) {
@@ -1447,7 +1484,6 @@ query(params) {
           if (params.data.constructor.toString().indexOf("Array") > -1)
                 if (params.data.length == 1 ) 
                   params.data=params.data[0];
-          //resolve(params.data);
           resolve(JSONPath(params.query, params.data));
         }
         catch (err) {
