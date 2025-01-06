@@ -34,7 +34,8 @@ function getLoglevels()
         logmodules.MetaComponents.forEach((metaComponent) =>
             {let CompIndex =myComponents.findIndex((Comp) => {return Comp.Name == metaComponent    });
             if (CompIndex!= -1)
-                {logArray.push(myComponents[CompIndex]);
+                {let bb = JSON.stringify(myComponents[CompIndex])
+                logArray.push(JSON.parse(bb));
                 logArray[logArray.length-1].LOG_LEVEL=''
                 }
                 //console.log(myComponents[CompIndex].Name,myComponents[CompIndex].TextLevel)
@@ -71,7 +72,7 @@ function OverrideLoglevel(NewLogLevel,Module) {
                         {oldLogLevel = myComponents[i].TextLevel;
                         metaMessage({component:"metaMessage",type:LOG_TYPE.ALWAYS, content:"Removing old loglevel "+ oldLogLevel + " for component "+Module});
                         myComponents.splice(i, 1);
-                        return 4;
+                        //return 4;
                         }
                    }
                 }
