@@ -9,11 +9,12 @@ Second, I made a number of additional protocols available to meta-plus (a more v
 One of the others is a very important one: dynamic loglevels.
 
 With this version, you are now able to keep you meta-installation completely (well, 99.99%) silent (by the LOGLEVEL=QUIET parameter)), but in case of debugging required, you can set loglevels on each component dynamically through NEEO's remote WITHOUT making changes to meta or restarting it. To this end, one has a global loglevel (the one you set when starting mneta) and allowing a loglevel per major component of meta-Plus. All of these loglevels can be set individually to the level that suits you best for debugging.
-For this, changes have been made to the metaCore.json driver (of which the source is located in one of my [other repositories](https://github.com/Ton-O/meta-driver-library).
+For this, changes have been made to the metaCore.json driver (of which the source is located in one of my [other repositories])(https://github.com/Ton-O/meta-driver-library).
 
 Also, "some other changes" have been made to allow meta-Plus to run in docker (which was possible for a long time already, but now it's even easier).
 
-And lastly, I've setup a Docker based version of the Brain..... This version has roughly 80% of the normal Brain functionality but the biggest advantage is that it is lightning fast compared to the dedicated hardware. Some hurdles still need to be taken (hence the 80% coverage), like Infrared transmission, easy connection of the Docker-Brain with the normal TR2; biggest issue is the functionality of the "network-chip in Brain", the JN5168-chip. That chip run s most of the wifi and related special functions but also controls via GPIO, the In fraRed leds. But, I'm working on  it.
+And lastly, I've setup a Docker based version of the Brain..... This version has roughly 80% of the normal Brain functionality but the biggest advantage is that it is lightning fast compared to the dedicated hardware. Some hurdles still need to be taken (hence the 80% coverage), like ~~Infrared transmission,~~ easy connection of the Docker-Brain with the normal TR2; biggest issue is the functionality of the "network-chip in Brain", the JN5168-chip. That chip run s most of the wifi and related special functions but also controls via GPIO, the In fraRed leds. But, I'm working on  it.
+Infrared transmission is added now too, by using the well know Broadlink devices..... Only part missing now is "pairing remote to Brain"(the JN5168-device; but I;m working on that one). 
 As this Docker Brain version is still experimental, I'm not releasing that, but it looks very promising. 
 
 ### Please note: I've built this alternative version of Jac's masterpiece "meta" for my own purposes and I'm sharing it "as is" to others.... No commerical reasoning, therefore no strings attached as well. And you still need the NEEO hardware (namely the remote) so I'm not trying to outsmart NEEO (or its current owner CM). 
