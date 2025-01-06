@@ -1270,17 +1270,12 @@ class LogLevelProcessor {
                 }
             else
               if (TheParts[0] == "SHOWBRAINLOGLEVEL")
-                {console.log("Show BrainLoglevel")
+                {
                   got("http://"+process.env.BRAINIP+":3000/v1/api/GetLogLevels")
                   .then(function (result) {
-                    console.log("Type:", typeof result.body)
                   if (typeof result.body == "string")
                         result.body = JSON.parse(result.body)
-                  console.log("returning ok",result.body)
-                  console.log("isarray:", Array.isArray(result.body))
-                  console.log("Type:", typeof result.body)
                   resolve(result.body);
-//                    resolve(result.body[0]);
                   })
                   .catch((err) => {
                     metaLog({type:LOG_TYPE.ERROR, content:err});
@@ -1291,23 +1286,35 @@ class LogLevelProcessor {
                 metaLog({type:LOG_TYPE.ALWAYS, content:"Oops, error in loglevel processor: unknow request "+TheParts[0]});  
             }
           else
-            {let RC = OverrideLoglevel(TheParts[0],TheParts[1]);
-            if (RC<0)
-              {metaLog({type:LOG_TYPE.ALWAYS,content:"RC from loglevel-override="+RC});
-              reject("Override loglevel failed"+RC);
-              }
+            {console.log("metaCore sent us:",TheParts);
+              if (TheParts.length>2&&TheParts[2]=="/opt/cp6")
+              {console.log("Calling brain for override")
+                got("http://"+process.env.BRAINIP+":3000/v1/api/OverrideLogLevel?Module="+TheParts[1]+"&logLevel="+TheParts[0])
+                .then(function (result) {
+                if (typeof result.body == "string")
+                      result.body = JSON.parse(result.body)
+                resolve(result.body);
+                })
+                .catch((err) => {
+                  metaLog({type:LOG_TYPE.ERROR, content:err});
+                  resolve();
+                });
+              }  
             else
-              {metaLog({type:LOG_TYPE.ALWAYS,content:"Loglevel changed okay: "+RC});
-              resolve('OK')
+              {let RC = OverrideLoglevel(TheParts[0],TheParts[1]);
+              if (RC<0)
+                {metaLog({type:LOG_TYPE.ALWAYS,content:"RC from loglevel-override="+RC});
+                reject("Override loglevel failed"+RC);
+                }
+              else
+                {metaLog({type:LOG_TYPE.ALWAYS,content:"Loglevel changed okay: "+RC});
+                resolve('OK')
+                }
               }
             }
     });
   }
   query(params) {
-    console.log("Querying loglevel",params)
-/*    return new Promise(function (resolve, reject) {
-        resolve(params.data)
-    });*/
     return new Promise(function (resolve, reject) {
       if (params.query) {
         try {
