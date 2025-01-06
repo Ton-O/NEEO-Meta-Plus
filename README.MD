@@ -8,7 +8,7 @@ Second, I made a number of additional protocols available to meta-plus (a more v
 
 One of the others is a very important one: dynamic loglevels.
 
-With this version, you are now able to keep you meta-installation completely (well, 99.99%) silent (by the LOGLEVEL=QUIET parameter)), but in case of debugging required, you can set loglevels on each component dynamically through NEEO's remote WITHOUT making changes to meta or restarting it. To this end, one has a global loglevel (the one you set when starting mneta) and allowing a loglevel per major component of meta-Plus. All of these loglevels can be set individually to the level that suits you best for debugging.
+With this version, you are now able to keep you meta-installation completely (well, 99.99%) silent (by the LOGLEVEL=QUIET parameter)), but in case of debugging required, you can set loglevels on each component dynamically through NEEO's remote WITHOUT making changes to meta or restarting it. To this end, one has a global loglevel (the one you set when starting meta) and allowing a loglevel per major component of meta-Plus; this includes loglevels for the Brain itself!! All of these loglevels can be set individually to the level that suits you best for debugging.
 For this, changes have been made to the metaCore.json driver (of which the source is located in one of my [other repositories])(https://github.com/Ton-O/meta-driver-library).
 
 Also, "some other changes" have been made to allow meta-Plus to run in docker (which was possible for a long time already, but now it's even easier).
