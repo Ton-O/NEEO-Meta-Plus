@@ -1,7 +1,6 @@
 const path = require('path');
 const settings = require(path.join(__dirname,'settings'));
-const logmodules = require(path.join(__dirname,'logComponents'));
-
+const logmodules = require(path.join(process.cwd(),'logComponents'));
 
 const LOG_TYPE = {'ALWAYS':{Code:'A', Color:'\x1b[33m'}, 'INFO':{Code:'I', Color:'\x1b[32m'}, 'VERBOSE':{Code:'V', Color:'\x1b[36m'}, 'WARNING':{Code:'W', Color:'\x1b[35m'}, 'ERROR':{Code:'E', Color:'\x1b[31m'}, 'FATAL':{Code:'F', Color:'\x1b[41m'}, 'DEBUG':{Code:'D', Color:'\x1b[36m'}}
 const LOG_LEVEL = {'QUIET':[LOG_TYPE.ALWAYS], 
@@ -30,15 +29,20 @@ metaMessage({component:"metaMessage",type:LOG_TYPE.ALWAYS, content:"Loglevel "+m
 function getLoglevels()
 {   try {
         let logArray = [];
-        logArray.push({Name:"ALL",LOG_LEVEL:mySeverity,TextLevel:mySeverityText});
-        logmodules.MetaComponents.forEach((metaComponent) => 
+
+        logArray.push({Name:"ALL",LOG_LEVEL:'',TextLevel:mySeverityText,"Directory":process.cwd()});
+        logmodules.MetaComponents.forEach((metaComponent) =>
             {let CompIndex =myComponents.findIndex((Comp) => {return Comp.Name == metaComponent    });
-            if (CompIndex!= -1) 
-                logArray.push(myComponents[CompIndex]);
+            if (CompIndex!= -1)
+                {logArray.push(myComponents[CompIndex]);
+                logArray[logArray.length-1].LOG_LEVEL=''
+                }
                 //console.log(myComponents[CompIndex].Name,myComponents[CompIndex].TextLevel)
             else
                 //console.log(metaComponent,"follows global")
-                logArray.push({Name:metaComponent,LOG_LEVEL:"",TextLevel:"Following global"});
+                {logArray.push({Name:metaComponent,LOG_LEVEL:"",TextLevel:"Following global"});
+                logArray[logArray.length-1].LOG_LEVEL='';
+                }
         })
         return logArray;
 }
@@ -50,7 +54,6 @@ function OverrideLoglevel(NewLogLevel,Module) {
             {if (NewLogLevel=="")
                 {metaMessage({component:"metaMessage",type:LOG_TYPE.ALWAYS, content:"Cannot remove global loglevel "+mySeverityText});
                 return -4;
-
             }
             else
                 {metaMessage({component:"metaMessage",type:LOG_TYPE.ALWAYS, content:"MetaCore is overriding global loglevel to "+NewLogLevel});
@@ -74,7 +77,7 @@ function OverrideLoglevel(NewLogLevel,Module) {
                 }
             if (NewLogLevel!="")    // In case it is not a remove            
                 {metaMessage({component:"metaMessage",type:LOG_TYPE.ALWAYS, content:"Setting log for component "+Module+" from "+oldLogLevel+" to "+NewLogLevel});
-                myComponents.push({Name:Module,LOG_LEVEL:LOG_LEVEL[NewLogLevel],TextLevel:NewLogLevel});
+                myComponents.push({Name:Module,LOG_LEVEL:LOG_LEVEL[NewLogLevel],TextLevel:NewLogLevel,"Directory":process.cwd()});
                 return 8;
             }
             else
