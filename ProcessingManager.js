@@ -1261,7 +1261,7 @@ class LogLevelProcessor {
       metaLog({type:LOG_TYPE.ALWAYS, content:"Loglevel processor in ProcessManager"});
           let TheParts=params.command.split(",")
           if (!TheParts.length)     // Nothing speciified?
-            metaLog({type:LOG_TYPE.ALWAYS, content:"Oops, error in loglevel processor: no parms"});
+            metaLog({type:LOG_TYPE.ERROR, content:"Oops, error in loglevel processor: no parms"});
           else 
           if (TheParts.length==1)     // List loglevels?
             {if (TheParts[0] == "SHOWLOGLEVEL")
@@ -1273,9 +1273,9 @@ class LogLevelProcessor {
                 {
                   got("http://"+process.env.BRAINIP+":3000/v1/api/GetLogLevels")
                   .then(function (result) {
-                  if (typeof result.body == "string")
-                        result.body = JSON.parse(result.body)
-                  resolve(result.body);
+                    metaLog({type:LOG_TYPE.VERBOSE, content:"Successfully retrieved loglevels from brain"})
+                    metaLog({type:LOG_TYPE.VERBOSE, content:result.body})
+                    resolve(result.body);
                   })
                   .catch((err) => {
                     metaLog({type:LOG_TYPE.ERROR, content:err});
@@ -1283,12 +1283,12 @@ class LogLevelProcessor {
                   });
                 }
               else
-                metaLog({type:LOG_TYPE.ALWAYS, content:"Oops, error in loglevel processor: unknow request "+TheParts[0]});  
+                metaLog({type:LOG_TYPE.ERROR, content:"Oops, error in loglevel processor: unknow request "+TheParts[0]});  
             }
           else
-            {console.log("metaCore sent us:",TheParts);
+            {metaLog({type:LOG_TYPE.VERBOSE, content:"MetaCore receipe asks for:",TheParts});
               if (TheParts.length>2&&TheParts[2]=="/opt/cp6")
-              {console.log("Calling brain for override")
+              {metaLog({type:LOG_TYPE.VERBOSE, content:"Calling brain for override"})
                 got("http://"+process.env.BRAINIP+":3000/v1/api/OverrideLogLevel?Module="+TheParts[1]+"&logLevel="+TheParts[0])
                 .then(function (result) {
                 if (typeof result.body == "string")
@@ -2239,3 +2239,4 @@ class mqttProcessor {
   }
 }
 exports.mqttProcessor = mqttProcessor;
+
