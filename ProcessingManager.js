@@ -426,7 +426,7 @@ class NetProcessor {
   }
   startListen(params, deviceId) {
     var _this = this;
-    metaLog({type:LOG_TYPE.INFO, content:"Starting listener connection with net - " + params.command.call});
+    metaLog({type:LOG_TYPE.VERBOSE, content:"Starting listener connection with net - " + params.command.call});
 
     return new Promise(function (resolve, reject) {
 
@@ -440,7 +440,7 @@ class NetProcessor {
     params.command = JSON.parse(params.command.replace(/[\r]?[\n]/g, '\\n'))
     _this.connectionIndex = params.connection.connections.findIndex((con) => {return con.descriptor == params.command.call    });
   if  (_this.connectionIndex < 0)  //Not defined yet, create connection 
-      {metaLog({type:LOG_TYPE.INFO, content:"Setting up listener connection with net - " + params.command.call});
+      {metaLog({type:LOG_TYPE.VERBOSE, content:"Setting up listener connection with net - " + params.command.call});
       try {
         let netDevice = new Net.Socket();
         netDevice.on('data', (result) => { 
@@ -455,7 +455,7 @@ class NetProcessor {
       })
 
       netDevice.on('connect', function(err) {
-				metaLog({type:LOG_TYPE.INFO, content:"Net connection made - " + params.command.call + " " + err});
+				metaLog({type:LOG_TYPE.VERBOSE, content:"Net connection made - " + params.command.call + " " + err});
       })
 		
 		
@@ -469,7 +469,7 @@ class NetProcessor {
       catch (err) {metaLog({type:LOG_TYPE.ERROR, content:'Error setting up NET-connection ' + err});}
       }
       else  
-      metaLog({type:LOG_TYPE.INFO, content:"Reusing existing listener connection with net - " + params.command.call});
+      metaLog({type:LOG_TYPE.VERBOSE, content:"Reusing existing listener connection with net - " + params.command.call});
       resolve('');
     });
   }
@@ -503,10 +503,10 @@ class socketIOProcessor {
         
         connection.connector = io(connection.descriptor.startsWith('http')?connection.descriptor:"http://"+connection.descriptor, { jsonp: false, transports: ['websocket'] });
         connection.connector.on("connect", () => {
-          metaLog({type:LOG_TYPE.INFO, content:"socketIO connected on " + connection.descriptor});
+          metaLog({type:LOG_TYPE.VERBOSE, content:"socketIO connected on " + connection.descriptor});
         });
         connection.connector.on("disconnect", () => {
-          metaLog({type:LOG_TYPE.INFO, content:"socketIO disconnected from " + connection.descriptor});
+          metaLog({type:LOG_TYPE.WARNING, content:"socketIO disconnected from " + connection.descriptor});
           if (connection.toConnect) {
             connection.connector.connect();
           }
@@ -674,7 +674,7 @@ class webSocketProcessor {
 
  MyReceive(result,params,connectionIndex,deviceId)  { 
     try{
-    metaLog({type:LOG_TYPE.INFO, content:"Receiving message on websocket listener " + this.listenerConnections[connectionIndex].ListenerName})
+    metaLog({type:LOG_TYPE.DEBUG, content:"Receiving message on websocket listener " + this.listenerConnections[connectionIndex].ListenerName})
     }
     catch (err) {metaLog({type:LOG_TYPE.ERROR, content:"error while handle receiving a message in websocket" +err})
             metaLog({type:LOG_TYPE.ERROR, content:"params",result})
@@ -703,7 +703,7 @@ class webSocketProcessor {
         if (!params.connection) {params.connection = {}}
         if  (!params.connection.connections) { params.connection.connections = []};
         if (typeof (params.command) == 'string') { params.command = JSON.parse(params.command); }
-        metaLog({type:LOG_TYPE.INFO, content:'Preparing to start WebSocket listener'});
+        metaLog({type:LOG_TYPE.VERBOSE, content:'Preparing to start WebSocket listener'});
         metaLog({type:LOG_TYPE.DEBUG, content:params});
         if (params.command.connection) {
           let connectionIndex = _this.listenerConnections.findIndex((con)=> {return con.descriptor == params.command.connection && con.ListenerName == params.listener.name});
@@ -730,7 +730,7 @@ class webSocketProcessor {
                   catch (err) {
                     metaLog({type:LOG_TYPE.ERROR, content:'Disposing unused socket failed.'});
                   }   
-                  metaLog({type:LOG_TYPE.INFO, content:'Opening new socket.'});
+                  metaLog({type:LOG_TYPE.VERBOSE, content:'Opening new socket.'});
                   _this.listenerConnections[connectionIndex].connector = new ReconnectingWebSocket(params.command.connection);
                 }
               }
@@ -746,7 +746,7 @@ class webSocketProcessor {
               });
               _this.listenerConnections[connectionIndex].connector.addEventListener('open', (result) => { 
                 try {
-                  metaLog({type:LOG_TYPE.INFO, content:'Connection webSocket open.' });
+                  metaLog({type:LOG_TYPE.VERBOSE, content:'Connection webSocket open.' });
                   metaLog({type:LOG_TYPE.VERBOSE, content:'New Connection Index:' + connectionIndex});
                   _this.MessageHandler = (event) => _this.MyReceive(event, params,connectionIndex,deviceId); 
                   _this.listenerConnections[connectionIndex].connector.addEventListener("message", _this.MessageHandler);
@@ -914,7 +914,7 @@ class jsontcpProcessor {
     });
   }
   stopListen(params) {
-    metaLog({type:LOG_TYPE.INFO, content:'Stop listening to the device.'});
+    metaLog({type:LOG_TYPE.VERBOSE, content:'Stop listening to the device.'});
   }
 }
 exports.jsontcpProcessor = jsontcpProcessor;
@@ -1047,7 +1047,7 @@ class staticProcessor {
         }
       }
       catch {
-        metaLog({type:LOG_TYPE.INFO, content:'Value is not JSON after processed by query: ' + params.query + ' returning as text:' + params.data});
+        metaLog({type:LOG_TYPE.WARNING, content:'Value is not JSON after processed by query: ' + params.query + ' returning as text:' + params.data});
         resolve(params.data)
       }
     });
@@ -1102,7 +1102,7 @@ class mDNSProcessor {
         }
       }
       catch {
-        metaLog({type:LOG_TYPE.INFO, content:'Value is not JSON after processed by query: ' + params.query + ' returning as text:' + params.data});
+        metaLog({type:LOG_TYPE.WARNING, content:'Value is not JSON after processed by query: ' + params.query + ' returning as text:' + params.data});
         resolve(params.data)
       }
     });
@@ -1221,7 +1221,7 @@ class dnssdProcessor {
       }
       catch { (err)
         metaLog({type:LOG_TYPE.ERROR, content:err})
-        metaLog({type:LOG_TYPE.INFO, content:'xValue is not JSON after processed by query: ' + params.query + ' returning as text:' + params.data});
+        metaLog({type:LOG_TYPE.WARNING, content:'Value is not JSON after processed by query: ' + params.query + ' returning as text:' + params.data});
         resolve(params.data)
       }
     });
@@ -1530,7 +1530,7 @@ startListen(params, deviceId) {
 
     _this.connectionIndex = _this.listenerConnections.findIndex((con) => {return con.descriptor == params.command.call   });
     if  (_this.connectionIndex < 0)  //Not defined yet, create connection 
-        {metaLog({type:LOG_TYPE.INFO, content:"Setting up listener connection with Telnet - " + params.command.call});
+        {metaLog({type:LOG_TYPE.VERBOSE, content:"Setting up listener connection with Telnet - " + params.command.call});
         try {
           var TelnetDevice = new Telnet()
           TelnetDevice.Connected="init";
@@ -1565,7 +1565,7 @@ startListen(params, deviceId) {
             if  (_this.connectionIndex == -1)  //Not defined yet?? how is that possible?
               metaLog({type:LOG_TYPE.ERROR, content:"READY Connection with Telnet without listener setup " + TelnetDevice.URL + ": " + MyResult});
             else
-              metaLog({type:LOG_TYPE.INFO, content:"Ready within Telnet connection - " + _this.listenerConnections[_this.connectionIndex].descriptor });
+              metaLog({type:LOG_TYPE.VERBOSE, content:"Ready within Telnet connection - " + _this.listenerConnections[_this.connectionIndex].descriptor });
             _this.listenerConnections[_this.connectionIndex].Connected == "ready";
             TelnetDevice.Connected = "ready";
           })
@@ -1574,7 +1574,7 @@ startListen(params, deviceId) {
           TelnetDevice.on('connect', function() {
             _this.connectionIndex = _this.listenerConnections.findIndex((con) => {return con.descriptor == TelnetDevice.URL  });
             if  (_this.connectionIndex >= 0)  //Existing connection 
-              {metaLog({type:LOG_TYPE.INFO, content:"Telnet-client reports CONNECT "+_this.listenerConnections[_this.connectionIndex].descriptor});
+              {metaLog({type:LOG_TYPE.VERBOSE, content:"Telnet-client reports CONNECT "+_this.listenerConnections[_this.connectionIndex].descriptor});
               TelnetDevice.Connected = "connected";
               _this.listenerConnections[_this.connectionIndex].Connected="connected";
               }
@@ -1586,7 +1586,7 @@ startListen(params, deviceId) {
           TelnetDevice.on('timeout', function() {
             _this.connectionIndex = _this.listenerConnections.findIndex((con) => {return con.descriptor == TelnetDevice.URL  });
             if  (_this.connectionIndex >= 0)   
-              {metaLog({type:LOG_TYPE.INFO, content:"TIMEOUT Telnet-client "+_this.listenerConnections[_this.connectionIndex].descriptor});              
+              {metaLog({type:LOG_TYPE.WARNING, content:"TIMEOUT Telnet-client "+_this.listenerConnections[_this.connectionIndex].descriptor});              
               //TelnetDevice.Connected = "connected";
               //_this.listenerConnections[_this.connectionIndex].Connected="connected";
             }
@@ -1599,12 +1599,12 @@ startListen(params, deviceId) {
           TelnetDevice.on('close', function() {
             _this.connectionIndex = _this.listenerConnections.findIndex((con) => {return con.descriptor == TelnetDevice.URL  });
             if  (_this.connectionIndex >= 0)  //Not defined yet, create connection 
-              {metaLog({type:LOG_TYPE.INFO, content:"Telnet-client shows connection is closed " + _this.listenerConnections[_this.connectionIndex].descriptor});
-              metaLog({type:LOG_TYPE.INFO, content:_this.listenerConnections[_this.connectionIndex].Connected});
+              {metaLog({type:LOG_TYPE.VERBOSE, content:"Telnet-client shows connection is closed " + _this.listenerConnections[_this.connectionIndex].descriptor});
+              metaLog({type:LOG_TYPE.VERBOSE, content:_this.listenerConnections[_this.connectionIndex].Connected});
               if ( _this.listenerConnections[_this.connectionIndex].Connected != "wrapup")
                 {TelnetDevice.Connected = "closed";
                 _this.listenerConnections[_this.connectionIndex].Connected="retrying";
-                metaLog({type:LOG_TYPE.INFO, content:"Telnet-client retrying to connect " + _this.listenerConnections[_this.connectionIndex].descriptor});
+                metaLog({type:LOG_TYPE.VERBOSE, content:"Telnet-client retrying to connect " + _this.listenerConnections[_this.connectionIndex].descriptor});
                 try {  
                   _this.listenerConnections[_this.connectionIndex].connector.connect(_this.listenerConnections[_this.connectionIndex].Telnetparams);
                   }
@@ -1656,18 +1656,18 @@ startListen(params, deviceId) {
     else 
       if (_this.listenerConnections[_this.connectionIndex].Connected != "connected")
            {
-            metaLog({type:LOG_TYPE.INFO, content:"Telnet listener was here, but closed; opening " + _this.listenerConnections[_this.connectionIndex].descriptor});
+            metaLog({type:LOG_TYPE.VERBOSE, content:"Telnet listener was here, but closed; opening " + _this.listenerConnections[_this.connectionIndex].descriptor});
             _this.listenerConnections[_this.connectionIndex].connector.connect(_this.listenerConnections[_this.connectionIndex].Telnetparams);
            }
       else
-        metaLog({type:LOG_TYPE.INFO, content:"Telnet listener connection was reused " + _this.listenerConnections[_this.connectionIndex].descriptor});
+        metaLog({type:LOG_TYPE.VERBOSE, content:"Telnet listener connection was reused " + _this.listenerConnections[_this.connectionIndex].descriptor});
 
-    metaLog({type:LOG_TYPE.INFO, content:"Telnet listener connection finished: " + params.command.call});
+    metaLog({type:LOG_TYPE.VERBOSE, content:"Telnet listener connection finished: " + params.command.call});
     resolve('')
   })
 }
   wrapUp(connection) { 
-    metaLog({type:LOG_TYPE.INFO, content:"Wrapup Telnet connections " +connection})
+    metaLog({type:LOG_TYPE.VERBOSE, content:"Wrapup Telnet connections " +connection})
         connection.connections.forEach(myCon => {
           metaLog({type:LOG_TYPE.VERBOSE, content:"Cleanup Telnet connections " + myCon})
           myCon.connector.terminate();
@@ -2198,13 +2198,13 @@ class mqttProcessor {
     //
     //********************************************************************** */
 
-    metaLog({type:LOG_TYPE.INFO, content:'Stop listening to the MQTT device.' + listener.name});
+    metaLog({type:LOG_TYPE.VERBOSE, content:'Stop listening to the MQTT device.' + listener.name});
     var _this = this;
     return new Promise(function (resolve, reject) {
       try {
       let connectionIndex = _this.listenerConnections.findIndex((con) => {
         return (con.Listenerdescriptor == JSON.parse(listener.command).connection && con.ListenerName == listener.name)});
-        metaLog({type:LOG_TYPE.INFO, content:"Connectionindex",connectionIndex})
+        metaLog({type:LOG_TYPE.VERBOSE, content:"Connectionindex",connectionIndex})
       if (connectionIndex!= -1) {
         metaLog({type:LOG_TYPE.VERBOSE, content:"Removing MQTT-listener "+ listener.name})
         metaLog({type:LOG_TYPE.debug, content:_this.listenerConnections[connectionIndex]})
