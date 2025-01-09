@@ -43,10 +43,10 @@ const meta = require(path.join(__dirname,'meta'));
 //Disable the NEEO library console warning.
 const { metaMessage, LOG_TYPE,OverrideLoglevel,getLoglevels } = require("./metaMessage");
 const { startsWith, slice } = require("lodash");
-const { retry } = require("statuses");
+//const { retry } = require("statuses");
 const { MDNSServiceDiscovery } = require('tinkerhub-mdns');
 const find = require('local-devices');
-const { Console } = require("console");
+//const { Console } = require("console");
 
 
 console.error = console.info = console.debug = console.warn = console.trace = console.dir = console.dirxml = console.group = console.groupEnd = console.time = console.timeEnd = console.assert = console.profile = function() {};
@@ -1258,15 +1258,16 @@ class LogLevelProcessor {
 
   process(params) {
     return new Promise(function (resolve, reject) { 
-      metaLog({type:LOG_TYPE.ALWAYS, content:"Loglevel processor in ProcessManager"});
+      metaLog({type:LOG_TYPE.VERBOSE, content:"Loglevel processor in ProcessManager"});
           let TheParts=params.command.split(",")
+          metaLog({type:LOG_TYPE.DEBUG, content:TheParts});
           if (!TheParts.length)     // Nothing speciified?
             metaLog({type:LOG_TYPE.ERROR, content:"Oops, error in loglevel processor: no parms"});
           else 
           if (TheParts.length==1)     // List loglevels?
             {if (TheParts[0] == "SHOWLOGLEVEL")
                 {let MyLogLevels = getLoglevels();
-                resolve(MyLogLevels);
+                  resolve({result: MyLogLevels});
                 }
             else
               if (TheParts[0] == "SHOWBRAINLOGLEVEL")
@@ -1286,8 +1287,19 @@ class LogLevelProcessor {
                 metaLog({type:LOG_TYPE.ERROR, content:"Oops, error in loglevel processor: unknow request "+TheParts[0]});  
             }
           else
-            {metaLog({type:LOG_TYPE.VERBOSE, content:"MetaCore receipe asks for:",TheParts});
-              if (TheParts.length>2&&TheParts[2]=="/opt/cp6")
+            {metaLog({type:LOG_TYPE.VERBOSE, content:"MetaCore receipe asks for: "+TheParts});
+              if (TheParts.length>2&&TheParts[2]=="/opt/meta")
+              {let RC = OverrideLoglevel(TheParts[0],TheParts[1]);
+              if (RC<0)
+                {metaLog({type:LOG_TYPE.ALWAYS,content:"RC from loglevel-override="+RC});
+                reject("Override loglevel failed"+RC);
+                }
+              else
+                {metaLog({type:LOG_TYPE.ALWAYS,content:"Loglevel changed okay: "+RC});
+                resolve('OK')
+                }
+              }                
+              else
               {metaLog({type:LOG_TYPE.VERBOSE, content:"Calling brain for override"})
                 got("http://"+process.env.BRAINIP+":3000/v1/api/OverrideLogLevel?Module="+TheParts[1]+"&logLevel="+TheParts[0])
                 .then(function (result) {
@@ -1300,17 +1312,7 @@ class LogLevelProcessor {
                   resolve();
                 });
               }  
-            else
-              {let RC = OverrideLoglevel(TheParts[0],TheParts[1]);
-              if (RC<0)
-                {metaLog({type:LOG_TYPE.ALWAYS,content:"RC from loglevel-override="+RC});
-                reject("Override loglevel failed"+RC);
-                }
-              else
-                {metaLog({type:LOG_TYPE.ALWAYS,content:"Loglevel changed okay: "+RC});
-                resolve('OK')
-                }
-              }
+
             }
     });
   }

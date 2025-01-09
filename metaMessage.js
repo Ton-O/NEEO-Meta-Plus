@@ -1,6 +1,9 @@
 const path = require('path');
 const settings = require(path.join(__dirname,'settings'));
-const logmodules = require(path.join(process.cwd(),'logComponents'));
+// Next line gets the location of the startup file, then uses that to find its logComponents.js file
+const StartupPath = process.env.StartupPath;
+//const StartupPath = path.dirname(process.argv[1]);
+const logmodules = require(path.join(StartupPath,'logComponents'));
 
 const LOG_TYPE = {'ALWAYS':{Code:'A', Color:'\x1b[33m'}, 'INFO':{Code:'I', Color:'\x1b[32m'}, 'VERBOSE':{Code:'V', Color:'\x1b[36m'}, 'WARNING':{Code:'W', Color:'\x1b[35m'}, 'ERROR':{Code:'E', Color:'\x1b[31m'}, 'FATAL':{Code:'F', Color:'\x1b[41m'}, 'DEBUG':{Code:'D', Color:'\x1b[36m'}}
 const LOG_LEVEL = {'QUIET':[LOG_TYPE.ALWAYS], 
@@ -30,7 +33,7 @@ function getLoglevels()
 {   try {
         let logArray = [];
 
-        logArray.push({Name:"ALL",LOG_LEVEL:'',TextLevel:mySeverityText,"Directory":process.cwd()});
+        logArray.push({Name:"ALL",LOG_LEVEL:'',TextLevel:mySeverityText,Directory:StartupPath});
         logmodules.MetaComponents.forEach((metaComponent) =>
             {let CompIndex =myComponents.findIndex((Comp) => {return Comp.Name == metaComponent    });
             if (CompIndex!= -1)
@@ -38,10 +41,8 @@ function getLoglevels()
                 logArray.push(JSON.parse(bb));
                 logArray[logArray.length-1].LOG_LEVEL=''
                 }
-                //console.log(myComponents[CompIndex].Name,myComponents[CompIndex].TextLevel)
             else
-                //console.log(metaComponent,"follows global")
-                {logArray.push({Name:metaComponent,LOG_LEVEL:"",TextLevel:"Following global"});
+                {logArray.push({Name:metaComponent,LOG_LEVEL:"",TextLevel:"Following global",Directory:StartupPath});
                 logArray[logArray.length-1].LOG_LEVEL='';
                 }
         })
@@ -72,13 +73,12 @@ function OverrideLoglevel(NewLogLevel,Module) {
                         {oldLogLevel = myComponents[i].TextLevel;
                         metaMessage({component:"metaMessage",type:LOG_TYPE.ALWAYS, content:"Removing old loglevel "+ oldLogLevel + " for component "+Module});
                         myComponents.splice(i, 1);
-                        //return 4;
                         }
                    }
                 }
             if (NewLogLevel!="")    // In case it is not a remove            
                 {metaMessage({component:"metaMessage",type:LOG_TYPE.ALWAYS, content:"Setting log for component "+Module+" from "+oldLogLevel+" to "+NewLogLevel});
-                myComponents.push({Name:Module,LOG_LEVEL:LOG_LEVEL[NewLogLevel],TextLevel:NewLogLevel,"Directory":process.cwd()});
+                myComponents.push({Name:Module,LOG_LEVEL:LOG_LEVEL[NewLogLevel],TextLevel:NewLogLevel,Directory:__dirname});
                 return 8;
             }
             else

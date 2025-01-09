@@ -1,4 +1,5 @@
 //"use strict";
+process.env.StartupPath = __dirname;
 const path = require('path');
 const settings = require(path.join(__dirname,'settings'));
 const neeoapi = require("neeo-sdk");
