@@ -1,3 +1,3 @@
-const logmodules = {'MetaComponents':["meta","directoryHelper","imageHelper","labelHelper","metaController","metaMessage","processingManager","sensorHelper","sliderHelper","switchHelper","variablesVault","telnet-client","CP6","deviceadapter","directoryadapter","imageserver","homekit"]}
+const logmodules = {'MetaComponents':["meta","directoryHelper","imageHelper","labelHelper","metaController","metaMessage","processingManager","sensorHelper","sliderHelper","switchHelper","variablesVault","telnet-client"]}
 module.exports = logmodules;
 

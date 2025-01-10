@@ -128,6 +128,7 @@ class directoryHelper {
           }else { 
             metaLog({type:LOG_TYPE.ERROR, content:'BUG commandSetIndex out of range: ' + JSON.stringify(params), deviceId:deviceId});
           }
+        // Ton-o keyboardsearch <----- expose variable; need to see if we still want to do this, or by evalwrite
         if (needSpecialcare.length > 1) { // Store result of Search into variable: save it and expose it
           self.controller.vault.writeVariable("KEYBOARDSEARCH", self.keyboardBuffer, deviceId);
         }
@@ -235,7 +236,7 @@ class directoryHelper {
           });
 
             }
-            catch(err){metaLog({type:LOG_TYPE.VERBOSE, content:"Error in KeyBoardSearch: "+err})}
+            catch(err){console.log("Error in KeyBoardSearch:",err)}
             }
 
             // KEYBOARDSEARCH: Now that we've established proper keyboard-entries (and know the number of them), 
@@ -383,18 +384,15 @@ class directoryHelper {
                 metaLog({type:LOG_TYPE.VERBOSE, content:'Changing repeated query into static {}', deviceId:deviceId});
               }
             }
-             metaLog({type:LOG_TYPE.VERBOSE, content:'Executing command '+ExecprocessedCommand, deviceId:deviceId})
             self.controller.commandProcessor(ExecprocessedCommand, ExecprocessedCommandType, deviceId)
             // Ton-O Keyboardsearch done
-            .then((result) => {    
-              metaLog({type:LOG_TYPE.DEBUG, content:'result', deviceId:deviceId})
-              metaLog({type:LOG_TYPE.DEBUG, content:result, deviceId:deviceId})
-              if (QueryCached) {
+            .then((result) => {       
+                if (QueryCached) {
                   result = self.LastSearchQueryResult
                   try {
                   metaLog({type:LOG_TYPE.VERBOSE, content:'Using cached result; length='+result.length, deviceId:deviceId});
                   }
-                  catch (err) {metaLog({type:LOG_TYPE.ERROR, content:'Error '+err, deviceId:deviceId});}
+                  catch (err) {metaLog({type:LOG_TYPE.VERBOSE, content:'Error '+err, deviceId:deviceId});}
                 }
                 else if (commandSet.itemtype == 'keyboardsearch'&&commandSet.type !='static') {    //for all but static, cache result
                   self.LastSearchQuery = processedCommand;
@@ -415,11 +413,8 @@ class directoryHelper {
                 rBrowse = self.controller.vault.readVariables(commandSet.itembrowse, deviceId); 
                 self.controller.queryProcessor(result, commandSet.queryresult, commandSet.type, deviceId).then ((tempResultList) => {
                   let resultList = [];
-                  metaLog({type:LOG_TYPE.DEBUG, content:'queryprocessor done', deviceId:deviceId})
-                  metaLog({type:LOG_TYPE.DEBUG, content:tempResultList, deviceId:deviceId})
                   if (commandSet.itemtype == 'csv') {    //for all but static, cache result
-                    metaLog({type:LOG_TYPE.VERBOSE, content:'csv, now processing result', deviceId:deviceId})
-                    metaLog({type:LOG_TYPE.DEBUG, content:tempResultList, deviceId:deviceId})
+                      console.log("csv, now processing result",tempResultList)
                       let bb;
                       if (!Array.isArray(tempResultList)) 
                          bb = tempResultList.split(",")
@@ -431,25 +426,12 @@ class directoryHelper {
                     }
                   else 
                   if (!Array.isArray(tempResultList)) {//must be an array so make it an array if not
-                    metaLog({type:LOG_TYPE.VERBOSE, content:'Not an array,converting to array', deviceId:deviceId}) 
-                    try {metaLog({type:LOG_TYPE.DEBUG, content:'Trying JSON.parse first', deviceId:deviceId}) 
-                      let bb = JSON.parse(tempResultList)
-                      resultList=bb;
-                    } 
-                    catch (err) {metaLog({type:LOG_TYPE.ERROR,content:"JSON.parse did not work "+err});
-                                if (tempResultList) 
-                                    resultList.push(tempResultList);
+                    if (tempResultList) {
+                    resultList.push(tempResultList);
                     }
                   }
-                  else {resultList = tempResultList;
-                    metaLog({type:LOG_TYPE.DEBUG, content:'Processing an array', deviceId:deviceId})
-                  }
-                  metaLog({type:LOG_TYPE.VERBOSE, content:'Processing result (is an array)', deviceId:deviceId})
-                  metaLog({type:LOG_TYPE.DEBUG, content:resultList, deviceId:deviceId})
-                  metaLog({type:LOG_TYPE.DEBUG, content:resultList.length, deviceId:deviceId})
-                  //resultList.forEach(oneItemResult => { //As in this case, $Result is a table, transform $Result to get every part of the table as one $Result
-                  for (var i = 0; i < resultList.length; i++){
-                    let oneItemResult=resultList[i];
+                  else {resultList = tempResultList;}
+                  resultList.forEach(oneItemResult => { //As in this case, $Result is a table, transform $Result to get every part of the table as one $Result
                     let action = undefined;
                     if (rAction) {
                       let valAction = self.controller.assignTo(RESULT, rAction, oneItemResult);
@@ -472,14 +454,11 @@ class directoryHelper {
                     };
 
                     cacheListItem = JSON.stringify(cacheListItem);
-                    metaLog({type:LOG_TYPE.DEBUG, content:'Adding entry', deviceId:deviceId})
-
                     cacheListItem = cacheListItem.replace(/\$ListIndex/g, self.cacheList.length);
-                    metaLog({type:LOG_TYPE.DEBUG, content:cacheListItem, deviceId:deviceId})
                     cacheListItem = JSON.parse(cacheListItem);
                     self.cacheList.push(cacheListItem);
 
-                  }//);
+                  });
                   resolve(self.fillTheList(deviceId, allconfigs, params, indentCommand + 1));
                 })
 
