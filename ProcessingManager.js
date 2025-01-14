@@ -1288,20 +1288,23 @@ class LogLevelProcessor {
             }
           else
             {metaLog({type:LOG_TYPE.VERBOSE, content:"MetaCore receipe asks for: "+TheParts});
-              if (TheParts.length>2&&TheParts[2]=="/opt/meta")
-              {let RC = OverrideLoglevel(TheParts[0],TheParts[1]);
+            if  (TheParts.length>2&&TheParts[2]=="Meta")
+            { metaLog({type:LOG_TYPE.ALWAYS,content:"Local loglevel-override="+TheParts[2]});
+              let RC = OverrideLoglevel(TheParts[0],TheParts[1]);
               if (RC<0)
-                {metaLog({type:LOG_TYPE.ALWAYS,content:"RC from loglevel-override="+RC});
+                {metaLog({type:LOG_TYPE.ERROR,content:"RC from loglevel-override="+RC});
                 reject("Override loglevel failed"+RC);
                 }
               else
-                {metaLog({type:LOG_TYPE.ALWAYS,content:"Loglevel changed okay: "+RC});
+                {metaLog({type:LOG_TYPE.VERBOSE,content:"Loglevel changed okay: "+RC});
                 resolve('OK')
                 }
-              }                
-              else
-              {metaLog({type:LOG_TYPE.VERBOSE, content:"Calling brain for override"})
-                got("http://"+process.env.BRAINIP+":3000/v1/api/OverrideLogLevel?Module="+TheParts[1]+"&logLevel="+TheParts[0])
+            }                
+            else
+              {metaLog({type:LOG_TYPE.VERBOSE, content:"Calling brain for loglevel override"})
+              let theUrl = "http://"+process.env.BRAINIP+":3000/v1/api/OverrideLogLevel?Module="+TheParts[1]+"&logLevel="+TheParts[0];
+              metaLog({type:LOG_TYPE.DEBUG, content:theUrl})
+                got(theUrl)
                 .then(function (result) {
                 if (typeof result.body == "string")
                       result.body = JSON.parse(result.body)

@@ -2,7 +2,6 @@ const path = require('path');
 const settings = require(path.join(__dirname,'settings'));
 // Next line gets the location of the startup file, then uses that to find its logComponents.js file
 const StartupPath = process.env.StartupPath;
-//const StartupPath = path.dirname(process.argv[1]);
 const logmodules = require(path.join(StartupPath,'logComponents'));
 
 const LOG_TYPE = {'ALWAYS':{Code:'A', Color:'\x1b[33m'}, 'INFO':{Code:'I', Color:'\x1b[32m'}, 'VERBOSE':{Code:'V', Color:'\x1b[36m'}, 'WARNING':{Code:'W', Color:'\x1b[35m'}, 'ERROR':{Code:'E', Color:'\x1b[31m'}, 'FATAL':{Code:'F', Color:'\x1b[41m'}, 'DEBUG':{Code:'D', Color:'\x1b[36m'}}
@@ -29,23 +28,33 @@ if (mySeverity == null) {
     }
 metaMessage({component:"metaMessage",type:LOG_TYPE.ALWAYS, content:"Loglevel "+mySeverityText});
 
-function getLoglevels()
+function getLoglevels(theModule = undefined)
 {   try {
         let logArray = [];
-
-        logArray.push({Name:"ALL",LOG_LEVEL:'',TextLevel:mySeverityText,Directory:StartupPath});
-        logmodules.MetaComponents.forEach((metaComponent) =>
-            {let CompIndex =myComponents.findIndex((Comp) => {return Comp.Name == metaComponent    });
+        logArray.push({Name:"ALL",LOG_LEVEL:'',TextLevel:mySeverityText});
+        if (theModule != undefined && theModule.toUpperCase() != "ALL")
+        {   let CompIndex =myComponents.findIndex((Comp) => {return Comp.Name == theModule});
             if (CompIndex!= -1)
-                {let bb = JSON.stringify(myComponents[CompIndex])
+            {   logArray = []; // clear the "ALL" component
+                let bb = JSON.stringify(myComponents[CompIndex])    
                 logArray.push(JSON.parse(bb));
                 logArray[logArray.length-1].LOG_LEVEL=''
-                }
-            else
-                {logArray.push({Name:metaComponent,LOG_LEVEL:"",TextLevel:"Following global",Directory:StartupPath});
-                logArray[logArray.length-1].LOG_LEVEL='';
-                }
-        })
+            }
+        }
+        else
+            {logmodules.MetaComponents.forEach((metaComponent) =>
+                {let CompIndex =myComponents.findIndex((Comp) => {return Comp.Name == metaComponent    });
+                if (CompIndex!= -1)
+                    {let bb = JSON.stringify(myComponents[CompIndex])
+                    logArray.push(JSON.parse(bb));
+                    logArray[logArray.length-1].LOG_LEVEL=''
+                    }
+                else
+                    {logArray.push({Name:metaComponent,LOG_LEVEL:"",TextLevel:"Following global"});
+                    logArray[logArray.length-1].LOG_LEVEL='';
+                    }
+                })
+            }
         return logArray;
 }
 catch (err) {console.log(err)}
@@ -58,14 +67,24 @@ function OverrideLoglevel(NewLogLevel,Module) {
                 return -4;
             }
             else
-                {metaMessage({component:"metaMessage",type:LOG_TYPE.ALWAYS, content:"MetaCore is overriding global loglevel to "+NewLogLevel});
+                {if (NewLogLevel!="" && NewLogLevel != undefined)    // First check if any supplied new loglevel is valid           
+                    if (LOG_LEVEL[NewLogLevel] == undefined)
+                        {metaMessage({component:"metaMessage",type:LOG_TYPE.ALWAYS, content:"Invalid loglevel requested "+Module+": "+NewLogLevel});
+                        return -12;
+                        }
+                metaMessage({component:"metaMessage",type:LOG_TYPE.ALWAYS, content:"MetaCore is overriding global loglevel to "+NewLogLevel});
                 mySeverity = LOG_LEVEL[NewLogLevel];
                 mySeverityText = NewLogLevel;
                 return 0;
                 }
             }
         else    
-            {let CompIndex = myComponents.findIndex((Comp) => {return Comp.Name == Module    });
+            {if (NewLogLevel!="" && NewLogLevel != undefined)    // First check if any supplied new loglevel is valid           
+                if (LOG_LEVEL[NewLogLevel] == undefined)
+                    {metaMessage({component:"metaMessage",type:LOG_TYPE.ALWAYS, content:"Invalid loglevel requested "+Module+": "+NewLogLevel});
+                    return -12;
+                    }
+            let CompIndex = myComponents.findIndex((Comp) => {return Comp.Name == Module    });
             let oldLogLevel = "''";
             if (CompIndex!= -1) {
                 for (var i = myComponents.length - 1; i >= 0; i--) {
@@ -77,13 +96,13 @@ function OverrideLoglevel(NewLogLevel,Module) {
                    }
                 }
             if (NewLogLevel!="")    // In case it is not a remove            
-                {metaMessage({component:"metaMessage",type:LOG_TYPE.ALWAYS, content:"Setting log for component "+Module+" from "+oldLogLevel+" to "+NewLogLevel});
-                myComponents.push({Name:Module,LOG_LEVEL:LOG_LEVEL[NewLogLevel],TextLevel:NewLogLevel,Directory:__dirname});
-                return 8;
-            }
+                {   metaMessage({component:"metaMessage",type:LOG_TYPE.ALWAYS, content:"Setting log for component "+Module+" from "+oldLogLevel+" to "+NewLogLevel});
+                    myComponents.push({Name:Module,LOG_LEVEL:LOG_LEVEL[NewLogLevel],TextLevel:NewLogLevel});
+                    return 8;
+                }
             else
                 {metaMessage({component:"metaMessage",type:LOG_TYPE.ALWAYS, content:"Component "+Module+" is now following global loglevel "+mySeverityText});
-                return 12;
+                return -12;
             }
             }
         }
@@ -94,6 +113,7 @@ function OverrideLoglevel(NewLogLevel,Module) {
         return 16;
         }
 }
+
 
 function initialiseLogSeverity(sever) 
 { 
