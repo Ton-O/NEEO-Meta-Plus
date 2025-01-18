@@ -51,7 +51,8 @@ return new Promise(function (resolve, reject) {
     cert : MyCerts}
     myAndroidRemote = new AndroidRemote(host, options)
     myAndroidRemote.on('secret', () => {
-        logger.debug(`We need a new secret; provide this via web interface please (for example: port http://10.0.1.99:6468/secret?secret=1cba6d )`);
+        logger.debug(`We need a new secret; provide this via web interface please (for example: port http://10.0.0.1:6468/secret?secret=1cba6d )`);
+        logger.debug(`replace 10.0.01 with the ip-address of meta, and fill in code that is shown on screen`);
         Coderequested=true;                 // set signal that we need a secret code (provided via web-interface of this container)
         }
     )
