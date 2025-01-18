@@ -1296,7 +1296,7 @@ class LogLevelProcessor {
                 reject("Override loglevel failed"+RC);
                 }
               else
-                {metaLog({type:LOG_TYPE.VERBOSE,content:"Loglevel changed okay: "+RC});
+                {metaLog({type:LOG_TYPE.DEBUG,content:"Loglevel changed okay: "+RC});
                 resolve('OK')
                 }
             }                
