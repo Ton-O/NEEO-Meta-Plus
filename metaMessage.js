@@ -151,10 +151,10 @@ function metaMessageParamHandler(theArg)
 function metaMessage(message) 
 {
       try {
-        if (message.type==LOG_TYPE.ERROR&&produceNrSnapshot)
+        if ((message.type==LOG_TYPE.FATAL|| message.type==LOG_TYPE.ERROR )&&produceNrSnapshot)
         {   let d = new Date();
             if (last_Error == 0 || d.getTime() - last_Error > max_TimeForceDisplay)
-                console.log("Message type = ERROR, so we'll reproduce ",produceNrSnapshot,"suppressed messages")
+                console.log('\x1b[31m',"******** Message type =",message.type,"so we'll reproduce",produceNrSnapshot,"suppressed messages ********")
             forceDisplay = true;
             last_Error = d.getTime();
         }
