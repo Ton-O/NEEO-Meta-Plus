@@ -53,8 +53,7 @@ function getLoglevels(theModule = undefined)
             }
         }
         else
-            {console.log(logModules)
-                logModules.MetaComponents.forEach((metaComponent) =>
+            { logModules.MetaComponents.forEach((metaComponent) =>
                 {let CompIndex =myComponents.findIndex((Comp) => {return Comp.Name == metaComponent    });
                 if (CompIndex!= -1)
                     {let bb = JSON.stringify(myComponents[CompIndex])
