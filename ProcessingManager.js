@@ -130,8 +130,7 @@ class httprestProcessor {
           {
             xml2js.parseStringPromise(response.body)
             .then((result) => {
-              metaLog({type:LOG_TYPE.VERBOSE, content:'XML-conversion'});
-              metaLog({type:LOG_TYPE.VERBOSE, content:result});
+              metaLog({type:LOG_TYPE.VERBOSE, content:'XML-conversion',params:result});
               resolve(result);
             })
             .catch((err) => {
@@ -139,20 +138,17 @@ class httprestProcessor {
             })
           }
           else {
-            metaLog({type:LOG_TYPE.VERBOSE, content:'HTTP process response'});
-            metaLog({type:LOG_TYPE.VERBOSE, content:response.body});
+            metaLog({type:LOG_TYPE.VERBOSE, content:'HTTP process response',params:response.body});
             resolve(response.body);
           }
         })
         .catch((err) => {
-            metaLog({type:LOG_TYPE.ERROR, content:'Request didn\'t work : '});
-            metaLog({type:LOG_TYPE.ERROR, content:params});
+            metaLog({type:LOG_TYPE.ERROR, content:'Request didn\'t work : ',params:params});
             metaLog({type:LOG_TYPE.ERROR, content:err});
         });
       }
       catch (err) {
-        metaLog({type:LOG_TYPE.ERROR, content:'Meta Error during the rest command processing'});
-        metaLog({type:LOG_TYPE.ERROR, content:err});
+        metaLog({type:LOG_TYPE.ERROR, content:'Meta Error during the rest command processing',params:err});
       }
      });
     }
@@ -160,7 +156,7 @@ class httprestProcessor {
       return new Promise(function (resolve, reject) {
         if (params.query) {
           try {
-            metaLog({type:LOG_TYPE.VERBOSE, content:'Rest command query processing, parameters, result JSON path: '+ JSONPath(params.query, params.data)});
+            metaLog({type:LOG_TYPE.VERBOSE, content:'Rest command query processing, parameters, result JSON path: ',params: JSONPath(params.query, params.data)});
             if (typeof (params.data) == 'string') { params.data = JSON.parse(params.data); }
             resolve(JSONPath(params.query, params.data));
           }
@@ -182,19 +178,18 @@ class httprestProcessor {
             if (params.command.verb == 'post') {myRestFunction = got.post};
             if (params.command.verb == 'put') {myRestFunction = got.put};
             if (params.command.verb == 'get') {myRestFunction = got};
-            metaLog({type:LOG_TYPE.DEBUG, content:"Intenting rest call", deviceId});
-            metaLog({type:LOG_TYPE.DEBUG, content:params.command, deviceId});
+            metaLog({type:LOG_TYPE.DEBUG, content:"Intenting rest call",params:params.command, deviceId});
             myRestFunction(params.command.call, {json:params.command.message,headers:params.command.headers})
             .then((response) => {
               if ((params.command.duplicates ) || (response.body != previousResult)) {
                 previousResult = response.body; 
-                metaLog({type:LOG_TYPE.DEBUG, content:"Response on rest call "+response.body, deviceId});
+                metaLog({type:LOG_TYPE.DEBUG, content:"Response on rest call ",params:response.body, deviceId});
                 let TheResponse = response.body;
                 if ((response.headers["content-type"] && response.headers["content-type"] == "text/xml") || response.body.startsWith('<')) {
                     xml2js.parseStringPromise(response.body)
                       .then((result) => {
                         TheResponse = result;
-                        metaLog({type:LOG_TYPE.DEBUG, content:"XML-Parsed: "+result, deviceId});
+                        metaLog({type:LOG_TYPE.DEBUG, content:"XML-Parsed: ",params:result, deviceId});
                       })
                       .catch((err) => {
                       metaLog({type:LOG_TYPE.ERROR, content:err});
@@ -207,14 +202,12 @@ class httprestProcessor {
               resolve("");
               })
             .catch((err) => {
-                metaLog({type:LOG_TYPE.ERROR, content:'Request didn\'t work : '});
-                metaLog({type:LOG_TYPE.ERROR, content:err});
+                metaLog({type:LOG_TYPE.ERROR, content:'Request didn\'t work : ',params:err});
                 resolve('');
             });
           }
           catch (err) {
-            metaLog({type:LOG_TYPE.ERROR, content:'Meta Error during the rest command processing'});
-            metaLog({type:LOG_TYPE.ERROR, content:err});
+            metaLog({type:LOG_TYPE.ERROR, content:'Meta Error during the rest command processing',params:err});
             resolve('');
           }
         }, (params.listener.pooltime ? params.listener.pooltime : 1000));
@@ -381,15 +374,15 @@ class NetProcessor {
         if (params.connection == undefined) params.connection = {};
         if (params.connection.connections == undefined) params.connection.connections = [];
       }
-      catch (err) {metaLog({type:LOG_TYPE.ERROR, content:"connections not okay:" +err})}
+      catch (err) {metaLog({type:LOG_TYPE.ERROR, content:"connections not okay:" ,params:err})}
       try {
         params.command = JSON.parse(params.command.replace(/[\r]?[\n]/g, '\\n'))
       }
-      catch (err) {metaLog({type:LOG_TYPE.ERROR, content:"Problem parsing params.command: "+err})}
+      catch (err) {metaLog({type:LOG_TYPE.ERROR, content:"Problem parsing params.command: ",params:err})}
       let connectionIndex = _this.listenerConnections.findIndex((con) => {return con.descriptor == params.command.call    });
 
       if  (connectionIndex < 0)  //Not defined yet, create connection 
-        {    metaLog({type:LOG_TYPE.ERROR, content:"Need to have a NET-listener first "+params.command.call});
+        {    metaLog({type:LOG_TYPE.ERROR, content:"Need to have a NET-listener first ",params:params.command.call});
             reject('');
         }
       else
@@ -401,7 +394,7 @@ class NetProcessor {
             try {
             MyCon.connector.write(params.command.message);
             }
-            catch (err) {metaLog({type:LOG_TYPE.ERROR, content:"erorr in write: "+err})}
+            catch (err) {metaLog({type:LOG_TYPE.ERROR, content:"erorr in write: ",params:err})}
           }
         }
         resolve('');
@@ -426,7 +419,7 @@ class NetProcessor {
   }
   startListen(params, deviceId) {
     var _this = this;
-    metaLog({type:LOG_TYPE.VERBOSE, content:"Starting listener connection with net - " + params.command.call});
+    metaLog({type:LOG_TYPE.VERBOSE, content:"Starting listener connection with net - " ,params: params.command.call});
 
     return new Promise(function (resolve, reject) {
 
@@ -436,11 +429,11 @@ class NetProcessor {
       if (params.connection == undefined) params.connection = {};
       if (params.connection.connections == undefined) params.connection.connections = [];
     }
-    catch (err) {metaLog({type:LOG_TYPE.ERROR, content:"connections not okay:" +err})}
+    catch (err) {metaLog({type:LOG_TYPE.ERROR, content:"connections not okay:" ,params:err})}
     params.command = JSON.parse(params.command.replace(/[\r]?[\n]/g, '\\n'))
     _this.connectionIndex = params.connection.connections.findIndex((con) => {return con.descriptor == params.command.call    });
   if  (_this.connectionIndex < 0)  //Not defined yet, create connection 
-      {metaLog({type:LOG_TYPE.VERBOSE, content:"Setting up listener connection with net - " + params.command.call});
+      {metaLog({type:LOG_TYPE.VERBOSE, content:"Setting up listener connection with net - " ,params: params.command.call});
       try {
         let netDevice = new Net.Socket();
         netDevice.on('data', (result) => { 
@@ -451,11 +444,11 @@ class NetProcessor {
         });
 
 		  netDevice.on('error', function(err) {
-				metaLog({type:LOG_TYPE.ERROR, content:"Error within net connection - " + params.command.call + " " + err});
+				metaLog({type:LOG_TYPE.ERROR, content:"Error within net connection - " + params.command.call,params: err});
       })
 
       netDevice.on('connect', function(err) {
-				metaLog({type:LOG_TYPE.VERBOSE, content:"Net connection made - " + params.command.call + " " + err});
+				metaLog({type:LOG_TYPE.VERBOSE, content:"Net connection made - " + params.command.call ,params: err});
       })
 		
 		
@@ -466,10 +459,10 @@ class NetProcessor {
       _this.listenerConnections.push({"descriptor": params.command.call, "connector": netDevice});
         _this.connectionIndex = params.connection.connections.length - 1;
       }
-      catch (err) {metaLog({type:LOG_TYPE.ERROR, content:'Error setting up NET-connection ' + err});}
+      catch (err) {metaLog({type:LOG_TYPE.ERROR, content:'Error setting up NET-connection ' ,params: err});}
       }
       else  
-      metaLog({type:LOG_TYPE.VERBOSE, content:"Reusing existing listener connection with net - " + params.command.call});
+      metaLog({type:LOG_TYPE.VERBOSE, content:"Reusing existing listener connection with net - " ,params: params.command.call});
       resolve('');
     });
   }
@@ -503,25 +496,23 @@ class socketIOProcessor {
         
         connection.connector = io(connection.descriptor.startsWith('http')?connection.descriptor:"http://"+connection.descriptor, { jsonp: false, transports: ['websocket'] });
         connection.connector.on("connect", () => {
-          metaLog({type:LOG_TYPE.VERBOSE, content:"socketIO connected on " + connection.descriptor});
+          metaLog({type:LOG_TYPE.VERBOSE, content:"socketIO connected on " ,params: connection.descriptor});
         });
         connection.connector.on("disconnect", () => {
-          metaLog({type:LOG_TYPE.WARNING, content:"socketIO disconnected from " + connection.descriptor});
+          metaLog({type:LOG_TYPE.WARNING, content:"socketIO disconnected from " ,params: connection.descriptor});
           if (connection.toConnect) {
             connection.connector.connect();
           }
         });
         connection.connector.on("connect_error", (err) => {
-          metaLog({type:LOG_TYPE.ERROR, content:"Connection error with socketIO - " + connection.descriptor});
-          metaLog({type:LOG_TYPE.ERROR, content:err});
+          metaLog({type:LOG_TYPE.ERROR, content:"Connection error with socketIO - " + connection.descriptor,params:err});
         });
         connection.connector.connect();
         //connection.connector.connect();
         resolve(connection);
       }
       catch (err) {
-        metaLog({type:LOG_TYPE.ERROR, content:'Error while intenting connection to the target device.'});
-        metaLog({type:LOG_TYPE.ERROR, content:err});
+        metaLog({type:LOG_TYPE.ERROR, content:'Error while intenting connection to the target device.',params:err});
       }
     }); //to avoid opening multiple
   }
@@ -596,36 +587,29 @@ class webSocketProcessor {
       if (!params.connection) {params.connection = {}}
       if  (!params.connection.connections) { params.connection.connections = []};
       let connectionIndex = _this.listenerConnections.findIndex((con) => {return con.descriptor == params.command.connection});
-      metaLog({type:LOG_TYPE.VERBOSE, content:'Connection Index:' + connectionIndex});
+      metaLog({type:LOG_TYPE.VERBOSE, content:'Connection Index:' ,params: connectionIndex});
       if  (connectionIndex < 0) { //checking if connection exist
-        metaLog({type:LOG_TYPE.WARNING, content:'You need to create a listener to have a proper websocket connection.'});
+        metaLog({type:LOG_TYPE.ERROR, content:'You need to create a listener to have a proper websocket connection.'});
         resolve({'readystate':-1});
       }
       else if (params.command.message) {
         if (typeof (params.command.message) != 'string') {params.command.message = JSON.stringify(params.command.message)}
         try {
           params.command.message = params.command.message.replace(/<__n__>/g, '\n');
-          metaLog({type:LOG_TYPE.VERBOSE, content:'Emitting: ' + params.command.message});
+          metaLog({type:LOG_TYPE.VERBOSE, content:'Emitting: ' ,params: params.command.message});
           if (_this.listenerConnections[connectionIndex]) {
             let theConnection = _this.listenerConnections[connectionIndex];
             if (theConnection.connector && theConnection.connector.readyState != 1) {
-            metaLog({type:LOG_TYPE.WARNING, content:"Waiting for WebSocket connection to be done"});
+              metaLog({type:LOG_TYPE.WARNING, content:"Waiting for WebSocket connection to be done"});
               setTimeout(() => {
-                if (params.connection.connections) {
-                  connectionIndex = _this.listenerConnections.findIndex((con) => {return con.descriptor == params.command.connection});
-                  theConnection = _this.listenerConnections[connectionIndex];
                   metaLog({type:LOG_TYPE.WARNING, content:"Retrying to send the message"});
-                  if (theConnection && theConnection.connector && theConnection.connector.readyState == 1) {
+                  if (theConnection && theConnection.connector && theConnection.connector.readyState == 1) 
                     theConnection.connector.send(params.command.message)
-                  }
                   else
                     metaLog({type:LOG_TYPE.ERROR, content:"Could not send the websocket message"});
-                  if (theConnection && theConnection.connector && theConnection.connector.readyState) {
+                  if (theConnection && theConnection.connector && theConnection.connector.readyState) 
                     resolve({'readystate':theConnection.connector.readyState});
-                  }
-                  else {resolve({'readystate':-1});}
-                }
-                else {resolve({'readystate':-1});}
+                  else resolve({'readystate':-1});
               }, 5000)
             }
             else {theConnection.connector.send(params.command.message);
@@ -634,8 +618,7 @@ class webSocketProcessor {
           }
         }
         catch (err) {
-          metaLog({type:LOG_TYPE.WARNING, content:'Error while sending message to the target device.'});
-          metaLog({type:LOG_TYPE.WARNING, content:err});
+          metaLog({type:LOG_TYPE.WARNING, content:'Error while sending message to the target device.',params:err});
           resolve({'readystate':undefined, 'error':err});
         }
       }
@@ -645,9 +628,8 @@ class webSocketProcessor {
     return new Promise(function (resolve, reject) {
       try {
         if (params.query) {
-          metaLog({type:LOG_TYPE.DEBUG, content:"Querying websocket"})
-          metaLog({type:LOG_TYPE.DEBUG, content:params});
-          metaLog({type:LOG_TYPE.DEBUG, content:JSONPath(params.query, params.data)});
+          metaLog({type:LOG_TYPE.DEBUG, content:"Querying websocket",params:params});
+          metaLog({type:LOG_TYPE.DEBUG, content:"Result:",params:JSONPath(params.query, params.data)});
           resolve(JSONPath(params.query, params.data));
         }
         else {
@@ -662,22 +644,21 @@ class webSocketProcessor {
   }
   HandleError(error) {
     metaLog({type:LOG_TYPE.WARNING, content:'Error event called on the webSocket.'});
-    metaLog({type:LOG_TYPE.ERROR, content:"Error.message "+error.message})
+    metaLog({type:LOG_TYPE.ERROR, content:"Error.message ",params:error.message})
   }
 
   HandleOpen(msg) {
-    metaLog({type:LOG_TYPE.WARNING, content:'open event called on the webSocket.'});
-    metaLog({type:LOG_TYPE.VERBOSE, content:msg});
+    metaLog({type:LOG_TYPE.WARNING, content:'open event called on the webSocket.',params:msg});
   }
 
 
 
  MyReceive(result,params,connectionIndex,deviceId)  { 
     try{
-    metaLog({type:LOG_TYPE.DEBUG, content:"Receiving message on websocket listener " + this.listenerConnections[connectionIndex].ListenerName})
+    metaLog({type:LOG_TYPE.DEBUG, content:"Receiving message on websocket listener " ,params: this.listenerConnections[connectionIndex].ListenerName})
     }
-    catch (err) {metaLog({type:LOG_TYPE.ERROR, content:"error while handle receiving a message in websocket" +err})
-            metaLog({type:LOG_TYPE.ERROR, content:"params",result})
+    catch (err) {metaLog({type:LOG_TYPE.ERROR, content:"error while handle receiving a message in websocket" ,params:err})
+            metaLog({type:LOG_TYPE.ERROR, content:"Result "+params,params:result})
           }
     if (result.data != '') {
       metaLog({type:LOG_TYPE.DEBUG, content:result.data })
@@ -703,13 +684,12 @@ class webSocketProcessor {
         if (!params.connection) {params.connection = {}}
         if  (!params.connection.connections) { params.connection.connections = []};
         if (typeof (params.command) == 'string') { params.command = JSON.parse(params.command); }
-        metaLog({type:LOG_TYPE.VERBOSE, content:'Preparing to start WebSocket listener'});
-        metaLog({type:LOG_TYPE.DEBUG, content:params});
+        metaLog({type:LOG_TYPE.VERBOSE, content:'Preparing to start WebSocket listener',params:params});
         if (params.command.connection) {
           let connectionIndex = _this.listenerConnections.findIndex((con)=> {return con.descriptor == params.command.connection && con.ListenerName == params.listener.name});
           try {
             if (connectionIndex<0) {
-              metaLog({type:LOG_TYPE.DEBUG, content:"New connection "+params.command.connection})
+              metaLog({type:LOG_TYPE.DEBUG, content:"New connection ",params:params.command.connection})
               let connector = new ReconnectingWebSocket(params.command.connection , [], options);
               _this.listenerConnections.push({"command": JSON.stringify(params.command.message),"descriptor": params.command.connection,"deviceId":deviceId,"ListenerName":params.listener.name,"connector": connector});
               connectionIndex = _this.listenerConnections.length - 1;
@@ -739,22 +719,22 @@ class webSocketProcessor {
               )
               _this.listenerConnections[connectionIndex].connector.addEventListener('close', (result) => { 
                 if (params.connection.connections) {
-                  metaLog({type:LOG_TYPE.VERBOSE, content:'Close event called on the webSocket with connection index:' + connectionIndex});
+                  metaLog({type:LOG_TYPE.VERBOSE, content:'Close event called on the webSocket with connection index:' ,params: connectionIndex});
                   clearInterval(params.listener.timer);   // remove old timer
-                  metaLog({type:LOG_TYPE.VERBOSE, content:'Removed timer from webSocket with connection index:' + connectionIndex});
+                  metaLog({type:LOG_TYPE.VERBOSE, content:'Removed timer from webSocket with connection index:' ,params: connectionIndex});
                 }
               });
               _this.listenerConnections[connectionIndex].connector.addEventListener('open', (result) => { 
                 try {
                   metaLog({type:LOG_TYPE.VERBOSE, content:'Connection webSocket open.' });
-                  metaLog({type:LOG_TYPE.VERBOSE, content:'New Connection Index:' + connectionIndex});
+                  metaLog({type:LOG_TYPE.VERBOSE, content:'New Connection Index:' ,params: connectionIndex});
                   _this.MessageHandler = (event) => _this.MyReceive(event, params,connectionIndex,deviceId); 
                   _this.listenerConnections[connectionIndex].connector.addEventListener("message", _this.MessageHandler);
                   if (params.command.message!=undefined&&params.command.message!="") {
                       try {
                         _this.listenerConnections[connectionIndex].connector.send(_this.listenerConnections[connectionIndex].command.replace(/<__n__>/g, '\n'));
                       }
-                      catch(err) {metaLog({type:LOG_TYPE.ERROR, content:"Error sending websocket command:"+ err});
+                      catch(err) {metaLog({type:LOG_TYPE.ERROR, content:"Error sending websocket command:",params: err});
                                  metaLog({type:LOG_TYPE.ERROR, content:_this.listenerConnections[connectionIndex].command})
                       }
                       return new Promise(function (resolve, reject) {
@@ -762,7 +742,7 @@ class webSocketProcessor {
                         try {
                           _this.listenerConnections[connectionIndex].connector.send(_this.listenerConnections[connectionIndex].command.replace(/<__n__>/g, '\n'));
                         }
-                        catch(err) {metaLog({type:LOG_TYPE.ERROR, content:"Error sending websocket command:"+err});
+                        catch(err) {metaLog({type:LOG_TYPE.ERROR, content:"Error sending websocket command:",params:err});
                                     metaLog({type:LOG_TYPE.ERROR, content:_this.listenerConnections[connectionIndex].command})
                                   }
                       resolve(params.command.message)
@@ -771,8 +751,7 @@ class webSocketProcessor {
                 }
                 }
                 catch (err) {
-                  metaLog({type:LOG_TYPE.ERROR, content:'Error while intenting-2 connection to the target device.'});
-                  metaLog({type:LOG_TYPE.ERROR, content:err});
+                  metaLog({type:LOG_TYPE.ERROR, content:'Error while intenting-2 connection to the target device.',params:err});
                   reject('');
                   return;
                 }
@@ -782,16 +761,14 @@ class webSocketProcessor {
             }
           }
           catch (err) {
-            metaLog({type:LOG_TYPE.ERROR, content:'Error while intenting-2 connection to the target device.'});
-            metaLog({type:LOG_TYPE.ERROR, content:err});
+            metaLog({type:LOG_TYPE.ERROR, content:'Error while intenting-2 connection to the target device.',params:err});
             reject('');
             return;
           }
         }   
       }
       catch (err) {
-        metaLog({type:LOG_TYPE.ERROR, content:'Error with listener configuration.'});
-        metaLog({type:LOG_TYPE.ERROR, content:err});
+        metaLog({type:LOG_TYPE.ERROR, content:'Error with listener configuration.',params:err});
         reject('');
         return;
       }
@@ -808,7 +785,7 @@ class webSocketProcessor {
         metaLog({type:LOG_TYPE.VERBOSE,content: "Webscocket: nr"  + connectionIndex})
         this.listenerConnections[connectionIndex].connector.close();  
       }
-      catch (err) {metaLog({type:LOG_TYPE.VERBOSE, content:"Closing websocket connection got error "+err});
+      catch (err) {metaLog({type:LOG_TYPE.VERBOSE, content:"Closing websocket connection got error ",params:err});
       this.listenerConnections[connectionIndex].connector.removeEventListener('message', this.MessageHandler);
       metaLog({type:LOG_TYPE.VERBOSE, content:"Websocket listener "+listener.name+" removed"}); 
       }
@@ -818,7 +795,7 @@ class webSocketProcessor {
   }
 
   wrapUp(connection) {
-    metaLog({type:LOG_TYPE.VERBOSE, content:"Wrapup WebSocket Connection " + connection.name})
+    metaLog({type:LOG_TYPE.VERBOSE, content:"Wrapup WebSocket Connection " ,params: connection.name})
 
     var _this = this;
     setTimeout(() => {
@@ -865,8 +842,7 @@ class jsontcpProcessor {
       let mySocket = rpc.Client.$create(1705, connection.descriptor, null, null);
       mySocket.connectSocket(function (err, conn) {
         if (err) {
-          metaLog({type:LOG_TYPE.ERROR, content:'Error connecting to the target device.'});
-          metaLog({type:LOG_TYPE.ERROR, content:err});
+          metaLog({type:LOG_TYPE.ERROR, content:'Error connecting to the target device.',params:err});
         }
         if (conn) {
           connection.connector = conn; 
@@ -996,8 +972,7 @@ class httppostProcessor {
         else { reject('no post command provided or improper format'); }
       }
       catch (err) {
-        metaLog({type:LOG_TYPE.ERROR, content:"Error during Post command processing : " + params.command.call + " - " + params.command.message});
-        metaLog({type:LOG_TYPE.ERROR, content:err});
+        metaLog({type:LOG_TYPE.ERROR, content:"Error during Post command processing : " + params.command.call + " - " + params.command.message,params:err});
       }      
     });
   }
@@ -1047,7 +1022,7 @@ class staticProcessor {
         }
       }
       catch {
-        metaLog({type:LOG_TYPE.WARNING, content:'Value is not JSON after processed by query: ' + params.query + ' returning as text:' + params.data});
+        metaLog({type:LOG_TYPE.WARNING, content:'staticP - Value is not JSON after processed by query: ' + params.query + ' returning as text:' ,params: params.data});
         resolve(params.data)
       }
     });
@@ -1102,7 +1077,7 @@ class mDNSProcessor {
         }
       }
       catch {
-        metaLog({type:LOG_TYPE.WARNING, content:'Value is not JSON after processed by query: ' + params.query + ' returning as text:' + params.data});
+        metaLog({type:LOG_TYPE.WARNING, content:'mDNSP - Value is not JSON after processed by query: ' + params.query + ' returning as text:' ,params: params.data});
         resolve(params.data)
       }
     });
@@ -1163,7 +1138,7 @@ class dnssdProcessor {
               }
             )}
             catch(err) {
-              metaLog({type:LOG_TYPE.ERROR, content:"Error in push process " + err });
+              metaLog({type:LOG_TYPE.ERROR, content:"Error in push process " ,params: err });
             }
       });
 
@@ -1171,14 +1146,14 @@ class dnssdProcessor {
         try {
           discovery.destroy();
         }
-        catch (err) {metaLog({type:LOG_TYPE.ERROR, content:"Error in dnssd timer process " + err });} 
+        catch (err) {metaLog({type:LOG_TYPE.ERROR, content:"Error in dnssd timer process " ,params: err });} 
 
       resolve(Services)
       }, 4000);
 
     discovery.search();
     }
-    catch(err) {metaLog({type:LOG_TYPE.ERROR, content:"Error in dnssd process " + err });}
+    catch(err) {metaLog({type:LOG_TYPE.ERROR, content:"Error in dnssd process " ,params: err });}
     });
   }
   query(params) {
@@ -1192,7 +1167,7 @@ class dnssdProcessor {
         }
       }
     }
-    catch (err) {metaLog({type:LOG_TYPE.ERROR, content:"Query=error:"+err})}
+    catch (err) {metaLog({type:LOG_TYPE.ERROR, content:"Query=error:",params:err})}
     return new Promise(function (resolve, reject) {
       try {
         if (params.query != undefined  && params.query != '') {
@@ -1205,7 +1180,7 @@ class dnssdProcessor {
               resolve(JSONPath(params.query, params.data));
           } 
         }
-        catch (err) {metaLog({type:LOG_TYPE.ERROR, content:"Err handing "+err})} 
+        catch (err) {metaLog({type:LOG_TYPE.ERROR, content:"Err handing ",params:err})} 
         }
         else {
           if (params.data != undefined) {
@@ -1221,7 +1196,7 @@ class dnssdProcessor {
       }
       catch { (err)
         metaLog({type:LOG_TYPE.ERROR, content:err})
-        metaLog({type:LOG_TYPE.WARNING, content:'Value is not JSON after processed by query: ' + params.query + ' returning as text:' + params.data});
+        metaLog({type:LOG_TYPE.WARNING, content:'dnssdP - Value is not JSON after processed by query: ' + params.query + ' returning as text:' ,params: params.data});
         resolve(params.data)
       }
     });
@@ -1274,8 +1249,7 @@ class LogLevelProcessor {
                 {
                   got("http://"+process.env.BRAINIP+":3000/v1/api/GetLogLevels")
                   .then(function (result) {
-                    metaLog({type:LOG_TYPE.VERBOSE, content:"Successfully retrieved loglevels from brain"})
-                    metaLog({type:LOG_TYPE.VERBOSE, content:result.body})
+                    metaLog({type:LOG_TYPE.VERBOSE, content:"Successfully retrieved loglevels from brain",params:result.body})
                     resolve(result.body);
                   })
                   .catch((err) => {
@@ -1284,19 +1258,19 @@ class LogLevelProcessor {
                   });
                 }
               else
-                metaLog({type:LOG_TYPE.ERROR, content:"Oops, error in loglevel processor: unknow request "+TheParts[0]});  
+                metaLog({type:LOG_TYPE.ERROR, content:"Oops, error in loglevel processor: unknow request ",params:TheParts[0]});  
             }
           else
-            {metaLog({type:LOG_TYPE.VERBOSE, content:"MetaCore receipe asks for: "+TheParts});
+            {metaLog({type:LOG_TYPE.VERBOSE, content:"MetaCore receipe asks for: ",params:TheParts});
             if  (TheParts.length>2&&TheParts[2]=="Meta")
-            { metaLog({type:LOG_TYPE.ALWAYS,content:"Local loglevel-override="+TheParts[2]});
+            { metaLog({type:LOG_TYPE.ALWAYS,content:"Local loglevel-override=",params:TheParts[2]});
               let RC = OverrideLoglevel(TheParts[0],TheParts[1]);
               if (RC<0)
-                {metaLog({type:LOG_TYPE.ERROR,content:"RC from loglevel-override="+RC});
+                {metaLog({type:LOG_TYPE.ERROR,content:"RC from loglevel-override=",params:RC});
                 reject("Override loglevel failed"+RC);
                 }
               else
-                {metaLog({type:LOG_TYPE.DEBUG,content:"Loglevel changed okay: "+RC});
+                {metaLog({type:LOG_TYPE.DEBUG,content:"Loglevel changed okay: ",params:RC});
                 resolve('OK')
                 }
             }                
@@ -1380,8 +1354,7 @@ formatConsoleDate (date) {
 
 process(params) {
   var _this = this;
-  var _this = this;
-  metaLog({type:LOG_TYPE.DEBUG, content:'Process Telnet'});
+  metaLog({type:LOG_TYPE.DEBUG, content:'Process Telnet',params:params.command});
 
   params.command = JSON.parse(params.command.replace(/[\r]?[\n]/g, '\\n'))
   if (typeof (params.command) == 'string') { params.command = JSON.parse(params.command); }
@@ -1395,11 +1368,11 @@ process(params) {
             params.command.CallType="send";
 
       if (params.command.call.search(":")<0) // no port specified?
-        {metaLog({type:LOG_TYPE.WARNING, content:"process Telnet command without port; using default 23 " + params.command});
+        {metaLog({type:LOG_TYPE.WARNING, content:"process Telnet command without port; using default 23 " ,params: params.command});
         params.command.call=params.command.call+":23";
       }
     }
-    catch (err) {metaLog({type:LOG_TYPE.ERROR, content:"connections not okay: "+err})}
+    catch (err) {metaLog({type:LOG_TYPE.ERROR, content:"connections not okay: ",params:err})}
 
     try {
       if (params.command.message) {
@@ -1410,13 +1383,14 @@ process(params) {
             reject({"Message":"no handler"});
           }    
         else 
-          if (_this.listenerConnections[_this.connectionIndex].connector.Connected != "connected") 
-            {metaLog({type:LOG_TYPE.ERROR, content:"Cmd faied; Telnet connection was not (yet) open to exec "+params.command.message})
+          {if (_this.listenerConnections[_this.connectionIndex].connector.Connected != "connected") 
+            {metaLog({type:LOG_TYPE.ERROR, content:"Cmd faied; Telnet connection was not (yet) open to exec ",params:params.command.message})
             reject({"Message":'Cannot send command, login is required'})
             }
+          
           else
             {let CommandParms={};
-            if (params.command.TelnetParms!=undefined)
+              if (params.command.TelnetParms!=undefined)
               if (typeof params.command.TelnetParms == "string") 
                 CommandParms = JSON.parse(params.command.TelnetParms);
               else 
@@ -1425,10 +1399,10 @@ process(params) {
             if (params.command.CallType == "dexec" || params.command.CallType == "exec")
               {if (params.command.CallType == "dexec")
                   {DelayCmd=params.command.delaytime ? params.command.delaytime :2500;
-                  metaLog({type:LOG_TYPE.VERBOSE, content:"Delayed exec telnet "+params.command.message})
+                  metaLog({type:LOG_TYPE.VERBOSE, content:"Delayed exec telnet ",params:params.command.message})
                   }
                 else
-                  metaLog({type:LOG_TYPE.VERBOSE, content:"Exec telnet "+params.command.message})
+                  metaLog({type:LOG_TYPE.VERBOSE, content:"Exec telnet ",params:params.command.message})
               setTimeout(() => 
                 {_this.listenerConnections[_this.connectionIndex].connector.exec(params.command.message,CommandParms)
                   .then( (Myresult) => {
@@ -1442,9 +1416,9 @@ process(params) {
                       Myresult = JSON.parse(Myresult);
                     resolve({"Message":Myresult}); 
                   }
-                  catch (err) {metaLog({type:LOG_TYPE.ERROR, content:"Error handling promise to exec " +err});}
+                  catch (err) {metaLog({type:LOG_TYPE.ERROR, content:"Error handling promise to exec " ,params:err});}
                 })
-                .catch( (err) => {metaLog({type:LOG_TYPE.ERROR, content:"Error in Telnet-client "+err});
+                .catch( (err) => {metaLog({type:LOG_TYPE.ERROR, content:"Error in Telnet-client ",params:err});
                                   reject({"Message":"my error:"+err});
                 })
                 },DelayCmd)  
@@ -1453,31 +1427,32 @@ process(params) {
               if (params.command.CallType == "dsend" || params.command.CallType == "send")
                 {if (params.command.CallType == "dsend")
                   {DelayCmd=params.command.delaytime ? params.command.delaytime :2500;
-                  metaLog({type:LOG_TYPE.VERBOSE, content:"Delayed send telnet "+params.command.message})
+                  metaLog({type:LOG_TYPE.VERBOSE, content:"Delayed send telnet ",params:params.command.message})
                   }
                 else
-                  metaLog({type:LOG_TYPE.VERBOSE, content:"Send telnet "+params.command.message})
+                  metaLog({type:LOG_TYPE.VERBOSE, content:"Send telnet ",params:params.command.message})
                 setTimeout(() => 
                 {
                   try 
-                    {metaLog({type:LOG_TYPE.VERBOSE, content:"send telnet "+params.command.message})
+                    {metaLog({type:LOG_TYPE.VERBOSE, content:"send telnet ",params:params.command.message})
                       _this.listenerConnections[_this.connectionIndex].connector.send(params.command.message,() => {});
                     }
                   catch (err) {console.log("Telnetclient suffered a fatal send error:",err);reject(err)}
                 },DelayCmd) 
               }            
               else    
-                {metaLog({type:LOG_TYPE.ERROR, content:"Telnet connection has invalid Telnetparms.Type:"+params.command.CallType});
+                {metaLog({type:LOG_TYPE.ERROR, content:"Telnet connection has invalid Telnetparms.Type:",params:params.command.CallType});
                 reject("InvalidTelnetType");
                 }
             }
           resolve('')
         }
+      }
         else  
           resolve('')
       }
       
-    catch (err) {metaLog({type:LOG_TYPE.ERROR, content:"Process error "+err})
+    catch (err) {metaLog({type:LOG_TYPE.ERROR, content:"Process error ",params:err})
                   reject('Process error');}
     })
 
@@ -1486,8 +1461,7 @@ process(params) {
 
 query(params) {
   try {
-    metaLog({type:LOG_TYPE.DEBUG, content:"Telnet query:"})
-    metaLog({type:LOG_TYPE.DEBUG, content:params})
+    metaLog({type:LOG_TYPE.DEBUG, content:"Telnet query:",params:params})
     return new Promise(function (resolve, reject) {
       if (params.query&&params.data!="") {
         try {
@@ -1505,13 +1479,12 @@ query(params) {
       else resolve(params.data); 
     })
     .catch((err) => {
-      metaLog({type:LOG_TYPE.ERROR, content:"promise catch"});
-      metaLog({type:LOG_TYPE.ERROR, content:err});
+      metaLog({type:LOG_TYPE.ERROR, content:"promise catch",params:err});
       resolve();
     });  
   }
   catch (err) {
-    metaLog({type:LOG_TYPE.ERROR,content:"Error in ProcessingManager.js process: "+err});
+    metaLog({type:LOG_TYPE.ERROR,content:"Error in ProcessingManager.js process: ",params:err});
     reject('failed query telnet');
   }
 
@@ -1524,18 +1497,18 @@ startListen(params, deviceId) {
 
   return new Promise(function (resolve, reject) {
     if (params.command==undefined || params.command.call==undefined)
-      {metaLog({type:LOG_TYPE.ERROR, content:"Setting up Telnet listener connection but no command or call defined: " + params});
+      {metaLog({type:LOG_TYPE.ERROR, content:"Setting up Telnet listener connection but no command or call defined: " ,params: params});
       reject('');
     }
     if (params.command.call.search(":")<0) // no port specified?
-      {metaLog({type:LOG_TYPE.WARNING, content:"Setting up Telnet listener connection with default port 23 " + params.command});
+      {metaLog({type:LOG_TYPE.WARNING, content:"Setting up Telnet listener connection with default port 23 " ,params: params.command});
       params.command.call=params.command.call+":23";
       }
           // Handle opening the connection ######################################################//
 
     _this.connectionIndex = _this.listenerConnections.findIndex((con) => {return con.descriptor == params.command.call   });
     if  (_this.connectionIndex < 0)  //Not defined yet, create connection 
-        {metaLog({type:LOG_TYPE.VERBOSE, content:"Setting up listener connection with Telnet - " + params.command.call});
+        {metaLog({type:LOG_TYPE.VERBOSE, content:"Setting up listener connection with Telnet - " ,params: params.command.call});
         try {
           var TelnetDevice = new Telnet()
           TelnetDevice.Connected="init";
@@ -1546,11 +1519,11 @@ startListen(params, deviceId) {
             let Myresult=result.toString('utf8').replace(/\r/g, '').replace(/\'/g, '"');
             _this.connectionIndex = _this.listenerConnections.findIndex((con) => {return con.descriptor == TelnetDevice.URL  });
             if  (_this.connectionIndex == -1)  //Not defined yet?? how is that possible?
-              metaLog({type:LOG_TYPE.ERROR, content:"Receiving Telnet message without listener setup " + TelnetDevice.URL + ": " + MyResult});
+              metaLog({type:LOG_TYPE.ERROR, content:"Receiving Telnet message without listener setup "+ TelnetDevice.URL ,params: MyResult});
             else
               {
               Myresult="{\"Message\":\""+Myresult+"\"}";
-              metaLog({type:LOG_TYPE.DEBUG, content:"Receiving message on Telnet listener "  + TelnetDevice.URL + ": " + Myresult});
+              metaLog({type:LOG_TYPE.DEBUG, content:"Receiving message on Telnet listener "  + TelnetDevice.URL + ": " ,params: Myresult});
               params._listenCallback(Myresult, params.listener, deviceId);
               }
           });
@@ -1559,18 +1532,18 @@ startListen(params, deviceId) {
           TelnetDevice.on('error', function(err) {
             _this.connectionIndex = _this.listenerConnections.findIndex((con) => {return con.descriptor == TelnetDevice.URL  });
             if  (_this.connectionIndex == -1)  //Not defined yet?? how is that possible?
-              metaLog({type:LOG_TYPE.ERROR, content:"Error within Telnet message without listener setup " + TelnetDevice.URL + ": " + MyResult});
+              metaLog({type:LOG_TYPE.ERROR, content:"Error within Telnet message without listener setup " + TelnetDevice.URL + ": " ,params: MyResult});
             else
-              metaLog({type:LOG_TYPE.ERROR, content:"Error within Telnet connection - " + _this.listenerConnections[_this.connectionIndex].descriptor + ": " + err});
+              metaLog({type:LOG_TYPE.ERROR, content:"Error within Telnet connection - " + _this.listenerConnections[_this.connectionIndex].descriptor + ": " ,params: err});
           })
 
           //Handle proper setup connection ######################################################//
           TelnetDevice.on('ready', function() {
             _this.connectionIndex = _this.listenerConnections.findIndex((con) => {return con.descriptor == TelnetDevice.URL  });
             if  (_this.connectionIndex == -1)  //Not defined yet?? how is that possible?
-              metaLog({type:LOG_TYPE.ERROR, content:"READY Connection with Telnet without listener setup " + TelnetDevice.URL + ": " + MyResult});
+              metaLog({type:LOG_TYPE.ERROR, content:"READY Connection with Telnet without listener setup " + TelnetDevice.URL + ": " ,params: MyResult});
             else
-              metaLog({type:LOG_TYPE.VERBOSE, content:"Ready within Telnet connection - " + _this.listenerConnections[_this.connectionIndex].descriptor });
+              metaLog({type:LOG_TYPE.VERBOSE, content:"Ready within Telnet connection - " ,params: _this.listenerConnections[_this.connectionIndex].descriptor });
             _this.listenerConnections[_this.connectionIndex].Connected == "ready";
             TelnetDevice.Connected = "ready";
           })
@@ -1579,24 +1552,24 @@ startListen(params, deviceId) {
           TelnetDevice.on('connect', function() {
             _this.connectionIndex = _this.listenerConnections.findIndex((con) => {return con.descriptor == TelnetDevice.URL  });
             if  (_this.connectionIndex >= 0)  //Existing connection 
-              {metaLog({type:LOG_TYPE.VERBOSE, content:"Telnet-client reports CONNECT "+_this.listenerConnections[_this.connectionIndex].descriptor});
+              {metaLog({type:LOG_TYPE.VERBOSE, content:"Telnet-client reports CONNECT " ,params:_this.listenerConnections[_this.connectionIndex].descriptor});
               TelnetDevice.Connected = "connected";
               _this.listenerConnections[_this.connectionIndex].Connected="connected";
               }
             else
-              metaLog({type:LOG_TYPE.ERROR, content:"Connect with Telnet without listener setup " + TelnetDevice.URL + ": " + MyResult});
+              metaLog({type:LOG_TYPE.ERROR, content:"Connect with Telnet without listener setup " ,params: TelnetDevice.URL + ": " + MyResult});
           })
 
           //Handle timeout ######################################################//
           TelnetDevice.on('timeout', function() {
             _this.connectionIndex = _this.listenerConnections.findIndex((con) => {return con.descriptor == TelnetDevice.URL  });
             if  (_this.connectionIndex >= 0)   
-              {metaLog({type:LOG_TYPE.WARNING, content:"TIMEOUT Telnet-client "+_this.listenerConnections[_this.connectionIndex].descriptor});              
+              {metaLog({type:LOG_TYPE.WARNING, content:"TIMEOUT Telnet-client ",params:_this.listenerConnections[_this.connectionIndex].descriptor});              
               //TelnetDevice.Connected = "connected";
               //_this.listenerConnections[_this.connectionIndex].Connected="connected";
             }
             else
-              metaLog({type:LOG_TYPE.ERROR, content:"READY Connection with Telnet without listener setup " + TelnetDevice.URL + ": " + MyResult});
+              metaLog({type:LOG_TYPE.ERROR, content:"READY Connection with Telnet without listener setup " ,params: TelnetDevice.URL + ": " + MyResult});
 
           })
 
@@ -1604,16 +1577,16 @@ startListen(params, deviceId) {
           TelnetDevice.on('close', function() {
             _this.connectionIndex = _this.listenerConnections.findIndex((con) => {return con.descriptor == TelnetDevice.URL  });
             if  (_this.connectionIndex >= 0)  //Not defined yet, create connection 
-              {metaLog({type:LOG_TYPE.VERBOSE, content:"Telnet-client shows connection is closed " + _this.listenerConnections[_this.connectionIndex].descriptor});
+              {metaLog({type:LOG_TYPE.VERBOSE, content:"Telnet-client shows connection is closed " ,params: _this.listenerConnections[_this.connectionIndex].descriptor});
               metaLog({type:LOG_TYPE.VERBOSE, content:_this.listenerConnections[_this.connectionIndex].Connected});
               if ( _this.listenerConnections[_this.connectionIndex].Connected != "wrapup")
                 {TelnetDevice.Connected = "closed";
                 _this.listenerConnections[_this.connectionIndex].Connected="retrying";
-                metaLog({type:LOG_TYPE.VERBOSE, content:"Telnet-client retrying to connect " + _this.listenerConnections[_this.connectionIndex].descriptor});
+                metaLog({type:LOG_TYPE.VERBOSE, content:"Telnet-client retrying to connect " ,params: _this.listenerConnections[_this.connectionIndex].descriptor});
                 try {  
                   _this.listenerConnections[_this.connectionIndex].connector.connect(_this.listenerConnections[_this.connectionIndex].Telnetparams);
                   }
-                catch (err) {metaLog({type:LOG_TYPE.ERROR, content:'Error restarting  Telnet-connection ' + err});}        
+                catch (err) {metaLog({type:LOG_TYPE.ERROR, content:'Error restarting  Telnet-connection ' ,params: err});}        
               }
               _this.listenerConnections[_this.connectionIndex].Connected = "closed";
               setTimeout(() => { // give it some time before removing definiotn for listener
@@ -1632,7 +1605,7 @@ startListen(params, deviceId) {
             }
 
           if (!params.command.TelnetParms)
-            {metaLog({type:LOG_TYPE.WARNING, content:"Telnet-client without TelnetParms defined; using default 127.0.0.1:23 " + _this.listenerConnections[_this.connectionIndex].descriptor});
+            {metaLog({type:LOG_TYPE.WARNING, content:"Telnet-client without TelnetParms defined; using default 127.0.0.1:23 " ,params: _this.listenerConnections[_this.connectionIndex].descriptor});
               params.command.TelnetParms.host="127.0.0.1"
               params.command.TelnetParms.port="23"; // No parms, assume a local connection.
             }
@@ -1649,32 +1622,32 @@ startListen(params, deviceId) {
           _this.listenerConnections.push({"descriptor": params.command.call, "connector": TelnetDevice,"Telnetparams":params.command.TelnetParms,"Connected":TelnetDevice.Connected});
           _this.connectionIndex = _this.listenerConnections.length - 1;
         }
-        catch (err) {metaLog({type:LOG_TYPE.ERROR, content:"Error Telnet connect " +err})}
+        catch (err) {metaLog({type:LOG_TYPE.ERROR, content:"Error Telnet connect " ,params:err})}
 
       try {
       _this.listenerConnections[_this.connectionIndex].connector.connect(_this.listenerConnections[_this.connectionIndex].Telnetparams);
       }
-      catch (err) {metaLog({type:LOG_TYPE.ERROR, content:'Error setting up Telnet-connection ' + err});
+      catch (err) {metaLog({type:LOG_TYPE.ERROR, content:'Error setting up Telnet-connection ' ,params: err});
         reject('Connection error')
         }
       }  
     else 
       if (_this.listenerConnections[_this.connectionIndex].Connected != "connected")
            {
-            metaLog({type:LOG_TYPE.VERBOSE, content:"Telnet listener was here, but closed; opening " + _this.listenerConnections[_this.connectionIndex].descriptor});
+            metaLog({type:LOG_TYPE.VERBOSE, content:"Telnet listener was here, but closed; opening " ,params: _this.listenerConnections[_this.connectionIndex].descriptor});
             _this.listenerConnections[_this.connectionIndex].connector.connect(_this.listenerConnections[_this.connectionIndex].Telnetparams);
            }
       else
-        metaLog({type:LOG_TYPE.VERBOSE, content:"Telnet listener connection was reused " + _this.listenerConnections[_this.connectionIndex].descriptor});
+        metaLog({type:LOG_TYPE.VERBOSE, content:"Telnet listener connection was reused " ,params: _this.listenerConnections[_this.connectionIndex].descriptor});
 
-    metaLog({type:LOG_TYPE.VERBOSE, content:"Telnet listener connection finished: " + params.command.call});
+    metaLog({type:LOG_TYPE.VERBOSE, content:"Telnet listener connection finished: " ,params: params.command.call});
     resolve('')
   })
 }
   wrapUp(connection) { 
-    metaLog({type:LOG_TYPE.VERBOSE, content:"Wrapup Telnet connections " +connection})
+    metaLog({type:LOG_TYPE.VERBOSE, content:"Wrapup Telnet connections " ,params:connection})
         connection.connections.forEach(myCon => {
-          metaLog({type:LOG_TYPE.VERBOSE, content:"Cleanup Telnet connections " + myCon})
+          metaLog({type:LOG_TYPE.VERBOSE, content:"Cleanup Telnet connections " ,params: myCon})
           myCon.connector.terminate();
           myCon.connector = null;
         });
@@ -1687,12 +1660,12 @@ startListen(params, deviceId) {
     if (typeof (params.command) == 'string') params.command = JSON.parse(params.command);
 
     if (params.command.call.search(":")<0) // no port specified?
-      {metaLog({type:LOG_TYPE.VERBOSE, content:"process Telnet command without port; using default 23 " + params.command});
+      {metaLog({type:LOG_TYPE.VERBOSE, content:"process Telnet command without port; using default 23 " ,params: params.command});
       params.command.call=params.command.call+":23";
     }
     let connectionIndex = this.listenerConnections.findIndex((con) => {return con.descriptor == params.command.call  });
     if  (connectionIndex >= 0)  
-        {metaLog({type:LOG_TYPE.VERBOSE, content:"StopListen Telnet connection " + this.listenerConnections[connectionIndex].descriptor});
+        {metaLog({type:LOG_TYPE.VERBOSE, content:"StopListen Telnet connection " ,params: this.listenerConnections[connectionIndex].descriptor});
         this.listenerConnections[connectionIndex].Connected="wrapup";
         this.listenerConnections[connectionIndex].connector.end();
         this.listenerConnections[connectionIndex].connector.destroy();
@@ -1711,14 +1684,14 @@ class NEEOAPIProcessor {
   }
   process(params) {
     if (typeof (params.command) == 'string') { params.command = JSON.parse(params.command); };
-    metaLog({type:LOG_TYPE.VERBOSE, content:"NEEOAPI CALL "+params.command});
+    metaLog({type:LOG_TYPE.VERBOSE, content:"NEEOAPI CALL " ,params:params.command});
     return new Promise(function (resolve, reject) {
         fs.readFile(__dirname + '/config.js', (err, config) => {
           var URL = "HTTP://"+JSON.parse(config).brainip+":3000/v1/api/"+params.command.verb+"/7220086763497193472"
-          metaLog({type:LOG_TYPE.DEBUG, content:"NEEOAPI URL: "+URL})
+          metaLog({type:LOG_TYPE.DEBUG, content:"NEEOAPI URL: ",params:URL})
           got(URL)
             .then(function (result) {
-              metaLog({type:LOG_TYPE.VERBOSE, content:"NEEOAPI result:"+result.body});
+              metaLog({type:LOG_TYPE.VERBOSE, content:"NEEOAPI result:",params:result.body});
               resolve(result.body);
             })
             .catch((err) => {
@@ -1797,8 +1770,7 @@ class cliProcessor {
         else {resolve();}
       }
       catch (err) {
-        metaLog({type:LOG_TYPE.ERROR, content:'error in string.match regex :' + params.query + ' processing of :' + params.data});
-        metaLog({type:LOG_TYPE.ERROR, content:err});
+        metaLog({type:LOG_TYPE.ERROR, content:'error in string.match regex :' + params.query + ' processing of :' + params.data,params:err});
       }
     });
   }
@@ -1818,8 +1790,7 @@ class replProcessor {
         resolve(connection);
       }
       catch (err) {
-        metaLog({type:LOG_TYPE.ERROR, content:'Error while intenting connection to the target device.'});
-        metaLog({type:LOG_TYPE.ERROR, content:err});
+        metaLog({type:LOG_TYPE.ERROR, content:'Error while intenting connection to the target device.',params:err});
       }
     });
   }
@@ -1849,7 +1820,7 @@ class replProcessor {
 exports.replProcessor = replProcessor;
 
 function UnsubscribeMQTT (params,connectionIndex,TheTopic) {
-  metaLog({type:LOG_TYPE.DEBUG, content :"Unsubscribing MQTT "+ connectionIndex})
+  metaLog({type:LOG_TYPE.DEBUG, content :"Unsubscribing MQTT ",params: connectionIndex})
   params.connection.connections[connectionIndex].connector.unsubscribe(TheTopic);
   for (const key in params.connection.connections[connectionIndex].connector.messageIdToTopic) {
     for (let i = 0; i < params.connection.connections[connectionIndex].connector.messageIdToTopic[key].length; i++) {
@@ -1858,8 +1829,7 @@ function UnsubscribeMQTT (params,connectionIndex,TheTopic) {
     }
     if (params.connection.connections[connectionIndex].connector.messageIdToTopic[key].length<=0) delete params.connection.connections[connectionIndex].connector.messageIdToTopic[key] 
   }
-  metaLog({type:LOG_TYPE.DEBUG, content :"Done unsubscribing, subscriptions are now:"})
-  metaLog({type:LOG_TYPE.DEBUG, content : params.connection.connections[connectionIndex].connector.messageIdToTopic});
+  metaLog({type:LOG_TYPE.DEBUG, content :"Done unsubscribing, subscriptions are now:",params:params.connection.connections[connectionIndex].connector.messageIdToTopic});
 
 }
 
@@ -1867,9 +1837,9 @@ function UnsubscribeMQTT (params,connectionIndex,TheTopic) {
 
 
 
-  metaLog({type:LOG_TYPE.DEBUG, content:'Topic received : ' + topic.toString()});
-  metaLog({type:LOG_TYPE.DEBUG, content:'Message received : ' + message.toString()});
-  metaLog({type:LOG_TYPE.DEBUG, content:'Looking for topic : ' + GetThisTopic});
+  metaLog({type:LOG_TYPE.DEBUG, content:'Topic received : ' ,params: topic.toString()});
+  metaLog({type:LOG_TYPE.DEBUG, content:'Message received : ' ,params: message.toString()});
+  metaLog({type:LOG_TYPE.DEBUG, content:'Looking for topic : ' ,params: GetThisTopic});
 
   var RcvdTopicPart = topic.split("/"),i;
   var ParamsTopicPart = GetThisTopic.split("/");
@@ -1893,7 +1863,7 @@ function UnsubscribeMQTT (params,connectionIndex,TheTopic) {
     }
   }  
   if (Matched) {
-    metaLog({type:LOG_TYPE.VERBOSE, content:'Topic match: ' + topic.toString()});
+    metaLog({type:LOG_TYPE.VERBOSE, content:'Topic match: ' ,params: topic.toString()});
     return(Matched);
   }
 
@@ -1934,32 +1904,31 @@ class mqttProcessor {
     try { 
       var oldRequest = params.connection.connections[connectionIndex].getRequests.findIndex((old) => {return old.ID == Handler})
     }
-    catch (err) {metaLog({type:LOG_TYPE.ERROR, content:"Something wrong with getRequest-stack on params "+err});oldRequest = -1}
+    catch (err) {metaLog({type:LOG_TYPE.ERROR, content:"Something wrong with getRequest-stack on params ",params:err});oldRequest = -1}
     if (oldRequest == -1) {  // request was not found, that's strange... 
       metaLog({type:LOG_TYPE.ERROR, content:"Could not find request-entry in params... "});
 
     }
     else {
       if (params.connection.connections[connectionIndex].getRequests[oldRequest].topic != GetTopic) {
-        metaLog({type:LOG_TYPE.ERROR, content:"Topic in entry to remove does not match request... "+GetTopic});
+        metaLog({type:LOG_TYPE.ERROR, content:"Topic in entry to remove does not match request... ",params:GetTopic});
         metaLog({type:LOG_TYPE.ERROR, content:params.connection.connections[connectionIndex].getRequests[oldRequest]});
       }
-      metaLog({type:LOG_TYPE.DEBUG, content:"remove old request from original parms "+ GetTopic});
+      metaLog({type:LOG_TYPE.DEBUG, content:"remove old request from original parms ",params: GetTopic});
       metaLog({type:LOG_TYPE.DEBUG, content:oldRequest});
       params.connection.connections[connectionIndex].getRequests.splice(oldRequest,1)
     }
 
     _this.timerRemove(Handler);
     UnsubscribeMQTT(params,connectionIndex,GetTopic);
-    metaLog({type:LOG_TYPE.VERBOSE, content:"Unsubscribed from "+GetTopic})
+    metaLog({type:LOG_TYPE.VERBOSE, content:"Unsubscribed from ",params:GetTopic})
     params.connection.connections[connectionIndex].connector.off('message',_this.Handlers[Handler]); 
-    metaLog({type:LOG_TYPE.DEBUG, content:"Removed msg-handler "+params.connection.connections[connectionIndex].descriptor})
+    metaLog({type:LOG_TYPE.DEBUG, content:"Removed msg-handler ",params:params.connection.connections[connectionIndex].descriptor})
     MyDetails.availableEntry=true; // flag entry  as available again. 
-    metaLog({type:LOG_TYPE.DEBUG, content:"Done with cleanup "+params.connection.connections[connectionIndex].descriptor})
+    metaLog({type:LOG_TYPE.DEBUG, content:"Done with cleanup ",params:params.connection.connections[connectionIndex].descriptor})
 
     }
-    catch(err) {metaLog({type:LOG_TYPE.ERROR, content:"Cleanup got an error: " +Handler,err})
-      metaLog({type:LOG_TYPE.ERROR, content:params})
+    catch(err) {metaLog({type:LOG_TYPE.ERROR, content:"Cleanup got an error: " +Handler +" "+err,params:params})
     }     
   }
 
@@ -1979,7 +1948,7 @@ class mqttProcessor {
     const myBoundMethod = (function () {
       tobj.pending = false;
       //      tobj.func.call(arguments);
-      metaLog({type:LOG_TYPE.WARNING, content:"MQTT Timeout occurred waiting on slot " +name})
+      metaLog({type:LOG_TYPE.WARNING, content:"MQTT Timeout occurred waiting on slot " ,params:name})
       _this.CleanupRequest(name)
     }).bind(this.CleanupRequest);
     tobj.MQTTGetTimer = setTimeout(myBoundMethod , time);
@@ -2011,7 +1980,7 @@ class mqttProcessor {
       let Matched = HandleMQTTIncoming(GetTopic,topic,message)//,message,params.connection.connections[_this.connectionIndex].connector);
       if (Matched ==-1) // not the topic we are interested in
         return;
-      metaLog({type:LOG_TYPE.VERBOSE, content:"We have a message with matching topic in process " + topic.toString() + " "  + message.toString()});
+      metaLog({type:LOG_TYPE.VERBOSE, content:"We have a message with matching topic in process " ,params: topic.toString() + " "  + message.toString()});
       _this.CleanupRequest(Handler)      
       if (typeof (message) == 'string') {
         try {message = JSON.parse(message); }
@@ -2034,13 +2003,13 @@ class mqttProcessor {
       _this.promiseResolve("{\"topic\": \""+ topic.toString()+ "\",\"message\" : " +message+"}");                          
     }  
     catch (err) {
-      metaLog({type:LOG_TYPE.ERROR,content:"Error in ProcessingManager.js MQTT-process msghandler: "+err});
+      metaLog({type:LOG_TYPE.ERROR,content:"Error in ProcessingManager.js MQTT-process msghandler: " ,params:err});
     }
   }  
   process (params) {
     var _this = this;
     try {
-      metaLog({type:LOG_TYPE.VERBOSE, content:"mqtt Process handler: "+params.command});
+      metaLog({type:LOG_TYPE.VERBOSE, content:"mqtt Process handler: ",params:params.command});
       if (!this.Handlers.length) {
         for (let i =0;i<10;i++) {
           eval("this.Handler"+i+" = function Handler (topic, message,packet) {_this.OnMessageHandler(params,"+i+",topic, message,packet)}")
@@ -2048,7 +2017,7 @@ class mqttProcessor {
         }
       }
     }
-    catch (err) {metaLog({type:LOG_TYPE.ERROR, content:"Init error "+err})}
+    catch (err) {metaLog({type:LOG_TYPE.ERROR, content:"Init error ",params:err})}
 
     return new Promise(function (resolve, reject) {
       _this.promiseResolve = resolve;
@@ -2063,13 +2032,13 @@ class mqttProcessor {
       _this.connectionIndex = params.connection.connections.findIndex((con) => {return con.descriptor == _this.MQTT_IP});
       if  (_this.connectionIndex < 0) { //checking if connection exist
           try {
-            metaLog({type:LOG_TYPE.VERBOSE, content:'New connection for MQTT on: ' + _this.MQTT_IP});
+            metaLog({type:LOG_TYPE.VERBOSE, content:'New connection for MQTT on: ' ,params: _this.MQTT_IP});
             mqttClient = mqtt.connect(_this.MQTT_IP, {clientId:"ProcessorConn"+process.hrtime()}); // Connect to the designated mqtt broker, use a unique clientid
             mqttClient.setMaxListeners(0); //CAREFULL OF MEMORY LEAKS HERE.
             params.connection.connections.push({"descriptor": _this.MQTT_IP, "connector": mqttClient});
             _this.connectionIndex = params.connection.connections.length - 1;
           }
-          catch (err) {metaLog({type:LOG_TYPE.ERROR, content:'Error setting up MQTT-connection ' + err});}
+          catch (err) {metaLog({type:LOG_TYPE.ERROR, content:'Error setting up MQTT-connection ' ,params: err});}
         }
         try {
   //      metaLog({type:LOG_TYPE.DEBUG, content:params.connection.connections[_this.connectionIndex].connector});
@@ -2085,14 +2054,14 @@ class mqttProcessor {
           // next actions store the "Get-request"in an array and sets a timer to wait for a response
           for (_this.RequestItem=0;_this.RequestItem<_this.Handlers.length;_this.RequestItem++) 
               if (_this.HandlerDetails[_this.RequestItem].availableEntry==undefined||_this.HandlerDetails[_this.RequestItem].availableEntry) {
-                metaLog({type:LOG_TYPE.WARNING, content:"temp Selected request slot: "+_this.RequestItem})
+                metaLog({type:LOG_TYPE.WARNING, content:"temp Selected request slot: ",params:_this.RequestItem})
                 params.connection.connections[_this.connectionIndex].getRequests.push({"ID":_this.RequestItem,"topic": _this.GetThisTopic});
                 _this.HandlerDetails[_this.RequestItem].availableEntry=false;
                 _this.HandlerDetails[_this.RequestItem].connectionIndex=_this.connectionIndex;
                 _this.HandlerDetails[_this.RequestItem].params=params;// JSON.parse(JSON.stringify(params));
                 _this.HandlerDetails[_this.RequestItem].GetTopic=_this.GetThisTopic;
                 _this.timerSet(_this.RequestItem, function() {
-                  metaLog({type:LOG_TYPE.ERROR, content:"Timeout waiting for MQTT-topic "+_this.expiringentry});
+                  metaLog({type:LOG_TYPE.ERROR, content:"Timeout waiting for MQTT-topic ",params:_this.expiringentry});
                   //metaLog({type:LOG_TYPE.ERROR, content:_this.HandlerDetails[_this.expiringentry].GetTopic});
                   //_this.CleanupRequest(_this.expiringentry)
                   reject('');return;            
@@ -2101,35 +2070,34 @@ class mqttProcessor {
               }
           // Now that we've setup an element in "get0-request array", use message-handler from that entry: _this.Handlers[_this.RequestItem] 
           params.connection.connections[_this.connectionIndex].connector.on('message', _this.Handlers[_this.RequestItem]);
-          metaLog({type:LOG_TYPE.VERBOSE, content:"Subscribing to " + _this.GetThisTopic });  // and subscribe to topic    
+          metaLog({type:LOG_TYPE.VERBOSE, content:"Subscribing to " ,params: _this.GetThisTopic });  // and subscribe to topic    
           params.connection.connections[_this.connectionIndex].connector.subscribe(_this.GetThisTopic);
           MQTTSubscribed=true;
           }
     
         }
-        catch (err) {metaLog({type:LOG_TYPE.ERROR, content:"error in message handler " +err})}
+        catch (err) {metaLog({type:LOG_TYPE.ERROR, content:"error in message handler " ,params:err})}
 
         try {
             // Next is a bit complex: if we have a message to send **OR** No listen action started and no message to send? Then send a message (though it will be empty)
         if (params.command.message || (!MQTTSubscribed && !params.command.message)) {    
           metaLog({type:LOG_TYPE.VERBOSE, content:'MQTT publishing ' + params.command.message + ' to ' + params.command.topic + ' with options : ' + params.command.options});
           try {
-            metaLog({type:LOG_TYPE.VERBOSE, content:"Publishing on " + params.connection.connections[_this.connectionIndex].descriptor});
+            metaLog({type:LOG_TYPE.VERBOSE, content:"Publishing on " ,params: params.connection.connections[_this.connectionIndex].descriptor});
             params.connection.connections[_this.connectionIndex].connector.publish(params.command.topic, params.command.message, (params.command.options ? JSON.parse(params.command.options) : ""));
             if (params.command.replytopic== undefined) { //Only resolve when not waiting on response
               metaLog({type:LOG_TYPE.DEBUG, content:"No replytopic, so we'll return immediately"})
               resolve('');
             }
             else 
-            metaLog({type:LOG_TYPE.DEBUG, content:"Replytopic, so we'll wait for a response on MQTT " +params.command.replytopic})
+            metaLog({type:LOG_TYPE.DEBUG, content:"Replytopic, so we'll wait for a response on MQTT " ,params:params.command.replytopic})
           }
           catch (err) {
-            metaLog({type:LOG_TYPE.ERROR, content:'Meta found an error processing the MQTT command'});
-            metaLog({type:LOG_TYPE.ERROR, content:err});
+            metaLog({type:LOG_TYPE.ERROR, content:'Meta found an error processing the MQTT command',params:err});
           }
         }
       }
-      catch (err) {metaLog({type:LOG_TYPE.VERBOSE, content:"error in publish part " +err})}
+      catch (err) {metaLog({type:LOG_TYPE.VERBOSE, content:"error in publish part " ,params:err})}
     })
 }
 
@@ -2144,8 +2112,7 @@ class mqttProcessor {
           resolve(JSONPath(params.query, params.data));
         }
         catch (err) {
-          metaLog({type:LOG_TYPE.ERROR, content:'error ' + err + ' in JSONPATH ' + params.query + ' processing of :'});
-          metaLog({type:LOG_TYPE.ERROR, content:params.data});
+          metaLog({type:LOG_TYPE.ERROR, content:'error ' + err + ' in JSONPATH ' + params.query + ' processing of :',params:params.data});
         }
       }
       else { resolve(params.data); }
@@ -2164,11 +2131,11 @@ class mqttProcessor {
       // Here, we need top add handler for ip-address of mqtt-server, if provided; else 'mqtt://' + settings.mqtt
       if (typeof (params.command) == 'string') { params.command = JSON.parse(params.command); }
       let connectionIndex = _this.listenerConnections.findIndex((con) => {return (con.Listenerdescriptor == params.command.connection && con.ListenerName == params.listener.name)});
-      metaLog({type:LOG_TYPE.VERBOSE, content:'Connection Index:' + connectionIndex});
+      metaLog({type:LOG_TYPE.VERBOSE, content:'Connection Index:' ,params: connectionIndex});
 
       try {
         if  (connectionIndex < 0) { //checking if connection exist
-            metaLog({type:LOG_TYPE.VERBOSE, content:"Adding connection for mqtt " + params.command.connection})
+            metaLog({type:LOG_TYPE.VERBOSE, content:"Adding connection for mqtt " ,params: params.command.connection})
             let MQTT_IP = (params.command.connection)?params.command.connection:'mqtt://' + settings.mqtt;
             mqttClient = mqtt.connect(MQTT_IP, {clientId:"processingListenController"+params.command.connection+"-"+params.listener.name}); // Connect to the designated mqtt broker
             mqttClient.setMaxListeners(0); //CAREFULL OF MEMORY LEAKS HERE.
@@ -2176,7 +2143,7 @@ class mqttProcessor {
             connectionIndex = _this.listenerConnections.length - 1;
           }
       _this.listenerConnections[connectionIndex].connector.subscribe(params.command.topic, (result) => {
-        metaLog({type:LOG_TYPE.VERBOSE, content:'Status of subscription MQTT : '+ result})});
+        metaLog({type:LOG_TYPE.VERBOSE, content:'Status of subscription MQTT : ',params: result})});
         _this.listenerConnections[connectionIndex].connector.on('message', function (topic, message,packet) {
           let  Matched = HandleMQTTIncoming(JSON.stringify(params.command.topic).split('"')[1],topic,message);
             if (Matched) {  
@@ -2193,7 +2160,7 @@ class mqttProcessor {
           });
         resolve('');
     }
-    catch (err) {metaLog({type:LOG_TYPE.ERROR, content:'Error setting up MQTT-connection '+err})}
+    catch (err) {metaLog({type:LOG_TYPE.ERROR, content:'Error setting up MQTT-connection ',params:err})}
     });
   }
   stopListen(listener) {
@@ -2203,20 +2170,20 @@ class mqttProcessor {
     //
     //********************************************************************** */
 
-    metaLog({type:LOG_TYPE.VERBOSE, content:'Stop listening to the MQTT device.' + listener.name});
+    metaLog({type:LOG_TYPE.VERBOSE, content:'Stop listening to the MQTT device.' ,params: listener.name});
     var _this = this;
     return new Promise(function (resolve, reject) {
       try {
       let connectionIndex = _this.listenerConnections.findIndex((con) => {
         return (con.Listenerdescriptor == JSON.parse(listener.command).connection && con.ListenerName == listener.name)});
-        metaLog({type:LOG_TYPE.VERBOSE, content:"Connectionindex",connectionIndex})
+        metaLog({type:LOG_TYPE.VERBOSE, content:"Connectionindex",params:connectionIndex})
       if (connectionIndex!= -1) {
-        metaLog({type:LOG_TYPE.VERBOSE, content:"Removing MQTT-listener "+ listener.name})
+        metaLog({type:LOG_TYPE.VERBOSE, content:"Removing MQTT-listener ",params: listener.name})
         metaLog({type:LOG_TYPE.debug, content:_this.listenerConnections[connectionIndex]})
         _this.listenerConnections[connectionIndex].connector.unsubscribe(JSON.parse(listener.command).topic);
         _this.listenerConnections[connectionIndex].connector.end()
         _this.listenerConnections.splice([connectionIndex],1)
-        metaLog({type:LOG_TYPE.VERBOSE, content:"Removal done: "+ listener.name})
+        metaLog({type:LOG_TYPE.VERBOSE, content:"Removal done: ",params: listener.name})
       }
     }
     catch (err){metaLog({type:LOG_TYPE.ERROR, content:err})}
@@ -2244,4 +2211,3 @@ class mqttProcessor {
   }
 }
 exports.mqttProcessor = mqttProcessor;
-

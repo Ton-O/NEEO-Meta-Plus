@@ -194,7 +194,7 @@ return new Promise(function (resolve, reject) {
       if (driverIterator < files.length) {
         if (files[driverIterator].endsWith(".json")) {
            if (!files[driverIterator].endsWith(DATASTOREEXTENSION)){ //To separate from datastore
-            metaLog({content:'Activating drivers: ' + files[driverIterator]});
+            metaLog({type:LOG_TYPE.INFO,content:'Activating drivers: ' + files[driverIterator]});
             fs.readFile(path.join(activatedModule,files[driverIterator]), (err, data) => {
               if (data) {
                 try {
@@ -206,7 +206,7 @@ return new Promise(function (resolve, reject) {
                   driverList.push(driver);
                 }
                 catch (err) {
-                  metaLog({type:LOG_TYPE.ERROR, content:' Parsing driver : ' + files[driverIterator]});
+                  metaLog({type:LOG_TYPE.ERROR, content:'Error parsing driver : ' + files[driverIterator]});
                   metaLog({type:LOG_TYPE.ERROR, content:err});
                 }
               } // if (data)
@@ -221,7 +221,7 @@ return new Promise(function (resolve, reject) {
               resolve(getIndividualActivatedDrivers(files, driverList, driverIterator+1));
               }
         } //endsWith(".json"
-        else {metaLog({type:LOG_TYPE.ERROR, content:'Skipping unknown extension '+files[driverIterator]});
+        else {metaLog({type:LOG_TYPE.WARNING, content:'Skipping unknown extension '+files[driverIterator]});
              resolve(getIndividualActivatedDrivers(files, driverList, driverIterator+1));
             }
       } //(driverIterator < files.length)
@@ -240,7 +240,7 @@ function getActivatedDrivers() {
   return new Promise(function (resolve, reject) {
     metaLog({type:LOG_TYPE.VERBOSE, content:'Searching drivers in : ' + activatedModule});
     fs.readdir(activatedModule, (err, files) => {
-      metaLog({content:'drivers found'});
+      metaLog({type:LOG_TYPE.VERBOSE,content:'drivers found'});
       var driverList = [];
       getIndividualActivatedDrivers(files, driverList,0).then((list) => {
         resolve(list);
@@ -910,6 +910,7 @@ function runNeeo () {
     
 
 function enableMQTT (cont, deviceId) {
+  // Though we might not use MQTT to SEND data (if not necessary, why shoudl we), we WILL listen for commands that are send to us over MQTT
   mqttClient.subscribe(settings.mqtt_topic + cont.name + "/#", () => {});
   mqttClient.on('message', function (topic, value) {
       try {
@@ -1009,6 +1010,8 @@ getConfig().then(() => {
       metaLog({type:LOG_TYPE.FATAL, content:"Issue while connecting to the mqtt broker."});
       metaLog({type:LOG_TYPE.FATAL, content:err});
     })
+    if (settings.mqtt_topic=='')
+      metaLog({type:LOG_TYPE.ALWAYS, content:'No data will be send to MQTT (because no mqtt_topic is defined in settings.js)'});
     createDevices()
     .then (() => {
       metaLog({type:LOG_TYPE.WARNING, content:"Connecting to the neeo brain."});

@@ -2,7 +2,7 @@ const path = require('path');
 const settings = require(path.join(__dirname,'settings'));
 // Next line gets the location of the startup file, then uses that to find its logComponents.js file
 const StartupPath = process.env.StartupPath;
-const logmodules = require(path.join(StartupPath,'logComponents'));
+const {logModules,produceNrSnapshotWhenError} = require(path.join(StartupPath,'logComponents'));
 
 const LOG_TYPE = {'ALWAYS':{Code:'A', Color:'\x1b[33m'}, 'INFO':{Code:'I', Color:'\x1b[32m'}, 'VERBOSE':{Code:'V', Color:'\x1b[36m'}, 'WARNING':{Code:'W', Color:'\x1b[35m'}, 'ERROR':{Code:'E', Color:'\x1b[31m'}, 'FATAL':{Code:'F', Color:'\x1b[41m'}, 'DEBUG':{Code:'D', Color:'\x1b[36m'}}
 const LOG_LEVEL = {'MUTED':[LOG_TYPE.ALWAYS], 'QUIET':[LOG_TYPE.ALWAYS,LOG_TYPE.FATAL, LOG_TYPE.ERROR], 
@@ -16,6 +16,17 @@ const LOG_LEVEL = {'MUTED':[LOG_TYPE.ALWAYS], 'QUIET':[LOG_TYPE.ALWAYS,LOG_TYPE.
 var mySeverity = null;
 var mySeverityText = null;
 var myComponents = [];
+var forceDisplay = false;
+var last_Error;
+var messageStack=[];
+var firstPos=0;
+var nextPos=0;
+var queuedItems=0;
+const max_TimeForceDisplay = 1000;
+var produceNrSnapshot = produceNrSnapshotWhenError;
+if (produceNrSnapshot == undefined)
+   produceNrSnapshot = 200;
+
 if (mySeverity == null) { 
     if (settings.LogSeverity) // Getting loglevel from the settigns.json file (note, can be overwritten by passing argument at runtime)
         { mySeverity = LOG_LEVEL[settings.LogSeverity];
@@ -26,7 +37,7 @@ if (mySeverity == null) {
         mySeverityText = "QUIET"
         }
     }
-metaMessage({component:"metaMessage",type:LOG_TYPE.ALWAYS, content:"Loglevel "+mySeverityText});
+//metaMessage({component:"metaMessage",type:LOG_TYPE.ALWAYS, content:"Loglevel "+mySeverityText});
 
 function getLoglevels(theModule = undefined)
 {   try {
@@ -42,7 +53,8 @@ function getLoglevels(theModule = undefined)
             }
         }
         else
-            {logmodules.MetaComponents.forEach((metaComponent) =>
+            {console.log(logModules)
+                logModules.MetaComponents.forEach((metaComponent) =>
                 {let CompIndex =myComponents.findIndex((Comp) => {return Comp.Name == metaComponent    });
                 if (CompIndex!= -1)
                     {let bb = JSON.stringify(myComponents[CompIndex])
@@ -128,19 +140,79 @@ function initialiseLogComponents(comp)
 {
     myComponents = comp;
 }
+function metaMessageParamHandler(theArg)
+{
+    if (Array.isArray(theArg)) 
+        console.log('\x1b[0m\x1b[2m', JSON.stringify(theArg), '\x1b[0m') 
+    else
+        console.log('\x1b[0m\x1b[2m', theArg, '\x1b[0m') 
 
-function metaMessage(message) {
+}
 
-try {
-    let CompIndex = myComponents.findIndex((Comp) => {return Comp.Name == message.component    });
-    if (mySeverity ) {//&& myComponents) {
-        if ((CompIndex == -1 && mySeverity.includes(message.type)) 
-            ||(CompIndex != -1   && myComponents[CompIndex].LOG_LEVEL.includes(message.type)    // Check modue specific
-        )) 
-            {console.log('\x1b[4m', (new Date()).toLocaleString() + "\x1b[0m \x1b[36m\x1b[7m" + (message.deviceId ? message.deviceId : "no deviceId") + "\x1b[0m - " + message.component + "\x1b[0m: ", message.type.Color, (typeof message.content == 'object' ? "JSON Object":message.content), '\x1b[0m');
-            if (typeof message.content == 'object') { console.log('\x1b[0m\x1b[2m', message.content, '\x1b[0m') };
-            if (Array.isArray(message.content)) { console.log('\x1b[0m\x1b[2m', JSON.stringify(message.content), '\x1b[0m') };
+function metaMessage(message) 
+{
+      try {
+        if (message.type==LOG_TYPE.ERROR&&produceNrSnapshot)
+        {   let d = new Date();
+            if (last_Error == 0 || d.getTime() - last_Error < max_TimeForceDisplay)
+                console.log("Message type = ERROR, so we'll reproduce ",produceNrSnapshot,"suppressed messages")
+            forceDisplay = true;
+            last_Error = d.getTime();
+        }
+
+        if (forceDisplay)
+        {   let d = new Date();
+            if (d.getTime() - last_Error < max_TimeForceDisplay)
+            {   let j = firstPos;
+                for (let i = 0;i<queuedItems;i++)
+                {produceMessage(messageStack[j]);
+                    if (++j > produceNrSnapshot)  j=0;
+                }
+                handleOneMessage(message,forceDisplay)
+                queuedItems=0;
             }
+            else
+                forceDisplay = false;
+        }
+        if (!forceDisplay)
+        {   handleOneMessage(message,forceDisplay)  
+            if (queuedItems==produceNrSnapshot) 
+            {   if (++nextPos > produceNrSnapshot)
+                    nextPos=0;
+                if (++firstPos > produceNrSnapshot)
+                    firstPos=0;
+            }
+            else
+                {++queuedItems;
+                ++nextPos;
+                }
+            messageStack[nextPos]= message;
+
+        }
+    }
+    catch (err) {console.log("error in metamessage",err)}
+}
+
+
+function produceMessage(message)
+{try {
+    console.log('\x1b[4m', (new Date()).toLocaleString() + "\x1b[0m \x1b[36m\x1b[7m" + (message.deviceId ? message.deviceId : "no deviceId") + "\x1b[0m - " + message.component + "\x1b[0m: ", message.type.Color, (typeof message.content == 'object' ? "JSON Object":message.content), '\x1b[0m');
+    if (typeof message.content == 'object' || Array.isArray(message.content ))
+        metaMessageParamHandler(message.content)
+    if (message.params!=undefined)
+        metaMessageParamHandler(message.params)
+    return 1;  // signal message is written
+}
+catch(err) {console.log("Err in producemessage",err)}
+
+}
+
+function handleOneMessage(message,Forced) 
+{try {
+    let CompIndex = myComponents.findIndex((Comp) => {return Comp.Name == message.component    });
+        if (mySeverity ) {//&& myComponents) {
+            if ((CompIndex == -1 && mySeverity.includes(message.type)) ||(CompIndex != -1   && myComponents[CompIndex].LOG_LEVEL.includes(message.type) ))    // Check module specific 
+                produceMessage(message)
         }
     }
     catch(err) {console.log("Err in metamessage",err)}
