@@ -153,7 +153,7 @@ function metaMessage(message)
       try {
         if (message.type==LOG_TYPE.ERROR&&produceNrSnapshot)
         {   let d = new Date();
-            if (last_Error == 0 || d.getTime() - last_Error < max_TimeForceDisplay)
+            if (last_Error == 0 || d.getTime() - last_Error > max_TimeForceDisplay)
                 console.log("Message type = ERROR, so we'll reproduce ",produceNrSnapshot,"suppressed messages")
             forceDisplay = true;
             last_Error = d.getTime();

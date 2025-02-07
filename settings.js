@@ -1,7 +1,7 @@
 var settings = 
 {
   'mqtt' : 'localhost',
-  'mqtt_topic' : 'meta/',
+  'mqtt_topic' : '',
   'LogSeverity' : "ERROR",
   'driverPrefix' : '.meta2 ', 
   'runtimeName' : '.meta',
