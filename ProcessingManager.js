@@ -8,46 +8,23 @@ const rpc = require('json-rpc2');
 const lodash = require('lodash');
 var xml2js = require('xml2js');
 const { parserXMLString, xmldom } = require("./metaController");
-const { variablesVault } = require(path.join(__dirname,'variablesVault'));
 const got = require('got');
 const Net = require('net');
-//const {Telnet} = require('telnet-client'); 
 const {Telnet} = require(path.join(__dirname,'/Telnet-meta')); 
 const Promise = require('bluebird');
 const mqtt = require('mqtt');
 const util = require('util');
 
-const CONSTANTS =  {KEY_DELAY: 100,
-  CONNECTION_STATE: {
-    DISCONNECTED: 0,
-    CONNECTING: 1,
-    AUTHENTICATING: 2,
-    AUTHENTICATED: 3,
-    CONNECTED: 4
-  }}
-
 const settings = require(path.join(__dirname,'settings'));
-//const { connect } = require("socket.io-client");
-var socket = "";
 var mqttClient;
-var  MyMQTTTopic = [""];
-var MyMQTTMessage = [""];
-
 const WebSocket = require('ws');
 const ReconnectingWebSocket = require('reconnecting-websocket');
 
 const wol = require('wol');
-const { connect } = require("socket.io-client");
 const meta = require(path.join(__dirname,'meta'));
-//LOGGING SETUP AND WRAPPING
-//Disable the NEEO library console warning.
 const { metaMessage, LOG_TYPE,OverrideLoglevel,getLoglevels } = require("./metaMessage");
-const { startsWith, slice } = require("lodash");
-//const { retry } = require("statuses");
 const { MDNSServiceDiscovery } = require('tinkerhub-mdns');
 const find = require('local-devices');
-//const { Console } = require("console");
-
 
 console.error = console.info = console.debug = console.warn = console.trace = console.dir = console.dirxml = console.group = console.groupEnd = console.time = console.timeEnd = console.assert = console.profile = function() {};
 function metaLog(message) {
