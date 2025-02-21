@@ -126,7 +126,7 @@ def Convert_Broadlink_to_GC(stream):
     #First convert Broadlink-format to Lirc
     data = bytearray.fromhex(''.join(stream))
     durations = to_microseconds(data)
-    logger.info("Broadlink: durations" +durations)
+    logger.debug("Broadlink: durations" +durations)
     #Then convert format from Lirc to GC
     result = lirc2gc(durations)
     return result
@@ -139,38 +139,39 @@ def Convert_Broadlink_to_GC(stream):
 
 def Connect_Broadlink():
 
-   host = request.args.get('host')
-   type = int(request.args.get('type'),16) 
-   mac  = bytearray.fromhex(request.args.get('mac'))
-   logger.info('host %s, type %s, mac %s',host, type, mac)
-   dev = broadlink.gendevice(type, (host, 80), mac)
-   logger.info("We have a device") 
-   dev.auth()
-   logger.info('dev={dev}')
-   return dev
+    host = request.args.get('host')
+    type = int(request.args.get('type'),16) 
+    mac  = bytearray.fromhex(request.args.get('mac'))
+    logger.debug('host %s, type %s, mac %s',host, type, mac)
+    dev = broadlink.gendevice(type, (host, 80), mac)
+    logger.info("Broadlink_Driver: Connection to Broadlink succeeded")
+    logger.debug("We have found device;authorizing") 
+    dev.auth()
+    logger.debug('dev='+str(dev))
+    return dev
 
 def CheckADB_alreadyConnected():
     global ADBDevice
     host = request.args.get('host')
-    logger.info("ADB_Driver: host: " + host)
-    logger.info("ADB_Driver: connecting to host: " +host)
+    logger.debug("ADB_Driver: host: " + host)
+    logger.debug("ADB_Driver: connecting to host: " +host)
     try:                                            # Checking if we are already connected.
        ADBDevice = ADBHostList[host]["ADBSocket"]       
        return  1
     except:
-        logger.info("No ADB-connection yet with " + host)
+        logger.debug("No ADB-connection yet with " + host)
         return 0
 
 def Connect_ADB():
     global ADBDevice
     host = request.args.get('host')
-    logger.info("ADB_Driver: host: " + host)
-    logger.info("ADB_Driver: connecting to host: " +host)
+    logger.debug("ADB_Driver: host: " + host)
+    logger.debug("ADB_Driver: connecting to host: " +host)
     try:                                            # Checking if we are already connected.
        ADBDevice = ADBHostList[host]["ADBSocket"]       
        return 
     except:
-        logger.info("Setting up connection ADB with " + host)
+        logger.debug("Setting up connection ADB with " + host)
 
     ADBDevice = AdbDeviceTcp(host, 5555, default_transport_timeout_s=5.)
     ## Load the public and private keys so we can connect to Android and authenticate ourself (also for future use) 
@@ -185,31 +186,31 @@ def Connect_ADB():
     ADBDevice.connect(rsa_keys=[signer],auth_timeout_s=5)
 
     ADBHostList.setdefault(host, {})["ADBSocket"] = ADBDevice
-    logger.info("Hostlist is now ")
-    logger.info(ADBHostList)
+    logger.debug("Hostlist is now ")
+    logger.debug(ADBHostList)
     return
 
 def Send_ADB(ExistingConnection):
     global ADBDevice
-    logger.info(ADBDevice)
+    logger.debug(ADBDevice)
     # Send a shell command
     Command = request.args.get('command')
     AsRoot = request.args.get('root',default='')
-    logger.info("Asroot is: " + AsRoot)
+    logger.debug("Asroot is: " + AsRoot)
     if AsRoot == 'yes':  
         Response = ADBDevice.root()
-    logger.info("Command is: " + Command)
+    logger.debug("Command is: " + Command)
     try:
       Response = ADBDevice.shell(Command)
     except ():
-      logger.info("Command failed, reconnecting and retrying")
+      logger.debug("Command failed, reconnecting and retrying")
     if Response is None:
         return {}
-    logger.info("Response is: "+ Response)
+    logger.debug("Response is: "+ Response)
     Response = Response.strip().split("\r\n")
     retcode = Response[-1]
     output = "\n".join(Response[:-1])
-    logger.info("Formatted response: " + output)
+    logger.debug("Formatted response: " + output)
     return {"retcode": retcode, "output": output}
     #return Response
 
@@ -221,18 +222,18 @@ def index():
 
 @app.route('/QUIT')
 def quit():
-    logger.info("Received shutdown request")
+    logger.debug("Received shutdown request")
     # return 'Quitting'
     shutdown_server()
     return 'Server shutting down...'    
   
 @app.route('/adb',  methods=['GET','POST'])
 def _adb():
-    logger.info("ADB_Driver:")
+    logger.debug("ADB_Driver:")
     ExistingConnection=CheckADB_alreadyConnected()
     if not ExistingConnection:
        ADBDevice = Connect_ADB()  
-       logger.info("ADB_Driver: Connection to device succeeded")
+       logger.debug("ADB_Driver: Connection to device succeeded")
     Response = Send_ADB(ExistingConnection)
     return Response 
 
@@ -240,22 +241,21 @@ def _adb():
 @app.route('/disconnectadb',  methods=['GET','POST'])
 def _disconnectadb():
     host = request.args.get('host')
-    logger.info("ADB_Driver: disconnect host: " + host)
+    logger.debug("ADB_Driver: disconnect host: " + host)
     try:
         del ADBHostList[host]       
     except:
-        logger.info("Delete of entry from cache failed... Not cached?")
-    logger.info("Hostlist is now ")
-    logger.info(ADBHostList)
+        logger.debug("Delete of entry from cache failed... Not cached?")
+    logger.debug("Hostlist is now ")
+    logger.debug(ADBHostList)
     return "Disconnected"
 
 @app.route('/xmit',  methods=['GET','POST'])
 def _xmit():
     logger.info("Broadlink_Driver: xmit-request")
     dev = Connect_Broadlink()  
-    logger.info("Broadlink_Driver: Connection to Broadlink succeeded")
     data = request.args.get('stream')
-    logger.info("Broadlink_Driver: Sending data" + data)
+    logger.debug("Broadlink_Driver: Sending data" + data)
     SendThis = bytearray.fromhex(data)
     dev.send_data(SendThis)
     return 'OK'
@@ -265,14 +265,14 @@ def _xmit():
 def _xmitGC():
     logger.info("Broadlink_Driver: Send GC requested")
     dev = Connect_Broadlink()  
-    logger.info("Broadlink_Driver: Connection to Broadlink succeeded")
     data = request.args.get('stream')
-    logger.info("Broadlink_Driver: Input data " + data)
+    command = request.args.get('cmd')
+    logger.info("Broadlink driver sending IR for cmd: "+command)
+    logger.debug("Broadlink_Driver: Input data " + data)
 
     # Now convert the Global Cache format to our format
-    logger.info("Broadlink_Driver: GC data " + data)    
     ConvData = Convert_GC_to_Broadlink(data)    
-    logger.info("Broadlink_Driver: Conversion done, sending this data " + ConvData)
+    logger.debug("Broadlink_Driver: Conversion done, sending this data " + ConvData)
     SendThis = bytearray.fromhex(ConvData)
     dev.send_data(SendThis)
     return 'OK'
@@ -282,28 +282,27 @@ def ConvertBroadtoGC(Stream):
     logger.info("Broadlink_Driver: Conversion GC to Broadlink  requested")
     # Now convert the Global Cache format to our format
     ConvData = Convert_GC_to_Broadlink(Stream)    
-    logger.info("Broadlink_Driver: Conversion done, returning this data " + ConvData)
+    logger.debug("Broadlink_Driver: Conversion done, returning this data " + ConvData)
     #SendThis = bytearray.fromhex(ConvData)
     SendThis = ConvData    
     return SendThis
 
 @app.route('/BroadtoGC', methods=['GET','POST'])
 def BroadtoGC():
-    logger.info("Broadlink_Driver: Conversion Broadlink to GC  requested")
+    logger.debug("Broadlink_Driver: Conversion Broadlink to GC  requested")
     data = request.args.get('stream')
-    logger.info("Broadlink_Driver: Input data " + data)
+    logger.debug("Broadlink_Driver: Input data " + data)
     ConvData = ConvertBroadtoGC(data)
     # Now convert the Global Cache format to our format
-    logger.info("Broadlink_Driver: GC data " + ConvData)    
+    logger.debug("Broadlink_Driver: GC data " + ConvData)    
     return ConvData 
 
 @app.route('/rcve',  methods=['GET','POST'])
 def _rcve():
     #data = request.args.get['stream']
-    logger.info("Broadlink_Driver: Learning requested")
-    dev = Connect_Broadlink()
-    logger.info("Broadlink_Driver: Connection to Broadlink succeeded")    
-    logger.info("Broadlink_Driver: Learning for " + TIMEOUT +"ms")
+    logger.debug("Broadlink_Driver: Learning requested")
+    dev = Connect_Broadlink()    
+    logger.debug("Broadlink_Driver: Learning for " + TIMEOUT +"ms")
     dev.enter_learning()
     start = time.time()
     while time.time() - start < TIMEOUT:
@@ -315,10 +314,10 @@ def _rcve():
         else:
             break
     else:
-        #logger.info("No data received...")
+        #logger.debug("No data received...")
         return 'timeout'
     Learned = ''.join(format(x, '02x') for x in bytearray(data))
-    logger.info("Broadlink_Driver: Learned: " + Learned)
+    logger.debug("Broadlink_Driver: Learned: " + Learned)
     return Learned
 
 @app.route('/rcveGC',  methods=['GET','POST'])

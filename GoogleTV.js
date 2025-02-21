@@ -202,7 +202,8 @@ async function main() {
         res.json({"Status": MyResult});        
     });
     server.get("/api",  (req, res, next) => {
-        logger.info(`GTV: ${req.query}`)
+        logger.info(`GTV-api query: ${req.query}`)
+        logger.info(`GTV-api cmd: ${req.cmd}`)
         MyHost = req.query.host
         logger.info(`GET GoogleTV Call for ${MyHost}`)
          HandleApi(req,res,next)
