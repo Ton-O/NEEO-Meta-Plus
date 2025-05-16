@@ -1360,73 +1360,77 @@ process(params) {
             reject({"Message":"no handler"});
           }    
         else 
-          {if (_this.listenerConnections[_this.connectionIndex].connector.Connected != "connected") 
-            {metaLog({type:LOG_TYPE.ERROR, content:"Cmd faied; Telnet connection was not (yet) open to exec ",params:params.command.message})
-            reject({"Message":'Cannot send command, login is required'})
-            }
-          
-          else
-            {let CommandParms={};
-              if (params.command.TelnetParms!=undefined)
-              if (typeof params.command.TelnetParms == "string") 
+          {var DelayCmd = 0;   // No delay by default; if dexec is specified in our parms, we'll actually delay; OR if connection is  not yet opened ..            
+          let CommandParms={};
+          if (params.command.TelnetParms!=undefined)
+            if (typeof params.command.TelnetParms == "string") 
                 CommandParms = JSON.parse(params.command.TelnetParms);
-              else 
+            else 
                 CommandParms = params.command.TelnetParms;
-            var DelayCmd = 0;   // No delay by default; if dexec is specified in our parms, we'll actually delay
-            if (params.command.CallType == "dexec" || params.command.CallType == "exec")
-              {if (params.command.CallType == "dexec")
-                  {DelayCmd=params.command.delaytime ? params.command.delaytime :2500;
-                  metaLog({type:LOG_TYPE.VERBOSE, content:"Delayed exec telnet ",params:params.command.message})
-                  }
-                else
-                  metaLog({type:LOG_TYPE.VERBOSE, content:"Exec telnet ",params:params.command.message})
-              setTimeout(() => 
-                {_this.listenerConnections[_this.connectionIndex].connector.exec(params.command.message,CommandParms)
-                  .then( (Myresult) => {
-                  try {
-                    if (Myresult == undefined || Myresult == '')
-                        {resolve('');
-                    }
-                    Myresult=Myresult.toString('utf8').replace(/\r/g, '').replace(/\'/g, '"');
-                    Myresult="{\"Message\":\""+Myresult+"\"}";
-                    if (typeof(Myresult) == "string" )
-                      Myresult = JSON.parse(Myresult);
-                    resolve({"Message":Myresult}); 
-                  }
-                  catch (err) {metaLog({type:LOG_TYPE.ERROR, content:"Error handling promise to exec " ,params:err});}
-                })
-                .catch( (err) => {metaLog({type:LOG_TYPE.ERROR, content:"Error in Telnet-client ",params:err});
-                                  reject({"Message":"my error:"+err});
-                })
-                },DelayCmd)  
+          let CallType, InitDelayCmd;
+          if (params.command.CallType.substring(0,1) == "d") 
+              {CallType=params.command.CallType.substring(1);
+              InitDelayCmd=2500;
               }
-            else
-              if (params.command.CallType == "dsend" || params.command.CallType == "send")
-                {if (params.command.CallType == "dsend")
-                  {DelayCmd=params.command.delaytime ? params.command.delaytime :2500;
-                  metaLog({type:LOG_TYPE.VERBOSE, content:"Delayed send telnet ",params:params.command.message})
-                  }
-                else
-                  metaLog({type:LOG_TYPE.VERBOSE, content:"Send telnet ",params:params.command.message})
-                setTimeout(() => 
-                {
-                  try 
-                    {metaLog({type:LOG_TYPE.VERBOSE, content:"send telnet ",params:params.command.message})
-                      _this.listenerConnections[_this.connectionIndex].connector.send(params.command.message,() => {});
-                    }
-                  catch (err) {console.log("Telnetclient suffered a fatal send error:",err);reject(err)}
-                },DelayCmd) 
-              }            
-              else    
-                {metaLog({type:LOG_TYPE.ERROR, content:"Telnet connection has invalid Telnetparms.Type:",params:params.command.CallType});
-                reject("InvalidTelnetType");
+          else
+              {CallType=params.command.CallType;
+              if (_this.listenerConnections[_this.connectionIndex].connector.Connected == "connected")
+                InitDelayCmd=0;
+              else 
+                InitDelayCmd=1000;
+              }
+          DelayCmd=params.command.delaytime ? params.command.delaytime :InitDelayCmd;
+
+          if (CallType == "exec")
+            {metaLog({type:LOG_TYPE.VERBOSE, content:"Exec telnet ",params:params.command.message})
+            setTimeout(() => 
+              {if (_this.listenerConnections[_this.connectionIndex].connector.Connected != "connected") 
+                {metaLog({type:LOG_TYPE.ERROR, content:"Cmd not executed; Telnet connection was not (yet) open to exec ",params:params.command.message})
+                reject({"Message":'Cannot send command, login is required'})
                 }
+                _this.listenerConnections[_this.connectionIndex].connector.exec(params.command.message,CommandParms)
+                .then( (Myresult) => {
+                try {
+                  if (Myresult == undefined || Myresult == '')
+                      {resolve('');
+                  }
+                  Myresult=Myresult.toString('utf8').replace(/\r/g, '').replace(/\'/g, '"');
+                  Myresult="{\"Message\":\""+Myresult+"\"}";
+                  if (typeof(Myresult) == "string" )
+                    Myresult = JSON.parse(Myresult);
+                  resolve({"Message":Myresult}); 
+                }
+                catch (err) {metaLog({type:LOG_TYPE.ERROR, content:"Error handling promise to exec " ,params:err});}
+              })
+              .catch( (err) => {metaLog({type:LOG_TYPE.ERROR, content:"Error in Telnet-client ",params:err});
+                                reject({"Message":"my error:"+err});
+              })
+              },DelayCmd)  
             }
-          resolve('')
+          else
+            if (CallType == "send")
+              {metaLog({type:LOG_TYPE.VERBOSE, content:"Send telnet ",params:params.command.message})
+              setTimeout(() => 
+              {if (_this.listenerConnections[_this.connectionIndex].connector.Connected != "connected") 
+                {metaLog({type:LOG_TYPE.ERROR, content:"Cmd not executed; Telnet connection was not (yet) open to send ",params:params.command.message})
+                reject({"Message":'Cannot send command, login is required'})
+                }                  
+                try 
+                  {metaLog({type:LOG_TYPE.VERBOSE, content:"send telnet ",params:params.command.message})
+                    _this.listenerConnections[_this.connectionIndex].connector.send(params.command.message,() => {});
+                  }
+                catch (err) {console.log("Telnetclient suffered a fatal send error:",err);reject(err)}
+              },DelayCmd) 
+            }            
+            else    
+              {metaLog({type:LOG_TYPE.ERROR, content:"Telnet connection has invalid Telnetparms.Type:",params:params.command.CallType});
+              reject("InvalidTelnetType");
+              }            
+        resolve('')
         }
       }
-        else  
-          resolve('')
+      else  
+        resolve('')
       }
       
     catch (err) {metaLog({type:LOG_TYPE.ERROR, content:"Process error ",params:err})
