@@ -986,8 +986,8 @@ class staticProcessor {
           resolve(JSONPath(params.query, JSON.parse(params.data)));
         }
         else {
-          if (params.data != undefined) {
-            if (typeof(params.data) == string){
+          if (params.data != undefined&&params.data !='') {
+            if (typeof(params.data) == "string"){
               resolve(JSON.parse(params.data));
             }
             else 
@@ -998,8 +998,9 @@ class staticProcessor {
           else { resolve(); }
         }
       }
-      catch {
+      catch(err) {
         metaLog({type:LOG_TYPE.WARNING, content:'staticP - Value is not JSON after processed by query: ' + params.query + ' returning as text:' ,params: params.data});
+        metaLog({type:LOG_TYPE.WARNING, content:err});
         resolve(params.data)
       }
     });
@@ -1387,6 +1388,7 @@ process(params) {
               {if (_this.listenerConnections[_this.connectionIndex].connector.Connected != "connected") 
                 {metaLog({type:LOG_TYPE.ERROR, content:"Cmd not executed; Telnet connection was not (yet) open to exec ",params:params.command.message})
                 reject({"Message":'Cannot send command, login is required'})
+                return
                 }
                 _this.listenerConnections[_this.connectionIndex].connector.exec(params.command.message,CommandParms)
                 .then( (Myresult) => {
@@ -1414,6 +1416,7 @@ process(params) {
               {if (_this.listenerConnections[_this.connectionIndex].connector.Connected != "connected") 
                 {metaLog({type:LOG_TYPE.ERROR, content:"Cmd not executed; Telnet connection was not (yet) open to send ",params:params.command.message})
                 reject({"Message":'Cannot send command, login is required'})
+                return
                 }                  
                 try 
                   {metaLog({type:LOG_TYPE.VERBOSE, content:"send telnet ",params:params.command.message})
@@ -1425,19 +1428,17 @@ process(params) {
             else    
               {metaLog({type:LOG_TYPE.ERROR, content:"Telnet connection has invalid Telnetparms.Type:",params:params.command.CallType});
               reject("InvalidTelnetType");
+              return;
               }            
         resolve('')
         }
       }
       else  
         resolve('')
-      }
-      
+      }      
     catch (err) {metaLog({type:LOG_TYPE.ERROR, content:"Process error ",params:err})
                   reject('Process error');}
     })
-
-
 }
 
 query(params) {
