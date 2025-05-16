@@ -605,8 +605,7 @@ class webSocketProcessor {
     return new Promise(function (resolve, reject) {
       try {
         if (params.query) {
-          metaLog({type:LOG_TYPE.DEBUG, content:"Querying websocket",params:params});
-          metaLog({type:LOG_TYPE.DEBUG, content:"Result:",params:JSONPath(params.query, params.data)});
+          metaLog({type:LOG_TYPE.DEBUG, content:"Querying websocket",params:params.data});
           resolve(JSONPath(params.query, params.data));
         }
         else {
@@ -1311,23 +1310,6 @@ initiate(connection) {
     return new Promise(function (resolve, reject) {      
       resolve();
     });
-}
-
-formatConsoleDate (date) {
-  var hour = date.getHours();
-  var minutes = date.getMinutes();
-  var seconds = date.getSeconds();
-  var milliseconds = date.getMilliseconds();
-
-  return '[' +
-         ((hour < 10) ? '0' + hour: hour) +
-         ':' +
-         ((minutes < 10) ? '0' + minutes: minutes) +
-         ':' +
-         ((seconds < 10) ? '0' + seconds: seconds) +
-         '.' +
-         ('00' + milliseconds).slice(-3) +
-         '] ';
 }
 
 process(params) {
