@@ -270,7 +270,7 @@ module.exports = function controller(driver) {
         //process the value
         let finalValue = self.vault.readVariables(evalW.value, deviceId);
         finalValue = self.assignTo(RESULT, finalValue, result);
-        metaLog({type:LOG_TYPE.VERBOSE, content:"Value to EvalWrite: " ,params: finalValue, deviceId:deviceId});
+        metaLog({type:LOG_TYPE.VERBOSE, content:"Value to EvalWrite in "+evalW.variable+": " ,params: finalValue, deviceId:deviceId});
         self.vault.writeVariable(evalW.variable, finalValue, deviceId); 
       });
     }

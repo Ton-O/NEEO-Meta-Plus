@@ -579,11 +579,12 @@ class webSocketProcessor {
             if (theConnection.connector && theConnection.connector.readyState != 1) {
               metaLog({type:LOG_TYPE.WARNING, content:"Waiting for WebSocket connection to be done"});
               setTimeout(() => {
-                  metaLog({type:LOG_TYPE.WARNING, content:"Retrying to send the message"});
                   if (theConnection && theConnection.connector && theConnection.connector.readyState == 1) 
+                    {metaLog({type:LOG_TYPE.WARNING, content:"Retrying to send the message",params:params.command.message});
                     theConnection.connector.send(params.command.message)
+                    }
                   else
-                    metaLog({type:LOG_TYPE.ERROR, content:"Could not send the websocket message"});
+                    metaLog({type:LOG_TYPE.ERROR, content:"Could not send the websocket message",params:params.command.message});
                   if (theConnection && theConnection.connector && theConnection.connector.readyState) 
                     resolve({'readystate':theConnection.connector.readyState});
                   else resolve({'readystate':-1});
@@ -1042,7 +1043,7 @@ class mDNSProcessor {
         }
         else {
           if (params.data != undefined) {
-            if (typeof(params.data) == string){
+            if (typeof(params.data) == "string"){
               resolve(JSON.parse(params.data));
             }
             else 
@@ -1094,7 +1095,7 @@ class dnssdProcessor {
         type: params.command // type: 'xbmc-jsonrpc-h' //
       });
       // Listen for services as they become available
-
+      metaLog({type:LOG_TYPE.DEBUG, content:"Starting discovery for service: " ,params: params.command });
       discovery.onAvailable(service => {
           try 
             {service.addresses.forEach((HostAndPort) => {
@@ -1107,6 +1108,7 @@ class dnssdProcessor {
                     let serviceIndex = Services.findIndex((theService) => {
                       return theService.id == service.id})
                     if (serviceIndex<0) {
+                      metaLog({type:LOG_TYPE.DEBUG, content:"Discovery result: " ,params: service });
                       Services.push(service);
                     }
                   }
@@ -1134,22 +1136,11 @@ class dnssdProcessor {
     });
   }
   query(params) {
-    try {
-      if (typeof(params.data) != "string"){
-        for (let index = 0; index < params.data.length; index++) {
-          let bbx = params.data[index]
-          if (bbx.type = "googlecast") {
-            bbx.fn = bbx.data.get('fn')
-          }
-        }
-      }
-    }
-    catch (err) {metaLog({type:LOG_TYPE.ERROR, content:"Query=error:",params:err})}
     return new Promise(function (resolve, reject) {
       try {
         if (params.query != undefined  && params.query != '') {
           try {
-          if (typeof(params) == 'string') {
+          if (typeof(params) == "string") {
             metaLog({type:LOG_TYPE.DEBUG, content:'Query resolve string'})
             resolve(JSONPath(params.query, JSON.parse(params.data)));
           }
@@ -1161,7 +1152,7 @@ class dnssdProcessor {
         }
         else {
           if (params.data != undefined) {
-            if (typeof(params.data) == string)
+            if (typeof(params.data) == "string")
                   resolve(JSON.parse(params.data));
             else 
               resolve(params.data)

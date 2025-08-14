@@ -154,7 +154,7 @@ function metaMessage(message)
         if ((message.type==LOG_TYPE.FATAL|| message.type==LOG_TYPE.ERROR )&&produceNrSnapshot)
         {   let d = new Date();
             if (last_Error == 0 || d.getTime() - last_Error > max_TimeForceDisplay)
-                console.log('\x1b[31m',"******** Message type =",message.type,"so we'll reproduce",produceNrSnapshot,"suppressed messages ********")
+                console.log('\x1b[31m',"******** Message type =",message.type,"so we'll reproduce all",produceNrSnapshot," last messages ********")
             forceDisplay = true;
             last_Error = d.getTime();
         }
@@ -170,8 +170,10 @@ function metaMessage(message)
                 handleOneMessage(message,forceDisplay)
                 queuedItems=0;
             }
-            else
-                forceDisplay = false;
+            else 
+                {forceDisplay = false;
+                console.log('\x1b[31m',"******** Message type =",message.type,"Reproduction of",produceNrSnapshot," messages done ********")
+                }
         }
         if (!forceDisplay)
         {   handleOneMessage(message,forceDisplay)  
