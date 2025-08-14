@@ -18,8 +18,6 @@ function metaLog(message) {
   return metaMessage (myMessage);
 } 
 
-metaLog({type:LOG_TYPE.FATAL, content:"New observer"});
-
 
 function toInternalName(name, deviceId) {
   return (deviceId + INTERNALNAMESEPARATOR + name);
