@@ -247,7 +247,7 @@ class variablesVault {
             let tempDS = [];
             self.variables.forEach((varI) => {
               if (varI.persisted) {
-                metaLog({type:LOG_TYPE.VERBOSE, content:"Saving inside the datastore : " + {"name":varI.name, "value":varI.value}});
+                metaLog({type:LOG_TYPE.VERBOSE, content:"Saving inside the datastore : ",params: {"name":varI.name, "value":varI.value}});
                 tempDS.push({"name":varI.name, "value":varI.value})
               }
             });

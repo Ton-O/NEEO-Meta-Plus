@@ -221,7 +221,7 @@ return new Promise(function (resolve, reject) {
               resolve(getIndividualActivatedDrivers(files, driverList, driverIterator+1));
               }
         } //endsWith(".json"
-        else {metaLog({type:LOG_TYPE.WARNING, content:'Skipping unknown extension '+files[driverIterator]});
+        else {metaLog({type:LOG_TYPE.WARNING, content:'Skipping driver, unknown extension '+files[driverIterator]});
              resolve(getIndividualActivatedDrivers(files, driverList, driverIterator+1));
             }
       } //(driverIterator < files.length)

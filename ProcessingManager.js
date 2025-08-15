@@ -1095,7 +1095,7 @@ class dnssdProcessor {
         type: params.command // type: 'xbmc-jsonrpc-h' //
       });
       // Listen for services as they become available
-      metaLog({type:LOG_TYPE.DEBUG, content:"Starting discovery for service: " ,params: params.command });
+      metaLog({type:LOG_TYPE.VERBOSE, content:"Starting discovery for service: " ,params: params.command });
       discovery.onAvailable(service => {
           try 
             {service.addresses.forEach((HostAndPort) => {

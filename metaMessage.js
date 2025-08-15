@@ -16,8 +16,12 @@ const LOG_LEVEL = {'MUTED':[LOG_TYPE.ALWAYS], 'QUIET':[LOG_TYPE.ALWAYS,LOG_TYPE.
 var mySeverity = null;
 var mySeverityText = null;
 var myComponents = [];
-var forceDisplay = false;
-var last_Error;
+const REPRODUCE_MESSAGES = 2;
+const SEVERITYFILTER_DISABLED = 1;
+const SEVERITYFILTER_ENABLED = 0;
+var forceDisplay = SEVERITYFILTER_ENABLED;
+
+var last_Error=0;
 var messageStack=[];
 var firstPos=0;
 var nextPos=0;
@@ -151,31 +155,44 @@ function metaMessageParamHandler(theArg)
 function metaMessage(message) 
 {
       try {
-        if ((message.type==LOG_TYPE.FATAL|| message.type==LOG_TYPE.ERROR )&&produceNrSnapshot)
-        {   let d = new Date();
+        if ((message.type==LOG_TYPE.FATAL|| (message.type==LOG_TYPE.ERROR &&message.component!="labelHelper"))&&produceNrSnapshot)
+        {   let d = new Date();  // Labelhelper spits out spurious errors, so ignore these "as severe"
             if (last_Error == 0 || d.getTime() - last_Error > max_TimeForceDisplay)
-                console.log('\x1b[31m',"******** Message type =",message.type,"so we'll reproduce all",produceNrSnapshot," last messages ********")
-            forceDisplay = true;
+            {   console.log('\x1b[31m',"******** Severe error: Message type =",message.type,"Component:",message.component,"content:",message.content,"********")
+                if (SEVERITYFILTER_ENABLED)
+                {   forceDisplay = SEVERITYFILTER_DISABLED
+                    console.log('\x1b[31m',"******** Severity-filter disabled for",max_TimeForceDisplay," microseconds ********")
+
+                    if (queuedItems)
+                    {   console.log('\x1b[31m',"******** So we'll reproduce all",produceNrSnapshot," last messages ********")
+                        forceDisplay = REPRODUCE_MESSAGES;
+                    }
+                }
+            }
             last_Error = d.getTime();
         }
 
         if (forceDisplay)
         {   let d = new Date();
             if (d.getTime() - last_Error < max_TimeForceDisplay)
-            {   let j = firstPos;
-                for (let i = 0;i<queuedItems;i++)
-                {produceMessage(messageStack[j]);
-                    if (++j > produceNrSnapshot)  j=0;
+            {   if (forceDisplay == REPRODUCE_MESSAGES)
+                {   let j = firstPos;
+                    for (let i = 0;i<queuedItems;i++)
+                        {produceMessage(messageStack[j]);
+                        if (++j > produceNrSnapshot)  j=0;  // round robin buffer, so skip to being
+                        }
+                    forceDisplay==SEVERITYFILTER_ENABLED;
+                    console.log('\x1b[31m',"******** Message type =",message.type,"Reproduction of",produceNrSnapshot," messages done ********" )                   
                 }
-                handleOneMessage(message,forceDisplay)
+                produceMessage(message,forceDisplay)
                 queuedItems=0;
             }
             else 
-                {forceDisplay = false;
-                console.log('\x1b[31m',"******** Message type =",message.type,"Reproduction of",produceNrSnapshot," messages done ********")
+                {forceDisplay = SEVERITYFILTER_ENABLED;
+                console.log('\x1b[31m',"******** Original severity-filter enabled again")
                 }
         }
-        if (!forceDisplay)
+        if (forceDisplay == SEVERITYFILTER_ENABLED)
         {   handleOneMessage(message,forceDisplay)  
             if (queuedItems==produceNrSnapshot) 
             {   if (++nextPos > produceNrSnapshot)
