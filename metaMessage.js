@@ -181,18 +181,18 @@ function metaMessage(message)
                         {produceMessage(messageStack[j]);
                         if (++j > produceNrSnapshot)  j=0;  // round robin buffer, so skip to being
                         }
-                    forceDisplay==SEVERITYFILTER_ENABLED;
+                    forceDisplay=SEVERITYFILTER_DISABLED;
                     console.log('\x1b[31m',"******** Message type =",message.type,"Reproduction of",produceNrSnapshot," messages done ********" )                   
                 }
                 produceMessage(message,forceDisplay)
                 queuedItems=0;
             }
             else 
-                {forceDisplay = SEVERITYFILTER_ENABLED;
+                {forceDisplay = SEVERITYFILTER_ENABLED;  // Times over since last severe error was found so switch back to normal operations
                 console.log('\x1b[31m',"******** Original severity-filter enabled again")
                 }
         }
-        if (forceDisplay == SEVERITYFILTER_ENABLED)
+        if (forceDisplay == SEVERITYFILTER_ENABLED)  // Normal operation 
         {   handleOneMessage(message,forceDisplay)  
             if (queuedItems==produceNrSnapshot) 
             {   if (++nextPos > produceNrSnapshot)
