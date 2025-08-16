@@ -28,7 +28,7 @@ const find = require('local-devices');
 
 console.error = console.info = console.debug = console.warn = console.trace = console.dir = console.dirxml = console.group = console.groupEnd = console.time = console.timeEnd = console.assert = console.profile = function() {};
 function metaLog(message) {
-  let initMessage = { component:'processingManager', type:LOG_TYPE.INFO, content:'', deviceId: null };
+  let initMessage = { component:'ProcessingManager', type:LOG_TYPE.INFO, content:'', deviceId: null };
   let myMessage = {...initMessage, ...message}
   return metaMessage (myMessage); 
 } 
