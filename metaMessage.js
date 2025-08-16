@@ -159,7 +159,7 @@ function metaMessage(message)
         {   let d = new Date();  // Labelhelper spits out spurious errors, so ignore these "as severe"
             if (last_Error == 0 || d.getTime() - last_Error > max_TimeForceDisplay)
             {   console.log('\x1b[31m',"******** Severe error: Message type =",message.type,"Component:",message.component,"content:",message.content,"********")
-                if (SEVERITYFILTER_ENABLED)
+                if (forceDisplay == SEVERITYFILTER_ENABLED)
                 {   forceDisplay = SEVERITYFILTER_DISABLED
                     console.log('\x1b[31m',"******** Severity-filter disabled for",max_TimeForceDisplay," microseconds ********")
 
