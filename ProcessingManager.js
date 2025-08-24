@@ -94,15 +94,25 @@ class httprestProcessor {
     });
   }
   process(params) {
-    return new Promise(function (resolve, reject) {
+
+     return new Promise(function (resolve, reject) {
       try {
         if (typeof (params.command) == 'string') { params.command = JSON.parse(params.command); };
         let myRestFunction;
         if (params.command.verb == 'post') {myRestFunction = got.post};
         if (params.command.verb == 'put') {myRestFunction = got.put};
         if (params.command.verb == 'get') {myRestFunction = got};
-        myRestFunction(params.command.call, {json:params.command.message,headers:params.command.headers})
+        let param;
+        if (typeof params.command.message === 'string' && params.command.message.startsWith("<")) {
+          param = {body:params.command.message,headers:params.command.headers};
+        } else
+        {
+          param = {json:params.command.message,headers:params.command.headers};
+        }
+        let myresp = myRestFunction(params.command.call, param)
+        myRestFunction(params.command.call, param)
         .then((response) => {
+
           if ((response.headers["content-type"] && response.headers["content-type"] == "text/xml") || response.body.startsWith('<'))
           {
             xml2js.parseStringPromise(response.body)
@@ -120,14 +130,21 @@ class httprestProcessor {
           }
         })
         .catch((err) => {
+                 console.log("HTTPREST call error 1",err)  
+
             metaLog({type:LOG_TYPE.ERROR, content:'Request didn\'t work : ',params:params});
             metaLog({type:LOG_TYPE.ERROR, content:err});
         });
       }
-      catch (err) {
+      catch (err) {       console.log("HTTPREST call err 2",err)  
+
         metaLog({type:LOG_TYPE.ERROR, content:'Meta Error during the rest command processing',params:err});
       }
      });
+            console.log("HTTPREST call ,myresp 2",myresp )  
+
+            console.log("HTTPREST call leaving",params)  
+
     }
     query(params) {
       return new Promise(function (resolve, reject) {
@@ -1210,7 +1227,7 @@ class LogLevelProcessor {
           if (TheParts.length==1)     // List loglevels?
             {if (TheParts[0] == "SHOWLOGLEVEL")
                 {let MyLogLevels = getLoglevels();
-                  resolve({result: MyLogLevels});
+                  resolve({result: MyLogLevels}); 
                 }
             else
               if (TheParts[0] == "SHOWBRAINLOGLEVEL")

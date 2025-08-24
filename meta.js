@@ -954,49 +954,45 @@ function enableMQTT (cont, deviceId) {
   })
 }
 //MAIN
-process.chdir(__dirname);
+  process.chdir(__dirname);
 
+let LogSeveritySet = false
 
 if (process.argv.length>2) {
   try {
 
     if (process.argv[2]) {
       let arguments = JSON.parse(process.argv[2]);
+
       if (arguments.Brain) {
         brainConsoleGivenIP = arguments.Brain;
       }
+      if (arguments.LogSeverity&&!arguments.CompLevel) {
+        if (!LogSeveritySet) {initialiseLogSeverity(arguments.LogSeverity);LogSeveritySet=true}
+        LogSeveritySet = true 
+      }
+
       if (arguments.CompLevel)
-      {initialiseLogSeverity("QUIET");
         try 
         {arguments.CompLevel.forEach(function(obj) 
-            { OverrideLoglevel(obj.LogSeverity,obj.Component)})
+            {if (!LogSeveritySet) {initialiseLogSeverity("QUIET");LogSeveritySet=true}
+            OverrideLoglevel(obj.LogSeverity,obj.Component)})
         }
-        catch (err) {console.log("Error in arguments CompLevel",err)}
-      }
-      else
-        {
-        if (arguments.LogSeverity) {
-          initialiseLogSeverity(arguments.LogSeverity);
-        }
-        if (arguments.Components) {
-          initialiseLogComponents(arguments.Components);
-        }
-      }
+        catch (err) {console.log("Error in arguments CompLevel",err)}  
     }
-    else {
-      metaLog({type:LOG_TYPE.FATAL, content:'Wrong arguments: ' + process.argv[2] + (process.argv.length>3? ' ' + process.argv[3]: '') + ' You can try for example node meta \'{"Brain":"192.168.1.144","LogSeverity":"INFO","Components":["meta"]}\', Or example: node meta \'{"Brain":"localhost","LogSeverity":"VERBOSE","Components":["metaController", "variablesVault"]}\', all items are optionals, LogSeverity can be VERBOSE, INFO, WARNING or QUIET, components can be meta, metaController, variablesVault, processingManager, sensorHelper, sliderHeper, switchHelper, imageHelper or directoryHelper if you want to focus the logs on a specific function. If components is empty, all modules are shown.'});
+    else 
+    {  metaLog({type:LOG_TYPE.FATAL, content:'Wrong arguments: ' + process.argv[2] + (process.argv.length>3? ' ' + process.argv[3]: '') + ' You can try for example node meta \'{"Brain":"192.168.1.144","LogSeverity":"INFO","Components":["meta"]}\', Or example: node meta \'{"Brain":"localhost","LogSeverity":"VERBOSE","Components":["metaController", "variablesVault"]}\', all items are optionals, LogSeverity can be VERBOSE, INFO, WARNING or QUIET, components can be meta, metaController, variablesVault, processingManager, sensorHelper, sliderHeper, switchHelper, imageHelper or directoryHelper if you want to focus the logs on a specific function. If components is empty, all modules are shown.'});
       process.exit();
     }
   }
-  catch (err)
-  {console.log("Catch error setting loglevel",err)
-    metaLog({type:LOG_TYPE.FATAL, content:'Wrong arguments: ' + process.argv[2] + (process.argv.length>3? ' ' + process.argv[3]: '') + ' You can try for example node meta \'{"Brain":"192.168.1.144","LogSeverity":"INFO","Components":["meta"]}\', Or example: node meta \'{"Brain":"localhost","LogSeverity":"VERBOSE","Components":["metaController", "variablesVault"]}\', all items are optionals, LogSeverity can be VERBOSE, INFO, WARNING or QUIET, components can be meta, metaController, variablesVault, processingManager, sensorHelper, sliderHeper, switchHelper, imageHelper or directoryHelper if you want to focus the logs on a specific function. If components is empty, all modules are shown.'});
-    metaLog({type:LOG_TYPE.FATAL, content:err});
-    process.exit();
-  }
+  catch (err) {console.log("Catch error setting loglevel",err)
+              metaLog({type:LOG_TYPE.FATAL, content:'Wrong arguments: ' + process.argv[2] + (process.argv.length>3? ' ' + process.argv[3]: '') + ' You can try for example node meta \'{"Brain":"192.168.1.144","LogSeverity":"INFO","Components":["meta"]}\', Or example: node meta \'{"Brain":"localhost","LogSeverity":"VERBOSE","Components":["metaController", "variablesVault"]}\', all items are optionals, LogSeverity can be VERBOSE, INFO, WARNING or QUIET, components can be meta, metaController, variablesVault, processingManager, sensorHelper, sliderHeper, switchHelper, imageHelper or directoryHelper if you want to focus the logs on a specific function. If components is empty, all modules are shown.'});
+              metaLog({type:LOG_TYPE.FATAL, content:err});
+              process.exit();
+              }
 }
-else
-      initialiseLogSeverity("QUIET");
+if (!LogSeveritySet) {initialiseLogSeverity("QUIET");LogSeveritySet=true}
+
 metaLog({type:LOG_TYPE.ALWAYS, content:'META Starting'});
 
 getConfig().then(() => {
