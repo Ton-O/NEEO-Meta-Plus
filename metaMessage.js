@@ -57,7 +57,7 @@ function getLoglevels(theModule = undefined)
         if (theModule != undefined && theModule.toUpperCase() != "GLOBAL")
         {   let CompIndex =myComponents.findIndex((Comp) => {return Comp.Name == theModule});
             if (CompIndex!= -1)
-            {//   logArray = []; // clear the "ALL" component
+            {logArray = []; // clear the "ALL" component
                 let bb = JSON.stringify(myComponents[CompIndex])    
                 logArray.push(JSON.parse(bb));
                 logArray[logArray.length-1].LOG_LEVEL=''
@@ -124,9 +124,15 @@ function OverrideLoglevel(NewLogLevelParm,Module,ORIGIN = "META")
                 myComponents[CompIndex].Global = false;
             }
             else {
-                MyMessage = "Setting log for component "+Module+" to follow global "+myComponents[GlobalIndex].TextLevel;
-                myComponents[CompIndex].Global = true;
-                NewLogLevel=myComponents[GlobalIndex].LOG_LEVEL;
+                if (ORIGIN=="META")
+                {   MyMessage = "Setting log for component "+Module+" to follow global "+myComponents[GlobalIndex].TextLevel;
+                    myComponents[CompIndex].Global = true;
+                    NewLogLevel=myComponents[GlobalIndex].LOG_LEVEL;
+                }
+                else
+                {   metaMessage({component:"metaMessage",type:LOG_TYPE.ALWAYS, content:"Cannot remove global loglevel for BRAIN"+mySeverityText});
+                    return -4;
+                }
             }
         }
         else 
@@ -241,23 +247,26 @@ function metaMessage(message)
 
 
 function produceMessage(message)
-{try {
-    console.log('\x1b[4m', (new Date()).toLocaleString() + "\x1b[0m \x1b[36m\x1b[7m" + (message.deviceId ? message.deviceId : "no deviceId") + "\x1b[0m - " + message.component + "\x1b[0m: ", message.type.Color, (typeof message.content == 'object' ? "JSON Object":message.content), '\x1b[0m');
-    if (typeof message.content == 'object' || Array.isArray(message.content ))
-        metaMessageParamHandler(message.content)
-    if (message.params!=undefined)
-        metaMessageParamHandler(message.params)
-    return 1;  // signal message is written
-}
-catch(err) {console.log("Err in producemessage",err)}
+{
+    if (message == undefined || message == '')
+        return 
+    if (message.deviceId == undefined)
+        message.deviceId=''
+    try {
+        console.log('\x1b[4m', (new Date()).toLocaleString() + "\x1b[0m \x1b[36m\x1b[7m" + (message.deviceId ? message.deviceId : "no deviceId") + "\x1b[0m - " + message.component + "\x1b[0m: ", message.type.Color, (typeof message.content == 'object' ? "JSON Object":message.content), '\x1b[0m');
+        if (typeof message.content == 'object' || Array.isArray(message.content ))
+            metaMessageParamHandler(message.content)
+        if (message.params!=undefined)
+            metaMessageParamHandler(message.params)
+        return 1;  // signal message is written
+    }
+    catch(err) {console.log("Err in producemessage",err)}
 
 }
 
 function handleOneMessage(message) 
 {try {
     let CompIndex = myComponents.findIndex((Comp) => {return Comp.Name == message.component    });
-    //console.log(CompIndex,"message:",mySeverity)
-    //console.log("myco-logl",myComponents[CompIndex])
         if (mySeverity ) {//&& myComponents) {
             if ((CompIndex == -1 && mySeverity.includes(message.type)) ||(CompIndex != -1   && myComponents[CompIndex].LOG_LEVEL.includes(message.type) ))    // Check module specific 
                 produceMessage(message)
