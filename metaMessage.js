@@ -118,7 +118,8 @@ function OverrideLoglevel(NewLogLevelParm,Module,ORIGIN = "META")
             mySeverity = NewLogLevel;mySeverityText = NewLogLevelText;
         }
         else 
-            if (NewLogLevelText!="") {   // First check if any supplied new loglevel is valid           
+        if (CompIndex != -1)
+        {    if (NewLogLevelText!="") {   // First check if any supplied new loglevel is valid           
                 MyMessage = "Setting log for component "+Module+" to "+NewLogLevelText;
                 myComponents[CompIndex].Global = false;
             }
@@ -127,6 +128,11 @@ function OverrideLoglevel(NewLogLevelParm,Module,ORIGIN = "META")
                 myComponents[CompIndex].Global = true;
                 NewLogLevel=myComponents[GlobalIndex].LOG_LEVEL;
             }
+        }
+        else 
+        {Console.log("Invalid module specified:",Module,";ignoring this")
+            return -1
+        }
     }
     else
         {console.log("We need to code this section metaMessage ##99")
