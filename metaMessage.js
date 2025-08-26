@@ -11,7 +11,14 @@ const LOG_LEVEL = {'MUTED':[LOG_TYPE.ALWAYS], 'QUIET':[LOG_TYPE.ALWAYS,LOG_TYPE.
                     'VERBOSE': [LOG_TYPE.ALWAYS,  LOG_TYPE.FATAL, LOG_TYPE.ERROR, LOG_TYPE.WARNING, LOG_TYPE.INFO, LOG_TYPE.VERBOSE],
                     'DEBUG': [LOG_TYPE.ALWAYS,  LOG_TYPE.FATAL, LOG_TYPE.ERROR, LOG_TYPE.WARNING, LOG_TYPE.INFO, LOG_TYPE.VERBOSE,LOG_TYPE.DEBUG]
                 }
-
+var etcTimezone = "Utc";
+const fs = require('fs');
+// See if we can set date&time to our timezone; if not, 
+try 
+  {let data = fs.readFileSync('/etc/timezone');
+  etcTimezone = data.toString().split('\n')[0]
+  }
+  catch(err) {console.log("Could not read local timeazone, default Utc used",err)}
 //Initialise Severity Level;
 var mySeverity = null;
 var mySeverityText = null;
@@ -253,7 +260,7 @@ function produceMessage(message)
     if (message.deviceId == undefined)
         message.deviceId=''
     try {
-        console.log('\x1b[4m', (new Date()).toLocaleString() + "\x1b[0m \x1b[36m\x1b[7m" + (message.deviceId ? message.deviceId : "no deviceId") + "\x1b[0m - " + message.component + "\x1b[0m: ", message.type.Color, (typeof message.content == 'object' ? "JSON Object":message.content), '\x1b[0m');
+        console.log('\x1b[4m', (new Date()).toLocaleString('en-GB', { "timeZone": etcTimezone  }) + "\x1b[0m \x1b[36m\x1b[7m" + (message.deviceId ? message.deviceId : "no deviceId") + "\x1b[0m - " + message.component + "\x1b[0m: ", message.type.Color, (typeof message.content == 'object' ? "JSON Object":message.content), '\x1b[0m');
         if (typeof message.content == 'object' || Array.isArray(message.content ))
             metaMessageParamHandler(message.content)
         if (message.params!=undefined)
