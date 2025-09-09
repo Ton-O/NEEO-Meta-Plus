@@ -73,7 +73,7 @@ function getLoglevels(theModule = undefined)
                 console.log("metaMessage Part I - error; can this happen??")
         }
         else
-            {logModules.MetaComponents.forEach((metaComponent) => {
+            {logModules.LogComponent.forEach((metaComponent) => {
                 let CompIndex =myComponents.findIndex((Comp) => {return Comp.Name == metaComponent});
                 if (CompIndex!= -1)
                     {let bb = JSON.stringify(myComponents[CompIndex]) // stringify so we get a duplicate instead of inheritance
@@ -155,7 +155,46 @@ function OverrideLoglevel(NewLogLevelParm,Module,ORIGIN = "META")
     metaMessage({component:"metaMessage",type:LOG_TYPE.ALWAYS, content:MyMessage});
     myComponents[CompIndex].LOG_LEVEL=NewLogLevel;myComponents[CompIndex].TextLevel=NewLogLevelText
     myComponents.sort(function(a, b){return a.Name > b.Name ? -1 : 1; })
-    
+
+    if (ORIGIN=="META")
+        return;
+    var FoundOne = -1;
+    var theFileName = path.join(StartupPath,'logComponents.js')  
+    var logComponentLines ;
+    var logComponentLinesSize;
+    var _this = this;   
+    try 
+        {fs.readFile(theFileName, 'utf-8', (readErr, data) => {
+            if (readErr) {console.log("Read error",readErr);return}
+            _this.logComponentLines = data.split('\n');
+            _this.logComponentLinesSize=_this.logComponentLines.length-1;
+            for (let i = 0;i<_this.logComponentLinesSize;i++) 
+                {let line = _this.logComponentLines[i];
+                 if (line.trim().length>0)   
+                    {const Parts = line.trimLeft().split(/[(.)\s=]+/);
+                    if (Parts[1]==="GlobalLogLevel")
+                        {console.log("Changing We need to change this line from ",line,"into","const GlobalLoglevel = "+NewLogLevelText)
+                        FoundOne = i;
+                    }
+                    }
+            }
+            if (FoundOne==-1) // no line with const GlobalLogLevel found in logComponent.js; create a line just before the last one
+                {_this.logComponentLines.push("module.exports = {logModules,produceNrSnapshotWhenError,GlobalLogLevel};\n");  // Make sure last line (exports) contains GlobalLogLevel too
+                FoundOne=_this.logComponentLinesSize-1;
+                }
+            _this.logComponentLines[FoundOne] = 'const GlobalLogLevel = "'+NewLogLevelText+'";'
+            var __this = _this;
+            return new Promise(function(resolve, reject) {
+                let logComponentjsNEW = __this.logComponentLines.join('\n')
+                fs.writeFile(theFileName, logComponentjsNEW, 'utf-8', function(err) {
+                    if (err) {console.log("write:err",err);reject(err);}
+                    else resolve(_this.logComponentjsNEW);
+                });
+            });
+        })
+
+    }
+    catch (err) {console.log(" global err:",err)}
 }    
 
 function initialiseLogSeverity(sever,ORIGIN = "META") 
@@ -168,7 +207,7 @@ function initialiseLogSeverity(sever,ORIGIN = "META")
     metaMessage({component:"metaMessage",type:LOG_TYPE.VERBOSE, content:"inited Loglevel "+mySeverityText});
     myComponents.push({"ORIGIN":ORIGIN,Name:"GLOBAL",LOG_LEVEL:mySeverity,TextLevel:mySeverityText});
 
-    logModules.MetaComponents.forEach((metaComponent) =>
+    logModules.LogComponent.forEach((metaComponent) =>
         {myComponents.push({"ORIGIN":ORIGIN,Name:metaComponent,LOG_LEVEL:mySeverity,TextLevel:mySeverityText,Global:true});
         })
 
