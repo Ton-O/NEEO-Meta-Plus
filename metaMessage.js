@@ -20,8 +20,8 @@ try
   }
   catch(err) {console.log("Could not read local timeazone, default Utc used",err)}
 //Initialise Severity Level;
-var mySeverity = null;
-var mySeverityText = null;
+var globalSeverity = null;              // These 2 variables have been defined for performance-reasons; global settings are also defined in myComponents array
+var globalSeverityText = null;          // See previous line
 var myComponents = [];
 const REPRODUCE_MESSAGES = 2;
 const SEVERITYFILTER_DISABLED = 1;
@@ -38,17 +38,17 @@ var produceNrSnapshot = produceNrSnapshotWhenError;
 if (produceNrSnapshot == undefined)
    produceNrSnapshot = 200;
 
-if (mySeverity == null) { 
+if (globalSeverity == null) { 
     if (settings.LogSeverity) // Getting loglevel from the settigns.json file (note, can be overwritten by passing argument at runtime)
-        { mySeverity = LOG_LEVEL[settings.LogSeverity];
-        mySeverityText = settings.LogSeverity;  // Did the user override this setting during runtime?
+        { globalSeverity = LOG_LEVEL[settings.LogSeverity];
+        globalSeverityText = settings.LogSeverity;  // Did the user override this setting during runtime?
         }
     else 
-        {mySeverity == LOG_LEVEL.QUIET; 
-        mySeverityText = "QUIET"
+        {globalSeverity == LOG_LEVEL.QUIET; 
+        globalSeverityText = "QUIET"
         }
     }
-//metaMessage({component:"metaMessage",type:LOG_TYPE.ALWAYS, content:"Loglevel "+mySeverityText});
+//metaMessage({component:"metaMessage",type:LOG_TYPE.ALWAYS, content:"Loglevel "+globalSeverityText});
 
 function getLoglevel(theModule )
 {
@@ -59,9 +59,9 @@ function getLoglevels(theModule = undefined)
 {
     try {
         let logArray = [];
-        logArray.push({Name:"GLOBAL",LOG_LEVEL:'',TextLevel:mySeverityText});
+//        logArray.push({Name:"Global",LOG_LEVEL:'',TextLevel:globalSeverityText});
 
-        if (theModule != undefined && theModule.toUpperCase() != "GLOBAL")
+ /*       if (theModule != undefined && theModule.toUpperCase() != "GLOBAL")
         {   let CompIndex =myComponents.findIndex((Comp) => {return Comp.Name == theModule});
             if (CompIndex!= -1)
             {logArray = []; // clear the "ALL" component
@@ -72,9 +72,10 @@ function getLoglevels(theModule = undefined)
             else
                 console.log("metaMessage Part I - error; can this happen??")
         }
-        else
-            {logModules.LogComponent.forEach((metaComponent) => {
-                let CompIndex =myComponents.findIndex((Comp) => {return Comp.Name == metaComponent});
+        else*/
+            {logModules.forEach((metaComponent) => {
+
+                let CompIndex =myComponents.findIndex((Comp) => {return Comp.Name == metaComponent.Name});
                 if (CompIndex!= -1)
                     {let bb = JSON.stringify(myComponents[CompIndex]) // stringify so we get a duplicate instead of inheritance
                     if (myComponents[CompIndex].Global)
@@ -86,8 +87,8 @@ function getLoglevels(theModule = undefined)
                     logArray[logArray.length-1].LOG_LEVEL=''
                     }
                 else    
-                    {logArray.push({"Name":metaComponent,"TextLevel":mySeverityText});
-                    console.log("metaMessage part III; This should not happen")
+                    {logArray.push({"Name":metaComponent,"TextLevel":globalSeverityText});
+                    console.log("metaMessage part III; This should not happen",metaComponent)
                     }
             })
         }
@@ -96,6 +97,32 @@ function getLoglevels(theModule = undefined)
         return logArray;
 }
 catch (err) {console.log(err)}
+}
+
+function SavelogComponents_file()
+{
+    var theFileName = path.join(StartupPath,'logComponents.js')  
+    var logComponentLines = [];
+    logComponentLines.push('const logModules = [ ')
+    for (let i = 0;i<myComponents.length;i++) 
+    {   let MyBuffer = '                    {logComponent: "'+myComponents[i].Name+'",';
+            MyBuffer = MyBuffer + 'logLevel:"'+ myComponents[i].TextLevel+'",'
+            MyBuffer = MyBuffer + 'FollowGlobal:'+(myComponents[i].Global?'true':'false')+'}'
+            if (i< myComponents.length -1)
+                MyBuffer = MyBuffer + ','
+            else
+                MyBuffer = MyBuffer + ']'
+        logComponentLines.push(MyBuffer)
+    } 
+    logComponentLines.push("const produceNrSnapshotWhenError = "+produceNrSnapshot)
+    logComponentLines.push("module.exports = {logModules,produceNrSnapshotWhenError};\n");  // Create last line (exports) that will contain GlobalLogLevel too
+    return new Promise(function(resolve, reject) {      // And write thesew lines with adjusted values to logComponents.js
+        let logComponentjsNEW = logComponentLines.join('\n')
+        fs.writeFile(theFileName, logComponentjsNEW, 'utf-8', function(err) {
+            if (err) {console.log("write-err",err);reject(err);}
+            else resolve(logComponentjsNEW);
+        });
+    });
 }
 
 function OverrideLoglevel(NewLogLevelParm,Module,ORIGIN = "META") 
@@ -113,16 +140,18 @@ function OverrideLoglevel(NewLogLevelParm,Module,ORIGIN = "META")
 
     let CompIndex;
     let MyMessage = "";
-    let GlobalIndex = myComponents.findIndex((Comp) => {return Comp.Name == "GLOBAL"} );
+    let GlobalIndex = myComponents.findIndex((Comp) => {return Comp.Name == "Global"} );
     if (Module != undefined && Module != '') {
         CompIndex = myComponents.findIndex((Comp) => {return Comp.Name == Module    });
         if (CompIndex == GlobalIndex) {     // we have a request to change the global loglevel
             if (NewLogLevelText=="") {
-                metaMessage({component:"metaMessage",type:LOG_TYPE.ALWAYS, content:"Cannot remove global loglevel "+mySeverityText});
+                metaMessage({component:"metaMessage",type:LOG_TYPE.ALWAYS, content:"Cannot remove global loglevel "+globalSeverityText});
                 return -4;
             }
+            myComponents[GlobalIndex].LOG_LEVEL=NewLogLevel;
+            myComponents[GlobalIndex].TextLevel=NewLogLevelText;
             MyMessage = "MetaCore is overriding global loglevel to "+NewLogLevelText;
-            mySeverity = NewLogLevel;mySeverityText = NewLogLevelText;
+            globalSeverity = NewLogLevel;globalSeverityText = NewLogLevelText;
         }
         else 
         if (CompIndex != -1)
@@ -134,10 +163,10 @@ function OverrideLoglevel(NewLogLevelParm,Module,ORIGIN = "META")
                 if (ORIGIN=="META")
                 {   MyMessage = "Setting log for component "+Module+" to follow global "+myComponents[GlobalIndex].TextLevel;
                     myComponents[CompIndex].Global = true;
-                    NewLogLevel=myComponents[GlobalIndex].LOG_LEVEL;
+                    //NewLogLevel=myComponents[GlobalIndex].LOG_LEVEL;
                 }
                 else
-                {   metaMessage({component:"metaMessage",type:LOG_TYPE.ALWAYS, content:"Cannot remove global loglevel for BRAIN"+mySeverityText});
+                {   metaMessage({component:"metaMessage",type:LOG_TYPE.ALWAYS, content:"Cannot remove global loglevel for BRAIN: "+globalSeverityText});
                     return -4;
                 }
             }
@@ -148,7 +177,7 @@ function OverrideLoglevel(NewLogLevelParm,Module,ORIGIN = "META")
         }
     }
     else
-        {console.log("We need to code this section metaMessage ##99")
+        {console.log("We probably need to code this section.... metaMessage ##99")
         return 99;
         }
 
@@ -156,62 +185,38 @@ function OverrideLoglevel(NewLogLevelParm,Module,ORIGIN = "META")
     myComponents[CompIndex].LOG_LEVEL=NewLogLevel;myComponents[CompIndex].TextLevel=NewLogLevelText
     myComponents.sort(function(a, b){return a.Name > b.Name ? -1 : 1; })
 
-    if (ORIGIN=="META")
-        return;
-    var FoundOne = -1;
-    var theFileName = path.join(StartupPath,'logComponents.js')  
-    var logComponentLines ;
-    var logComponentLinesSize;
-    var _this = this;   
-    try 
-        {fs.readFile(theFileName, 'utf-8', (readErr, data) => {
-            if (readErr) {console.log("Read error",readErr);return}
-            _this.logComponentLines = data.split('\n');
-            _this.logComponentLinesSize=_this.logComponentLines.length-1;
-            for (let i = 0;i<_this.logComponentLinesSize;i++) 
-                {let line = _this.logComponentLines[i];
-                 if (line.trim().length>0)   
-                    {const Parts = line.trimLeft().split(/[(.)\s=]+/);
-                    if (Parts[1]==="GlobalLogLevel")
-                        {console.log("Changing We need to change this line from ",line,"into","const GlobalLoglevel = "+NewLogLevelText)
-                        FoundOne = i;
-                    }
-                    }
-            }
-            if (FoundOne==-1) // no line with const GlobalLogLevel found in logComponent.js; create a line just before the last one
-                {_this.logComponentLines.push("module.exports = {logModules,produceNrSnapshotWhenError,GlobalLogLevel};\n");  // Make sure last line (exports) contains GlobalLogLevel too
-                FoundOne=_this.logComponentLinesSize-1;
-                }
-            _this.logComponentLines[FoundOne] = 'const GlobalLogLevel = "'+NewLogLevelText+'";'
-            var __this = _this;
-            return new Promise(function(resolve, reject) {
-                let logComponentjsNEW = __this.logComponentLines.join('\n')
-                fs.writeFile(theFileName, logComponentjsNEW, 'utf-8', function(err) {
-                    if (err) {console.log("write:err",err);reject(err);}
-                    else resolve(_this.logComponentjsNEW);
-                });
-            });
-        })
-
-    }
-    catch (err) {console.log(" global err:",err)}
+    SavelogComponents_file();
 }    
 
-function initialiseLogSeverity(sever,ORIGIN = "META") 
-{ 
-    mySeverity = LOG_LEVEL[sever];mySeverityText = sever;
-    if (mySeverity==undefined)
-        {console.log("metaMessage --> Unknown Loglevel requested ("+sever+"); 'QUIET' substituted")
-        mySeverity = LOG_LEVEL["QUIET"];mySeverityText = "QUIET";
-    }
-    metaMessage({component:"metaMessage",type:LOG_TYPE.VERBOSE, content:"inited Loglevel "+mySeverityText});
-    myComponents.push({"ORIGIN":ORIGIN,Name:"GLOBAL",LOG_LEVEL:mySeverity,TextLevel:mySeverityText});
+function initialiseLogSeverity(ORIGIN = "META") 
+{ // This is the first initialisation of logLevels, obtained from logComponents.js
+// If desired, it can be overridden by every component (by the OverrideLogLevel function), but initially,this is it.
+    logModules.forEach((metaComponent) =>
+        {metaComponent.ORIGIN = ORIGIN;
+         metaComponent.Name = metaComponent.logComponent;
+        metaComponent.LOG_LEVEL = LOG_LEVEL[metaComponent.logLevel];
+        metaComponent.TextLevel = metaComponent.logLevel.toUpperCase();
+        if (metaComponent.LOG_LEVEL== undefined) 
+        {   console.log("Invalid loglevel specified in logComponents.js:",metaComponent.logLevel,";initialising component",metaComponent.Name,"with VERBOSE loglevel");
+            metaComponent.LOG_LEVEL = LOG_LEVEL["VERBOSE"];
+            metaComponent.TextLevel = "VERBOSE";
+        }
+        if (metaComponent.logComponent.toUpperCase() == "GLOBAL")
+        {   metaComponent.Global = true;
+            globalSeverity = metaComponent.LOG_LEVEL;
+            globalSeverityText = metaComponent.TextLevel;
+        } 
+        else if (metaComponent.FollowGlobal == undefined)
+                metaComponent.Global = false;
+            else if (metaComponent.FollowGlobal == true)
+               metaComponent.Global = true;
+            else
+                metaComponent.Global = false;
+        myComponents.push(metaComponent);
 
-    logModules.LogComponent.forEach((metaComponent) =>
-        {myComponents.push({"ORIGIN":ORIGIN,Name:metaComponent,LOG_LEVEL:mySeverity,TextLevel:mySeverityText,Global:true});
         })
+}
 
-    }
 function initialiseLogComponents(comp) 
 {
     console.log("This function should no longer be used")
@@ -313,12 +318,16 @@ function produceMessage(message)
 function handleOneMessage(message) 
 {try {
     let CompIndex = myComponents.findIndex((Comp) => {return Comp.Name == message.component    });
-        if (mySeverity ) {//&& myComponents) {
-            if ((CompIndex == -1 && mySeverity.includes(message.type)) ||(CompIndex != -1   && myComponents[CompIndex].LOG_LEVEL.includes(message.type) ))    // Check module specific 
-                produceMessage(message)
-        }
+    if (myComponents[CompIndex].Global)        // following global severity
+    {   if (globalSeverity.includes(message.type))
+             produceMessage(message)
     }
-    catch(err) {console.log("Err in metamessage",err)}
+    else
+        if ((CompIndex != -1   && myComponents[CompIndex].LOG_LEVEL.includes(message.type) ))    // Check module specific 
+             produceMessage(message)
+
+ }
+ catch(err) {console.log("Err in metamessage",err)}
 }
 
 exports.getLoglevels = getLoglevels;

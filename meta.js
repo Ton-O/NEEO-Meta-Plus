@@ -955,8 +955,7 @@ function enableMQTT (cont, deviceId) {
 }
 //MAIN
   process.chdir(__dirname);
-
-let LogSeveritySet = false
+initialiseLogSeverity("META")
 
 if (process.argv.length>2) {
   try {
@@ -968,21 +967,20 @@ if (process.argv.length>2) {
         brainConsoleGivenIP = arguments.Brain;
       }
       if (arguments.LogSeverity&&!arguments.CompLevel) {
-        if (!LogSeveritySet) {initialiseLogSeverity(arguments.LogSeverity);LogSeveritySet=true}
-        LogSeveritySet = true 
+        OverrideLoglevel(arguments.LogSeverity,"Global","META")
       }
-
-      if (arguments.CompLevel)
-        try 
-        {arguments.CompLevel.forEach(function(obj) 
-            {if (!LogSeveritySet) {initialiseLogSeverity("QUIET");LogSeveritySet=true}
-            OverrideLoglevel(obj.LogSeverity,obj.Component)})
-        }
-        catch (err) {console.log("Error in arguments CompLevel",err)}  
-    }
-    else 
-    {  metaLog({type:LOG_TYPE.FATAL, content:'Wrong arguments: ' + process.argv[2] + (process.argv.length>3? ' ' + process.argv[3]: '') + ' You can try for example node meta \'{"Brain":"192.168.1.144","LogSeverity":"INFO","Components":["meta"]}\', Or example: node meta \'{"Brain":"localhost","LogSeverity":"VERBOSE","Components":["metaController", "variablesVault"]}\', all items are optionals, LogSeverity can be VERBOSE, INFO, WARNING or QUIET, components can be meta, metaController, variablesVault, processingManager, sensorHelper, sliderHeper, switchHelper, imageHelper or directoryHelper if you want to focus the logs on a specific function. If components is empty, all modules are shown.'});
-      process.exit();
+      else 
+        if (arguments.CompLevel)
+          try 
+            {arguments.CompLevel.forEach(function(obj) {
+              OverrideLoglevel(obj.LogSeverity,obj.Component,"META")
+            })
+          }
+          catch (err) {console.log("Error in arguments CompLevel",err)}      
+        else 
+          {  metaLog({type:LOG_TYPE.FATAL, content:'Wrong arguments: ' + process.argv[2] + (process.argv.length>3? ' ' + process.argv[3]: '') + ' You can try for example node meta \'{"Brain":"192.168.1.144","LogSeverity":"INFO","Components":["meta"]}\', Or example: node meta \'{"Brain":"localhost","LogSeverity":"VERBOSE","Components":["metaController", "variablesVault"]}\', all items are optionals, LogSeverity can be VERBOSE, INFO, WARNING or QUIET, components can be meta, metaController, variablesVault, processingManager, sensorHelper, sliderHeper, switchHelper, imageHelper or directoryHelper if you want to focus the logs on a specific function. If components is empty, all modules are shown.'});
+              process.exit();
+          }
     }
   }
   catch (err) {console.log("Catch error setting loglevel",err)
@@ -991,7 +989,6 @@ if (process.argv.length>2) {
               process.exit();
               }
 }
-if (!LogSeveritySet) {initialiseLogSeverity("QUIET");LogSeveritySet=true}
 
 metaLog({type:LOG_TYPE.ALWAYS, content:'META Starting'});
 
