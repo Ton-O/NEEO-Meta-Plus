@@ -57,46 +57,22 @@ function getLoglevel(theModule )
 
 function getLoglevels(theModule = undefined)
 {
-    try {
-        let logArray = [];
-//        logArray.push({Name:"Global",LOG_LEVEL:'',TextLevel:globalSeverityText});
-
- /*       if (theModule != undefined && theModule.toUpperCase() != "GLOBAL")
-        {   let CompIndex =myComponents.findIndex((Comp) => {return Comp.Name == theModule});
-            if (CompIndex!= -1)
-            {logArray = []; // clear the "ALL" component
-                let bb = JSON.stringify(myComponents[CompIndex])    
-                logArray.push(JSON.parse(bb));
-                logArray[logArray.length-1].LOG_LEVEL=''
+    let logArray = [];
+    logModules.forEach((metaComponent) => {
+        if (theModule == undefined || theModule == metaComponent.Name)
+            {let bb = JSON.stringify(metaComponent) // stringify so we get a duplicate instead of inheritance
+            if (metaComponent.Global)
+                {bb = JSON.parse(bb);
+                bb.TextLevel = "Following global" 
+                bb = JSON.stringify(bb);
+                }
+            logArray.push(JSON.parse(bb));
+            logArray[logArray.length-1].LOG_LEVEL=''
             }
-            else
-                console.log("metaMessage Part I - error; can this happen??")
-        }
-        else*/
-            {logModules.forEach((metaComponent) => {
-
-                let CompIndex =myComponents.findIndex((Comp) => {return Comp.Name == metaComponent.Name});
-                if (CompIndex!= -1)
-                    {let bb = JSON.stringify(myComponents[CompIndex]) // stringify so we get a duplicate instead of inheritance
-                    if (myComponents[CompIndex].Global)
-                        {bb = JSON.parse(bb);
-                        bb.TextLevel = "Following global" 
-                        bb = JSON.stringify(bb);
-                        }
-                    logArray.push(JSON.parse(bb));
-                    logArray[logArray.length-1].LOG_LEVEL=''
-                    }
-                else    
-                    {logArray.push({"Name":metaComponent,"TextLevel":globalSeverityText});
-                    console.log("metaMessage part III; This should not happen",metaComponent)
-                    }
-            })
-        }
+    })
+     
     logArray.sort(function(a, b){return a.Name.toUpperCase() > b.Name.toUpperCase() ? 1 : -1; })
-
-        return logArray;
-}
-catch (err) {console.log(err)}
+    return logArray;
 }
 
 function SavelogComponents_file()
@@ -318,7 +294,7 @@ function produceMessage(message)
 function handleOneMessage(message) 
 {try {
     let CompIndex = myComponents.findIndex((Comp) => {return Comp.Name == message.component    });
-    if (myComponents[CompIndex].Global)        // following global severity
+    if (CompIndex == -1 || myComponents[CompIndex].Global)        // following global severity
     {   if (globalSeverity.includes(message.type))
              produceMessage(message)
     }
