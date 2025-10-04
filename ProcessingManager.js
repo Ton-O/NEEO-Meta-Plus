@@ -1126,6 +1126,8 @@ class dnssdProcessor {
                       return theService.id == service.id})
                     if (serviceIndex<0) {
                       metaLog({type:LOG_TYPE.DEBUG, content:"Discovery result: " ,params: service });
+                      if (params.command == "googlecast")
+                          service.fn = service.data.get('fn') 
                       Services.push(service);
                     }
                   }
@@ -1247,7 +1249,7 @@ class LogLevelProcessor {
             }
           else
             {metaLog({type:LOG_TYPE.VERBOSE, content:"MetaCore receipe asks for: ",params:TheParts});
-            if  (TheParts.length>2&&TheParts[2]=="META")
+            if  (TheParts.length>2&&TheParts[2].toUpperCase()=="META")
             { metaLog({type:LOG_TYPE.ALWAYS,content:"Local loglevel-override=",params:TheParts[2]});
               let RC = OverrideLoglevel(TheParts[0],TheParts[1]);
               if (RC<0)

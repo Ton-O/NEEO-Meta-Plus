@@ -961,22 +961,22 @@ if (process.argv.length>2) {
   try {
 
     if (process.argv[2]) {
-      let arguments = JSON.parse(process.argv[2]);
+      let passedArguments = JSON.parse(process.argv[2]);
 
-      if (arguments.Brain) {
-        brainConsoleGivenIP = arguments.Brain;
+      if (passedArguments.Brain) {
+        brainConsoleGivenIP = passedArguments.Brain;
       }
-      if (arguments.LogSeverity&&!arguments.CompLevel) {
-        OverrideLoglevel(arguments.LogSeverity,"Global","META")
+      if (passedArguments.LogSeverity&&!passedArguments.CompLevel) {
+        OverrideLoglevel(passedArguments.LogSeverity,"Global","META")
       }
       else 
-        if (arguments.CompLevel)
+        if (passedArguments.CompLevel)
           try 
-            {arguments.CompLevel.forEach(function(obj) {
+            {passedArguments.CompLevel.forEach(function(obj) {
               OverrideLoglevel(obj.LogSeverity,obj.Component,"META")
             })
           }
-          catch (err) {console.log("Error in arguments CompLevel",err)}      
+          catch (err) {console.log("Error in passedArguments CompLevel",err)}      
         else 
           {  metaLog({type:LOG_TYPE.FATAL, content:'Wrong arguments: ' + process.argv[2] + (process.argv.length>3? ' ' + process.argv[3]: '') + ' You can try for example node meta \'{"Brain":"192.168.1.144","LogSeverity":"INFO","Components":["meta"]}\', Or example: node meta \'{"Brain":"localhost","LogSeverity":"VERBOSE","Components":["metaController", "variablesVault"]}\', all items are optionals, LogSeverity can be VERBOSE, INFO, WARNING or QUIET, components can be meta, metaController, variablesVault, processingManager, sensorHelper, sliderHeper, switchHelper, imageHelper or directoryHelper if you want to focus the logs on a specific function. If components is empty, all modules are shown.'});
               process.exit();

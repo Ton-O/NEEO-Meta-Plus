@@ -75,12 +75,13 @@ def to_microseconds(bytes):
 def lirc2gc(cmd):
     result = "" 
     NextByte=False 
-    for code in cmd:  # .split(" "):
+    cmd = cmd.replace(',',' ')     
+    for code in cmd.split(" "):
         if NextByte:
             result+=","
         else:
             NextByte=True
-        result += str(round(abs(int(int(code)*0.038400))))
+        result += str(round(abs(int(int(code,16)*0.038400))))
     return "sendir,1:1,1,38400,3,1,"+result
 
 def gc2lirc(gccmd):
@@ -279,7 +280,7 @@ def _xmitGC():
 
 @app.route('/GCToBroad', methods=['GET','POST'])
 def ConvertBroadtoGC(Stream):
-    logger.info("Broadlink_Driver: Conversion GC to Broadlink  requested")
+    logger.info("Broadlink_Driver: Conversion GC to Broadlink requested")
     # Now convert the Global Cache format to our format
     ConvData = Convert_GC_to_Broadlink(Stream)    
     logger.info("Broadlink_Driver: Conversion done, returning this data " + ConvData)
@@ -289,11 +290,20 @@ def ConvertBroadtoGC(Stream):
 
 @app.route('/BroadtoGC', methods=['GET','POST'])
 def BroadtoGC():
-    logger.info("Broadlink_Driver: Conversion Broadlink to GC  requested")
+    logger.info("Broadlink_Driver: Conversion Broadlink to GC requested")
     data = request.args.get('stream')
     logger.info("Broadlink_Driver: Input data " + data)
     ConvData = ConvertBroadtoGC(data)
     # Now convert the Global Cache format to our format
+    logger.info("Broadlink_Driver: GC data " + ConvData)    
+    return ConvData 
+
+@app.route('/LirctoGC', methods=['GET','POST'])
+def ConvertLirctoGC():
+    logger.info("Broadlink_Driver: Conversion LIRC to GC requested")
+    data = request.args.get('stream').replace("'",'')
+    logger.info("Broadlink_Driver: Input data " + data)
+    ConvData = lirc2gc(data)
     logger.info("Broadlink_Driver: GC data " + ConvData)    
     return ConvData 
 
