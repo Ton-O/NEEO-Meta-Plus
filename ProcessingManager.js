@@ -229,8 +229,10 @@ class httpgetProcessor {
   process(params) {
     return new Promise(function (resolve, reject) {
       try {
+        metaLog({type:LOG_TYPE.DEBUG, content:'http-get:' ,params: params.command});
         got(params.command)
           .then(function (result) {
+            metaLog({type:LOG_TYPE.DEBUG, content:'response:' ,params: result.body});
             resolve(result.body);
           })
           .catch((err) => {
@@ -249,6 +251,7 @@ class httpgetProcessor {
       if (params.query) {
         try {
           if (typeof (params.data) == 'string') { params.data = JSON.parse(params.data); };
+          metaLog({type:LOG_TYPE.DEBUG, content:'query-result' ,params: JSONPath(params.query, params.data)});
           resolve(JSONPath(params.query, params.data));
         }
         catch (err) {
