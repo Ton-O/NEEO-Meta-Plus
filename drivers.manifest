@@ -38,7 +38,7 @@
       "description": "Full Kodi control",
       "version": 2,
       "driverLocation": "https://raw.githubusercontent.com/Ton-O/meta-kodi/main/KODI.json",
-      "iconLocation":   "https://raw.githubusercontent.com/jac459/meta-kodi/main/Icons/kodi-logo.jpg"
+      "iconLocation":   "https://raw.githubusercontent.com/Ton-O/meta-kodi/main/icons/KODI.jpg"
     },
     {
       "name": "meta-core",
@@ -103,6 +103,14 @@
       "version": 2,
       "driverLocation": "https://raw.githubusercontent.com/jac459/yamaha-musiccast/main/yamaha-musiccast.json",
       "iconLocation":   "https://raw.githubusercontent.com/jac459/yamaha-musiccast/main/icons/yamaha_mc.png"
+    },
+        {
+      "name": "HA-KPN-TV",
+      "author": "TonO",
+      "description": "Control KPN-TV box via Homeassistant",
+      "version": 2,
+      "driverLocation": "https://raw.githubusercontent.com/Ton-O/meta-driver-library/main/HA-KPN.json",
+      "iconLocation":   "https://raw.githubusercontent.com/Ton-O/meta-driver-library/main/pics/kpntv-logo.png"
     }   
   ]
 }
