@@ -109,7 +109,6 @@ class httprestProcessor {
         {
           param = {json:params.command.message,headers:params.command.headers};
         }
-        let myresp = myRestFunction(params.command.call, param)
         myRestFunction(params.command.call, param)
         .then((response) => {
 
@@ -141,9 +140,6 @@ class httprestProcessor {
         metaLog({type:LOG_TYPE.ERROR, content:'Meta Error during the rest command processing',params:err});
       }
      });
-            console.log("HTTPREST call ,myresp 2",myresp )  
-
-            console.log("HTTPREST call leaving",params)  
 
     }
     query(params) {

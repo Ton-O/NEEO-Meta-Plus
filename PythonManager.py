@@ -8,9 +8,6 @@ import math
 from broadlink.exceptions import ReadError, StorageError
 from flask import request
 
-# Files for ADB_Shell commands: over network
-from adb_shell.adb_device import AdbDeviceTcp, AdbDeviceUsb
-from adb_shell.auth.sign_pythonrsa import PythonRSASigner
 import logging
 
 logging.getLogger().setLevel(logging.DEBUG)
@@ -34,9 +31,6 @@ logger.addHandler(ch)
 
 TIMEOUT = 30  # Timeout for learn
 TICK = 32.84
-ConnectedHosts = []
-ADBHostList = {}
-ADBDevice = ""
 
 ### Full credits need to go to Felipe Diel / MJG59 for his EXCELLENT Broadlink driver. 
 # A lot of code in this program was inspired or even obtained from hs fgithub site: https://github.com/mjg59/python-broadlink
@@ -150,70 +144,6 @@ def Connect_Broadlink():
    logger.info('dev={dev}')
    return dev
 
-def CheckADB_alreadyConnected():
-    global ADBDevice
-    host = request.args.get('host')
-    logger.info("ADB_Driver: host: " + host)
-    logger.info("ADB_Driver: connecting to host: " +host)
-    try:                                            # Checking if we are already connected.
-       ADBDevice = ADBHostList[host]["ADBSocket"]       
-       return  1
-    except:
-        logger.info("No ADB-connection yet with " + host)
-        return 0
-
-def Connect_ADB():
-    global ADBDevice
-    host = request.args.get('host')
-    logger.info("ADB_Driver: host: " + host)
-    logger.info("ADB_Driver: connecting to host: " +host)
-    try:                                            # Checking if we are already connected.
-       ADBDevice = ADBHostList[host]["ADBSocket"]       
-       return 
-    except:
-        logger.info("Setting up connection ADB with " + host)
-
-    ADBDevice = AdbDeviceTcp(host, 5555, default_transport_timeout_s=5.)
-    ## Load the public and private keys so we can connect to Android and authenticate ourself (also for future use) 
-    adbkey = '/home/pi/meta/.ssh/adb_key'
-    with open(adbkey) as f:
-        priv = f.read()
-
-    with open(adbkey + '.pub') as f:
-        pub = f.read()
-    signer = PythonRSASigner(pub, priv)
-
-    ADBDevice.connect(rsa_keys=[signer],auth_timeout_s=5)
-
-    ADBHostList.setdefault(host, {})["ADBSocket"] = ADBDevice
-    logger.info("Hostlist is now ")
-    logger.info(ADBHostList)
-    return
-
-def Send_ADB(ExistingConnection):
-    global ADBDevice
-    logger.info(ADBDevice)
-    # Send a shell command
-    Command = request.args.get('command')
-    AsRoot = request.args.get('root',default='')
-    logger.info("Asroot is: " + AsRoot)
-    if AsRoot == 'yes':  
-        Response = ADBDevice.root()
-    logger.info("Command is: " + Command)
-    try:
-      Response = ADBDevice.shell(Command)
-    except ():
-      logger.info("Command failed, reconnecting and retrying")
-    if Response is None:
-        return {}
-    logger.info("Response is: "+ Response)
-    Response = Response.strip().split("\r\n")
-    retcode = Response[-1]
-    output = "\n".join(Response[:-1])
-    logger.info("Formatted response: " + output)
-    return {"retcode": retcode, "output": output}
-    #return Response
-
 app = Flask(__name__)
 
 @app.route('/')
@@ -227,29 +157,6 @@ def quit():
     shutdown_server()
     return 'Server shutting down...'    
   
-@app.route('/adb',  methods=['GET','POST'])
-def _adb():
-    logger.info("ADB_Driver:")
-    ExistingConnection=CheckADB_alreadyConnected()
-    if not ExistingConnection:
-       ADBDevice = Connect_ADB()  
-       logger.info("ADB_Driver: Connection to device succeeded")
-    Response = Send_ADB(ExistingConnection)
-    return Response 
-
-
-@app.route('/disconnectadb',  methods=['GET','POST'])
-def _disconnectadb():
-    host = request.args.get('host')
-    logger.info("ADB_Driver: disconnect host: " + host)
-    try:
-        del ADBHostList[host]       
-    except:
-        logger.info("Delete of entry from cache failed... Not cached?")
-    logger.info("Hostlist is now ")
-    logger.info(ADBHostList)
-    return "Disconnected"
-
 @app.route('/xmit',  methods=['GET','POST'])
 def _xmit():
     logger.info("Broadlink_Driver: xmit-request")

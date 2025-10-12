@@ -65,7 +65,7 @@ function getLoglevels(theModule = undefined)
     myComponents.forEach((metaComponent) => {
         if (theModule == undefined || theModule == metaComponent.Name)
             {let bb = JSON.stringify(metaComponent) // stringify so we get a duplicate instead of inheritance
-            if (metaComponent.Global)
+            if (metaComponent.logComponent.toUpperCase() != "GLOBAL" && metaComponent.Global)
                 {bb = JSON.parse(bb);
                 bb.logLevel = "Following global" 
                 bb = JSON.stringify(bb);
@@ -204,7 +204,6 @@ function initialiseLogSeverity(ORIGIN = "META")
             else
                 metaComponent.Global = false;
         myComponents.push(metaComponent);
-
         })
 }
 
