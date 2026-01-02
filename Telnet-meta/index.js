@@ -105,7 +105,7 @@ class Telnet extends events_1.EventEmitter {
             let connectionPending = true;
             let connectTimer;
             const rejectIt = (reason) => { connectionPending = false; reject(reason); };
-            const resolveIt = () => { connectionPending = false; console.log("resolveit");resolve(); };
+            const resolveIt = () => { connectionPending = false; resolve(); };
             Object.assign(this.opts, opts !== null && opts !== void 0 ? opts : {});
             this.opts.initialCtrlC = opts.initialCtrlC && this.opts.initialCTRLC;
             this.opts.extSock = (_a = opts === null || opts === void 0 ? void 0 : opts.sock) !== null && _a !== void 0 ? _a : this.opts.extSock;
@@ -153,7 +153,6 @@ class Telnet extends events_1.EventEmitter {
                 }
             });
             this.socket.on('data', data => {
-                console.log("Parsedata:",data)
                 let emitted = false;
                 if (this.state === 'standby' || !this.opts.negotiationMandatory) {
                     this.emit('data', this.opts.newlineReplace ? Buffer.from(this.decode(data), this.opts.encoding) : data);
@@ -228,10 +227,9 @@ class Telnet extends events_1.EventEmitter {
                 this.state = 'response';
 
                 this.socket.write(cmd, () => {
-                    console.log("This Socket write returned",cmd)
                     let execTimeout;
                     this.state = 'response';
-//                    this.emit('writedone');
+                    this.emit('writedone');
                     const buffExecHandler = () => {
                         metaLog({type:LOG_TYPE.ERROR, content:"buffExecptionhandler "+this.inputBuffer});
                         if (execTimeout)
