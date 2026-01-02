@@ -1421,8 +1421,8 @@ process(params) {
               reject("InvalidTelnetType");
               return;
               }            
-        resolve('')
-        }
+        // resolve('') -- Oops... this caused Processingmanager to discard the response of exec......
+         }
       }
       else  
         resolve('')
