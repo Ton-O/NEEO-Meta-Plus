@@ -1411,9 +1411,11 @@ process(params) {
                 }                  
                 try 
                   {metaLog({type:LOG_TYPE.VERBOSE, content:"send telnet ",params:params.command.message})
-                    _this.listenerConnections[_this.connectionIndex].connector.send(params.command.message,() => {});
+                  _this.listenerConnections[_this.connectionIndex].connector.send(params.command.message,() => {});
+                  resolve('')                  
                   }
                 catch (err) {console.log("Telnetclient suffered a fatal send error:",err);reject(err)}
+
               },DelayCmd) 
             }            
             else    
