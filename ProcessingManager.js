@@ -1348,7 +1348,10 @@ process(params) {
         //params.command.message=params.command.message+"\n";
         _this.connectionIndex = _this.listenerConnections.findIndex((con) => {return con.descriptor == params.command.call   });
         if  (_this.connectionIndex < 0)  //Not defined yet, create connection 
-            {metaLog({type:LOG_TYPE.ERROR, content:"Telnet needs a listener first to handle responses"});
+            {let thisSeverity = LOG_TYPE.ERROR;
+              if (params.Button == "POWER OFF")
+                thisSeverity = LOG_TYPE.WARNING;
+              metaLog({type:thisSeverity, content:"Telnet needs a listener first to handle responses"});
             reject({"Message":"no handler"});
           }    
         else 

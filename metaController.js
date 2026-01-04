@@ -409,7 +409,7 @@ module.exports = function controller(driver) {
   };
 
   
-  this.commandProcessor = function(command, commandtype, deviceId) { // process any command according to the target protocol
+  this.commandProcessor = function(command, commandtype, deviceId,name) { // process any command according to the target protocol
     return new Promise(function (resolve, reject) {
       try {
         self.assignProcessor(commandtype);
@@ -417,7 +417,7 @@ module.exports = function controller(driver) {
         command = self.vault.readVariables(command, deviceId);
 
         command = self.assignTo(RESULT, command, '');
-        const params = {'command' : command, 'connection' : connection};
+        const params = {'command' : command, 'connection' : connection,"BUTTON":name};
         metaLog({type:LOG_TYPE.VERBOSE, content:'Final command to be processed: '+command+ ' - ' + commandtype, deviceId:deviceId});
         processingManager.process(params)
           .then((result) => {
@@ -548,10 +548,10 @@ module.exports = function controller(driver) {
     });
   };
   
-  this.actionManager = function (deviceId, commandtype, command, queryresult, evaldo, evalwrite) {
+  this.actionManager = function (deviceId, commandtype, command, queryresult, evaldo, evalwrite,name) {
     return new Promise(function (resolve, reject) {
 //      try {
-        self.commandProcessor(command, commandtype, deviceId)
+        self.commandProcessor(command, commandtype, deviceId,name)
         .then((result) => {
           self.queryProcessor(result, queryresult, commandtype, deviceId).then((result) => {
             if (Array.isArray(result) && !Array.isArray(queryresult)) {//For compatibility transform to single value override by making query result a table
@@ -624,9 +624,9 @@ module.exports = function controller(driver) {
       if (theButton != undefined) {
         theButton = theButton.value;
         if (settings.mqtt_topic != ''&&!name.startsWith(BUTTONHIDE)) 
-          self.commandProcessor("{\"topic\":\""+ settings.mqtt_topic + self.name + "/" + deviceId + "/button/" + name + "\",\"message\":\"PRESSED\"}", MQTT, deviceId)
+          self.commandProcessor("{\"topic\":\""+ settings.mqtt_topic + self.name + "/" + deviceId + "/button/" + name + "\",\"message\":\"PRESSED\"}", MQTT, deviceId,name)
         if (theButton.command != undefined){ 
-          self.actionManager(deviceId, theButton.type, theButton.command, theButton.queryresult, theButton.evaldo, theButton.evalwrite)
+          self.actionManager(deviceId, theButton.type, theButton.command, theButton.queryresult, theButton.evaldo, theButton.evalwrite,name)
           .then(()=>{
             metaLog({type:LOG_TYPE.VERBOSE, content:'Button ' + name + '  done.', deviceId:deviceId});
             resolve('Action done.');

@@ -33,7 +33,7 @@ var mqttClient;
 //Disable the NEEO library console warning.
 console.error = console.info = console.debug = console.warn = console.trace = console.dir = console.dirxml = console.group = console.groupEnd = console.time = console.timeEnd = console.assert = console.profile = function() {};
 function metaLog(message) {
-  let initMessage = { component:'meta', type:LOG_TYPE.ERROR, content:'', deviceId: null };
+  let initMessage = { component:'meta', type:LOG_TYPE.INFO, content:'', deviceId: null };
   let myMessage = {...initMessage, ...message}
   return metaMessage (myMessage);
 } 
@@ -959,35 +959,38 @@ initialiseLogSeverity("META")
 
 if (process.argv.length>2) {
   try {
-
     if (process.argv[2]) {
       let passedArguments = JSON.parse(process.argv[2]);
-
-      if (passedArguments.Brain) {
-        brainConsoleGivenIP = passedArguments.Brain;
-      }
-      if (passedArguments.LogSeverity&&!passedArguments.CompLevel) {
-        OverrideLoglevel(passedArguments.LogSeverity,"Global","META")
-      }
-      else 
-        if (passedArguments.CompLevel)
-          try 
-            {passedArguments.CompLevel.forEach(function(obj) {
-              OverrideLoglevel(obj.LogSeverity,obj.Component,"META")
-            })
-          }
-          catch (err) {console.log("Error in passedArguments CompLevel",err)}      
+      if (passedArguments!=""&&process.argv[2]!="{}")
+        {
+        if (passedArguments.Brain) {
+          brainConsoleGivenIP = passedArguments.Brain;
+        }
+        if (passedArguments.LogSeverity&&!passedArguments.CompLevel) {
+          OverrideLoglevel(passedArguments.LogSeverity,"Global","META")
+        }
         else 
-          {  metaLog({type:LOG_TYPE.FATAL, content:'Wrong arguments: ' + process.argv[2] + (process.argv.length>3? ' ' + process.argv[3]: '') + ' You can try for example node meta \'{"Brain":"192.168.1.144","LogSeverity":"INFO","Components":["meta"]}\', Or example: node meta \'{"Brain":"localhost","LogSeverity":"VERBOSE","Components":["metaController", "variablesVault"]}\', all items are optionals, LogSeverity can be VERBOSE, INFO, WARNING or QUIET, components can be meta, metaController, variablesVault, processingManager, sensorHelper, sliderHeper, switchHelper, imageHelper or directoryHelper if you want to focus the logs on a specific function. If components is empty, all modules are shown.'});
+          if (passedArguments.CompLevel)
+            try 
+              {passedArguments.CompLevel.forEach(function(obj) {
+                OverrideLoglevel(obj.LogSeverity,obj.Component,"META")
+              })
+            }
+            catch (err) {console.log("Error in passedArguments CompLevel",err)}      
+          else 
+            {  //metaLog({type:LOG_TYPE.FATAL, content:'Wrong arguments: ' + process.argv[2] + (process.argv.length>3? ' ' + process.argv[3]: '') + ' You can try for example node meta \'{"Brain":"192.168.1.144","LogSeverity":"INFO","Components":["meta"]}\', Or example: node meta \'{"Brain":"localhost","LogSeverity":"VERBOSE","Components":["metaController", "variablesVault"]}\', all items are optionals, LogSeverity can be VERBOSE, INFO, WARNING or QUIET, components can be meta, metaController, variablesVault, processingManager, sensorHelper, sliderHeper, switchHelper, imageHelper or directoryHelper if you want to focus the logs on a specific function. If components is empty, all modules are shown.'});
+              console.log('Wrong arguments: ' + process.argv[2] + (process.argv.length>3? ' ' + process.argv[3]: '') + ' You can try for example node meta \'{"Brain":"192.168.1.144","LogSeverity":"INFO","Components":["meta"]}\', Or example: node meta \'{"Brain":"localhost","LogSeverity":"VERBOSE","Components":["metaController", "variablesVault"]}\', all items are optionals, LogSeverity can be VERBOSE, INFO, WARNING or QUIET, components can be meta, metaController, variablesVault, processingManager, sensorHelper, sliderHeper, switchHelper, imageHelper or directoryHelper if you want to focus the logs on a specific function. If components is empty, all modules are shown.');
               process.exit();
-          }
+            }
+        }
+      }
     }
-  }
-  catch (err) {console.log("Catch error setting loglevel",err)
-              metaLog({type:LOG_TYPE.FATAL, content:'Wrong arguments: ' + process.argv[2] + (process.argv.length>3? ' ' + process.argv[3]: '') + ' You can try for example node meta \'{"Brain":"192.168.1.144","LogSeverity":"INFO","Components":["meta"]}\', Or example: node meta \'{"Brain":"localhost","LogSeverity":"VERBOSE","Components":["metaController", "variablesVault"]}\', all items are optionals, LogSeverity can be VERBOSE, INFO, WARNING or QUIET, components can be meta, metaController, variablesVault, processingManager, sensorHelper, sliderHeper, switchHelper, imageHelper or directoryHelper if you want to focus the logs on a specific function. If components is empty, all modules are shown.'});
-              metaLog({type:LOG_TYPE.FATAL, content:err});
-              process.exit();
-              }
+    catch (err) {console.log("Catch error setting loglevel",err)
+                metaLog({type:LOG_TYPE.FATAL, content:'Wrong arguments: ' + process.argv[2] + (process.argv.length>3? ' ' + process.argv[3]: '') + ' You can try for example node meta \'{"Brain":"192.168.1.144","LogSeverity":"INFO","Components":["meta"]}\', Or example: node meta \'{"Brain":"localhost","LogSeverity":"VERBOSE","Components":["metaController", "variablesVault"]}\', all items are optionals, LogSeverity can be VERBOSE, INFO, WARNING or QUIET, components can be meta, metaController, variablesVault, processingManager, sensorHelper, sliderHeper, switchHelper, imageHelper or directoryHelper if you want to focus the logs on a specific function. If components is empty, all modules are shown.'});
+                metaLog({type:LOG_TYPE.FATAL, content:err});
+                process.exit();
+                }
+    
 }
 
 metaLog({type:LOG_TYPE.ALWAYS, content:'META Starting'});
