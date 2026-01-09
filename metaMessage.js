@@ -187,7 +187,7 @@ function initialiseLogSeverity(ORIGIN = "META")
          metaComponent.Name = metaComponent.logComponent;
         metaComponent.LOG_LEVEL = LOG_LEVEL[metaComponent.logLevel];
         metaComponent.logLevel = metaComponent.logLevel.toUpperCase();
-        if (metaComponent.LOG_LEVEL== undefined) 
+        if (metaComponent.logLevel != ""&&metaComponent.LOG_LEVEL== undefined) 
         {   console.log("Invalid loglevel specified in logComponents.js:",metaComponent.logLevel,";initialising component",metaComponent.Name,"with VERBOSE loglevel");
             metaComponent.LOG_LEVEL = LOG_LEVEL["VERBOSE"];
             metaComponent.logLevel = "VERBOSE";

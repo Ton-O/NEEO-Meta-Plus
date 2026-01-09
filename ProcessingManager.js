@@ -129,15 +129,12 @@ class httprestProcessor {
           }
         })
         .catch((err) => {
-                 console.log("HTTPREST call error 1",err)  
-
             metaLog({type:LOG_TYPE.ERROR, content:'Request didn\'t work : ',params:params});
             metaLog({type:LOG_TYPE.ERROR, content:err});
         });
       }
-      catch (err) {       console.log("HTTPREST call err 2",err)  
-
-        metaLog({type:LOG_TYPE.ERROR, content:'Meta Error during the rest command processing',params:err});
+      catch (err) {      
+          metaLog({type:LOG_TYPE.ERROR, content:'Meta Error during the rest command processing',params:err});
       }
      });
 
@@ -956,8 +953,10 @@ class httppostProcessor {
       try {
         if (typeof (params.command) == 'string') { params.command = JSON.parse(params.command); }
         if (params.command.call) {
+        metaLog({type:LOG_TYPE.DEBUG, content:"HTTP Post: " + params.command.call + " - ",params:  params.command.message});
           http.post(params.command.call, params.command.message)
             .then(function (result) {
+              metaLog({type:LOG_TYPE.DEBUG, content:"HTTP Post: " + params.command.call + " result ",params:  params.result.data});
               resolve(result.data);
             })
             .catch((err) => {  metaLog({type:LOG_TYPE.ERROR, content:err});reject(err); });
@@ -1351,8 +1350,8 @@ process(params) {
             {let thisSeverity = LOG_TYPE.ERROR;
               if (params.Button == "POWER OFF")
                 thisSeverity = LOG_TYPE.WARNING;
-              metaLog({type:thisSeverity, content:"Telnet needs a listener first to handle responses"});
-            reject({"Message":"no handler"});
+              metaLog({type:thisSeverity, content:"Telnet needs a listener first to handle responses",params:params.button});
+              reject({"Message":"no handler"});
           }    
         else 
           {var DelayCmd = 0;   // No delay by default; if dexec is specified in our parms, we'll actually delay; OR if connection is  not yet opened ..            
@@ -1417,7 +1416,7 @@ process(params) {
                   _this.listenerConnections[_this.connectionIndex].connector.send(params.command.message,() => {});
                   resolve('')                  
                   }
-                catch (err) {console.log("Telnetclient suffered a fatal send error:",err);reject(err)}
+                catch (err) {metaLog({type:LOG_TYPE.ERROR, content:"Telnetclient suffered a fatal send error:",params:err});reject(err)}
 
               },DelayCmd) 
             }            
@@ -1569,7 +1568,7 @@ startListen(params, deviceId) {
               _this.listenerConnections[_this.connectionIndex].Connected = "closed";
               setTimeout(() => { // give it some time before removing definiotn for listener
                 _this.listenerConnections.splice(_this.connectionIndex, 1);
-                console.log("Wrapup done, showing listener connections",_this.listenerConnections)
+                metaLog({type:LOG_TYPE.VERBOSE, content:"Wrapup done, showing listener connections",params:_this.listenerConnections})
               }, 2000)
 
             }
