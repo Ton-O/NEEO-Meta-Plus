@@ -2,6 +2,8 @@
 
 ## <del>Woah... V2.2 already??? What happened??</del>
 ## Version.... I lost count, but we're somewhere in 3.4.....
+## I've been maintaining a fully working version Docker image, to make reproduction of META much simpler. This image runs perfectly on a X86-based Docker host.
+[Docker image](https://hub.docker.com/repository/docker/tonot1/neeo-meta-plus/general)
 I have been making many, many changes to this alternative meta - a driver to utilize NEEO with many custom device drivers.
 These changes have now ben consolidated in new releases, starting with V2.0.
 ## What was changed (and why)?
@@ -19,7 +21,7 @@ Also, "some other changes" have been made to allow meta-Plus to run in docker (w
 And lastly, I've setup a Docker based version of the Brain..... This version has roughly 80% of the normal Brain functionality but the biggest advantage is that it is lightning fast compared to the dedicated hardware. Some hurdles still need to be taken (hence the 80% coverage), like ~~Infrared transmission,~~ easy connection of the Docker-Brain with the normal TR2; biggest issue is the functionality of the "network-chip in Brain", the JN5168-chip. That chip run s most of the wifi and related special functions but also controls via GPIO, the In fraRed leds. But, I'm working on  it.
 Infrared transmission is added now too, by using the well know Broadlink devices..... Only part missing now is "pairing remote to Brain"(the JN5168-device; but I;m working on that one). 
 <del>As this Docker Brain version is still experimental, I'm not releasing that, but it looks very promising.</del> 
-After many months of running in my own environment perfectly (running continuously 3 brain environments in parallel: Bet, Test and Prod),  I have decided to make this Docker image publicly available, including the Github repository: [Github Brain](https://github.com/Ton-O/MetaBrain)   
+After many months of running in my own environment perfectly (running continuously 3 brain environments in parallel: Beta, Test and Prod),  I have decided to make this Docker image publicly available at docxker hub [Docker image Brain](https://hub.docker.com/repository/docker/tonot1/neeobrain/general), and also the Github repository: [Github Brain](https://github.com/Ton-O/MetaBrain);    
 
 ### Please note: I've built this alternative version of Jac's masterpiece "meta" for my own purposes and I'm sharing it "as is" to others.... No commerical reasoning, therefore no strings attached as well. And you still need the NEEO hardware (namely the remote) so I'm not trying to outsmart NEEO (or its current owner CM). 
 
