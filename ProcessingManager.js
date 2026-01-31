@@ -1660,22 +1660,21 @@ class NEEOAPIProcessor {
     });
   }
   process(params) {
+    let brainIP=process.env.BRAINIP;
     if (typeof (params.command) == 'string') { params.command = JSON.parse(params.command); };
     metaLog({type:LOG_TYPE.VERBOSE, content:"NEEOAPI CALL " ,params:params.command});
     return new Promise(function (resolve, reject) {
-        fs.readFile(__dirname + '/config.js', (err, config) => {
-          var URL = "HTTP://"+JSON.parse(config).brainip+":3000/v1/api/"+params.command.verb+"/7220086763497193472"
-          metaLog({type:LOG_TYPE.DEBUG, content:"NEEOAPI URL: ",params:URL})
-          got(URL)
-            .then(function (result) {
-              metaLog({type:LOG_TYPE.VERBOSE, content:"NEEOAPI result:",params:result.body});
-              resolve(result.body);
-            })
-            .catch((err) => {
-              metaLog({type:LOG_TYPE.ERROR, content:err});
-              resolve();
-            });
+      var URL = "HTTP://"+brainIP+":3000/v1/api/"+params.command.verb
+      metaLog({type:LOG_TYPE.DEBUG, content:"Resulting NEEOAPI URL: ",params:URL})
+      got(URL)
+        .then(function (result) {
+          metaLog({type:LOG_TYPE.VERBOSE, content:"NEEOAPI result:",params:result.body});
+          resolve(result.body);
         })
+        .catch((err) => {
+          metaLog({type:LOG_TYPE.ERROR, content:err});
+          resolve();
+        });
     })
   }
   query(params) {
