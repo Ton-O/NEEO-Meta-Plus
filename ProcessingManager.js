@@ -591,17 +591,27 @@ class webSocketProcessor {
             let theConnection = _this.listenerConnections[connectionIndex];
             if (theConnection.connector && theConnection.connector.readyState != 1) {
               metaLog({type:LOG_TYPE.WARNING, content:"Waiting for WebSocket connection to be done"});
-              setTimeout(() => {
+              let maxRetrySend=20
+              let RetryingSend = setInterval(() => {
                   if (theConnection && theConnection.connector && theConnection.connector.readyState == 1) 
-                    {metaLog({type:LOG_TYPE.WARNING, content:"Retrying to send the message",params:params.command.message});
+                    {metaLog({type:LOG_TYPE.WARNING, content:"Retrying to send the message at 1 sec interval",params:params.command.message});
                     theConnection.connector.send(params.command.message)
+                    clearInterval(RetryingSend); 
                     }
                   else
+                    {
                     metaLog({type:LOG_TYPE.ERROR, content:"Could not send the websocket message",params:params.command.message});
+                    }
                   if (theConnection && theConnection.connector && theConnection.connector.readyState) 
-                    resolve({'readystate':theConnection.connector.readyState});
-                  else resolve({'readystate':-1});
-              }, 5000)
+                      {clearInterval(RetryingSend); 
+                      resolve({'readystate':theConnection.connector.readyState});
+                      }
+                  else 
+                    if (--maxRetrySend <= 0)
+                        {clearInterval(RetryingSend); 
+                        resolve({'readystate':-1});
+                        }
+              }, 1000)
             }
             else {theConnection.connector.send(params.command.message);
               resolve({'readystate':theConnection.connector.readyState});
@@ -667,7 +677,12 @@ class webSocketProcessor {
   };
   
     var _this = this;
-
+    let initStatus = 0
+        openingStatus = 4,
+        openStatus = 8,
+        sendingStatus = 12,
+        closedStatus = 16,
+        errorStatus = 32;
 
     return new Promise(function (resolve, reject) {
       try {
@@ -683,6 +698,7 @@ class webSocketProcessor {
               let connector = new ReconnectingWebSocket(params.command.connection , [], options);
               _this.listenerConnections.push({"command": JSON.stringify(params.command.message),"descriptor": params.command.connection,"deviceId":deviceId,"ListenerName":params.listener.name,"connector": connector});
               connectionIndex = _this.listenerConnections.length - 1;
+              _this.listenerConnections[connectionIndex].status = initStatus
             }
             else  
               if (_this.listenerConnections[connectionIndex] && _this.listenerConnections[connectionIndex].connector) {
@@ -705,17 +721,22 @@ class webSocketProcessor {
                 }
               }
             if (_this.listenerConnections[connectionIndex] && _this.listenerConnections[connectionIndex].connector) {
-              _this.listenerConnections[connectionIndex].connector.addEventListener( 'error', (err) => {_this.HandleError;      resolve('')}
-              )
+              _this.listenerConnections[connectionIndex].connector.addEventListener( 'error', (err) => 
+                {_this.listenerConnections[connectionIndex].status = errorStatus; _this.HandleError;      resolve('')})
               _this.listenerConnections[connectionIndex].connector.addEventListener('close', (result) => { 
+                _this.listenerConnections[connectionIndex].status = closedStatus
                 if (params.connection.connections) {
                   metaLog({type:LOG_TYPE.VERBOSE, content:'Close event called on the webSocket with connection index:' ,params: connectionIndex});
-                  clearInterval(params.listener.timer);   // remove old timer
-                  metaLog({type:LOG_TYPE.VERBOSE, content:'Removed timer from webSocket with connection index:' ,params: connectionIndex});
+                  if (params.listener.timer!='')
+                    {clearInterval(params.listener.timer);   // remove old timer
+                    metaLog({type:LOG_TYPE.VERBOSE, content:'Removed timer from webSocket with connection index:' ,params: connectionIndex});
+                    params.listener.timer='';
+                    }
                 }
               });
               _this.listenerConnections[connectionIndex].connector.addEventListener('open', (result) => { 
                 try {
+                  _this.listenerConnections[connectionIndex].status = openStatus
                   metaLog({type:LOG_TYPE.VERBOSE, content:'Connection webSocket open.' });
                   metaLog({type:LOG_TYPE.VERBOSE, content:'New Connection Index:' ,params: connectionIndex});
                   _this.MessageHandler = (event) => _this.MyReceive(event, params,connectionIndex,deviceId); 
@@ -730,6 +751,7 @@ class webSocketProcessor {
                       return new Promise(function (resolve, reject) {
                       params.listener.timer = setInterval(() => {
                         try {
+                          _this.listenerConnections[connectionIndex].status = sendingStatus
                           _this.listenerConnections[connectionIndex].connector.send(_this.listenerConnections[connectionIndex].command.replace(/<__n__>/g, '\n'));
                         }
                         catch(err) {metaLog({type:LOG_TYPE.ERROR, content:"Error sending websocket command:",params:err});
@@ -773,7 +795,8 @@ class webSocketProcessor {
     if (connectionIndex != -1) {
       try {
         metaLog({type:LOG_TYPE.VERBOSE,content: "Webscocket: nr"  + connectionIndex})
-        this.listenerConnections[connectionIndex].connector.close();  
+        if  (this.listenerConnections[connectionIndex].status < closedStatus)
+          this.listenerConnections[connectionIndex].connector.close();  
       }
       catch (err) {metaLog({type:LOG_TYPE.VERBOSE, content:"Closing websocket connection got error ",params:err});
       this.listenerConnections[connectionIndex].connector.removeEventListener('message', this.MessageHandler);

@@ -434,6 +434,8 @@ module.exports = function controller(driver) {
     })
   };
 
+  
+
   this.listenProcessor = function(listener, deviceId) { // process any command according to the target protocole
     return new Promise(function (resolve, reject) {
 
@@ -602,7 +604,7 @@ module.exports = function controller(driver) {
         metaLog({type:LOG_TYPE.WARNING, content:'[CONTROLLER] - ' + name + ' - button pressed', deviceId:deviceId});
       else 
         metaLog({type:LOG_TYPE.VERBOSE, content:'[CONTROLLER] - ' + name + ' - button pressed', deviceId:deviceId});
-      if (name == '__INITIALISE') {//Device resources and connection management.
+      if (name == '__INITIALISE' || name == 'METAREINIT') {//Device resources and connection management.
         self.initialise(deviceId);
       }
 

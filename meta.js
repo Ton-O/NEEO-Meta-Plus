@@ -897,6 +897,20 @@ function runNeeo () {
                  } else {
                   metaLog({type:LOG_TYPE.INFO, content:"Initial configuration saved"});
                 }
+                  const internalApp = neeoapi._internal.expressApp;
+                  internalApp.get('/my-macros', (req, res) => {
+        try {
+            // Gebruik de veilige manier om adapters op te halen
+            const adapters = neeoapi._internal.device.getAdapters();
+            const result = adapters.map(a => ({
+                devicename: a.devicename,
+                macros: a.capabilities.buttons.map(b => b.name)
+            }));
+            res.json(result);
+        } catch (err) {
+            res.status(500).send(err.message);
+        }
+    });
               resolve();
             })
           }
