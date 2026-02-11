@@ -14,6 +14,7 @@ const fs = require('fs');
 var activatedModule = path.join(__dirname,'active');
 if (settings.activeLibrary) {activatedModule = settings.activeLibrary;}
 const BUTTONHIDE = '__';
+const METAREINIT = '__METAREINIT'
 const DATASTOREEXTENSION = 'DataStore.json';
 const DEFAULT = 'default'; //NEEO SDK deviceId default value for devices
 const mqtt = require('mqtt');
@@ -703,7 +704,7 @@ function executeDriverCreation (driver, hubController, passedDeviceId) {
         for (var prop in driver.buttons) { // Dynamic creation of all buttons
           if (Object.prototype.hasOwnProperty.call(driver.buttons, prop)) {
             if (theDevice.buttons.findIndex((item) => {return (item.param.name == prop)})<0) {//not button of same name (in case included in a widget)
-              if (!prop.startsWith(BUTTONHIDE)){ //If the button doesnt need to be hidden.
+              if (!prop.startsWith(BUTTONHIDE)||prop == METAREINIT){ //If the button doesnt need to be hidden.
                 theDevice.addButton({name: prop, label: (driver.buttons[prop].label == '') ? (prop) : (driver.buttons[prop].label)})
               }
             }

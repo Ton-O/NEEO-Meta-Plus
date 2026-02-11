@@ -11,6 +11,7 @@ const settings = require(path.join(__dirname,'settings'));
 
 const variablePattern = {'pre':'$','post':''};
 const BUTTONHIDE = '__';
+const METAREINIT = '__METAREINIT'
 const RESULT = variablePattern.pre + 'Result' + variablePattern.post;
 const HTTPGET = 'http-get';
 const HTTPREST = 'http-rest';
@@ -604,7 +605,7 @@ module.exports = function controller(driver) {
         metaLog({type:LOG_TYPE.WARNING, content:'[CONTROLLER] - ' + name + ' - button pressed', deviceId:deviceId});
       else 
         metaLog({type:LOG_TYPE.VERBOSE, content:'[CONTROLLER] - ' + name + ' - button pressed', deviceId:deviceId});
-      if (name == '__INITIALISE' || name == 'METAREINIT') {//Device resources and connection management.
+      if (name == '__INITIALISE' || name == METAREINIT) {//Device resources and connection management.
         self.initialise(deviceId);
       }
 
@@ -625,7 +626,7 @@ module.exports = function controller(driver) {
       let theButton = self.buttons[self.buttons.findIndex((button) => {return button.name ==  name && button.deviceId == deviceId;})];
       if (theButton != undefined) {
         theButton = theButton.value;
-        if (settings.mqtt_topic != ''&&!name.startsWith(BUTTONHIDE)) 
+        if (settings.mqtt_topic != ''&&(!name.startsWith(BUTTONHIDE) || name==METAREINIT)) 
           self.commandProcessor("{\"topic\":\""+ settings.mqtt_topic + self.name + "/" + deviceId + "/button/" + name + "\",\"message\":\"PRESSED\"}", MQTT, deviceId,name)
         if (theButton.command != undefined){ 
           self.actionManager(deviceId, theButton.type, theButton.command, theButton.queryresult, theButton.evaldo, theButton.evalwrite,name)
