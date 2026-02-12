@@ -141,6 +141,27 @@ async function FillInCodeRequest(code)
     }
 
 }
+
+async function LoadSpecificCert(Host)
+{
+    let theCert='/opt/meta/.ssh/GoogleCert'+Host+'.pem'
+    let theCertKey='/opt/meta/.ssh/GoogleKey'+Host+'.pem'
+
+    fs.access(theCert, fs.constants.F_OK | fs.constants.W_OK, (err) => {
+        if (err) {
+            logger.info("No certificates to load")
+            return
+        } 
+        logger.info("Certificate available, we will now load them")
+        let cert = fs.readFileSync(theCert)
+        let key = fs.readFileSync(theCertKey)
+        MyCert.cert = JSON.parse(cert)
+        MyCert.key = JSON.parse(key)
+        logger.info("Certificates loaded")            
+        });
+}
+
+
 async function LoadCert()
 {
     fs.access('/opt/meta/.ssh/GoogleCert.pem', fs.constants.F_OK | fs.constants.W_OK, (err) => {
@@ -155,6 +176,7 @@ async function LoadCert()
             logger.info("Certificates loaded")            }
         });
 }
+
 async function Handle_NewSecretCode(Newcode) 
 {let MyMessage;
     //http://10.0.0.99:6468/secret?secret=fced8e
@@ -173,8 +195,8 @@ async function Handle_NewSecretCode(Newcode)
 
 async function main() {
     //var Return = getSession()
-    await LoadCert();
-    logger.info(`Loaded cert: ${MyCert}`)
+    // await LoadCert();
+    // logger.info(`Loaded cert: ${MyCert}`)
 	server.use(bodyParser.json());
 	server.use(bodyParser.urlencoded({
 			extended: true
@@ -207,6 +229,18 @@ async function main() {
         MyHost = req.query.host
         logger.info(`GET GoogleTV Call for ${MyHost}`)
          HandleApi(req,res,next)
+    });
+    server.get("/init", async (req, res, next) => {
+        try {
+            const { host: MyIP, port: Myport, mac: MyMac } = req.query;
+            const resultaat = await LoadSpecificCert(host, Myport,);
+            logger.info(`Init SSH-key for: ${host} with MAC ${mac}`)            
+            logger.info(`Resultaat van andere functie: ${resultaat}`);
+            res.send("Succesvol uitgevoerd");
+        } catch (err) {
+            logger.error(`Something's wrong ${err.message}`);
+            next(err);
+        }
     });
     server.get("/dapi",  (req, res, next) => {
         logger.info(`GTV: ${req.query}`)
@@ -267,6 +301,7 @@ async function sendAppLink(AppLink) {
         androidRemote.sendAppLink(AppLink);
     })
 };
+
  function HandleApi(req,res,next)
 {
     switch(req.body.action){
