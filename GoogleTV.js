@@ -1,27 +1,38 @@
-const  fs = require ( "fs");
+
+const fs = require('fs').promises; 
+const { access } = require('node:fs/promises');
 const path = require ( 'path');
-
-const { createLogger,transports,format} = require ( 'winston');
-
-const { combine, timestamp, json } = format;
-const logger = createLogger({
-    defaultMeta: { component: 'G-TV' },
-    format: format.combine(
-        format.timestamp({
-            format: 'YYMMDD-HH:mm:ss'
-        }),
-        format.json(),
-        format.printf(info => {
-            return `${info.timestamp} ${info.level}: ${info.message}`;
-          })
-      ),
-   transports: [
-       new transports.Console({ level: 'debug' })
-     ]
- });
+//const { createLogger,transports,format} = require ( 'winston');
+//const { combine, timestamp, json } = format;
+const logModule="GoogleTV";
+// const logger = createLogger({
+//     defaultMeta: { component: 'G-TV' },
+//     format: format.combine(
+//         format.timestamp({
+//             format: 'YYMMDD-HH:mm:ss'
+//         }),
+//         format.json(),
+//         format.printf(info => {
+//             return `${info.timestamp} ${info.level}: ${info.message}`;
+//           })
+//       ),
+//    transports: [
+//        new transports.Console({ level: 'debug' })
+//      ]
+//  });
 
 const express = require ( 'express');
+process.env.StartupPath="/opt/meta"    // small trick (for now) to incorporate GoogleTV.js into logLevel environment from meta.js
+const { metaMessage, LOG_TYPE,OverrideLoglevel,initialiseLogSeverity } = require("./metaMessage");
+console.error = console.info = console.debug = console.warn = console.trace = console.dir = console.dirxml = console.group = console.groupEnd = console.time = console.timeEnd = console.assert = console.profile = function() {};
+function metaLog(message) {
+  let initMessage = { component:'GoogleTV', type:LOG_TYPE.INFO, content:'', deviceId: '' };
+  let myMessage = {...initMessage, ...message}
+  return metaMessage (myMessage); 
+} 
 
+initialiseLogSeverity(logModule); 
+OverrideLoglevel("DEBUG",logModule)
 const server = express();
 const bodyParser = require ( 'body-parser');
  const {
@@ -36,8 +47,9 @@ var Connections = []
 var myAndroidRemote;
 var MyHost;
 var MyCert = {cert: "",key:""}
-var NewCode
+var NewCode;
 var Coderequested=false;
+var CodeRequestedForHost;
 
 
 async function getSession(MyHost,MyCerts) {
@@ -51,40 +63,53 @@ return new Promise(function (resolve, reject) {
     cert : MyCerts}
     myAndroidRemote = new AndroidRemote(host, options)
     myAndroidRemote.on('secret', () => {
-        logger.debug(`We need a new secret; provide this via web interface please (for example: port http://10.0.0.1:6468/secret?secret=1cba6d )`);
-        logger.debug(`replace 10.0.01 with the ip-address of meta, and fill in code that is shown on screen`);
+        metaLog({type:LOG_TYPE.ALLWAYS, content:'We need a new secret; provide this via web interface please (for example: port http://10.0.0.1:6468/secret?secret=1cba6d)'});
+        metaLog({type:LOG_TYPE.ALLWAYS, content:'`replace 10.0.01 with the ip-address of meta, and fill in code that is shown on screen`'});
         Coderequested=true;                 // set signal that we need a secret code (provided via web-interface of this container)
+        CodeRequestedForHost=MyHost;
         }
     )
 
-    myAndroidRemote.on('powered', (powered) => {
-        logger.debug(`Powered: ${powered}`);
-    });
+    // myAndroidRemote.on('powered', (powered) => {
+    //     globalPowered = powered;
+    //     logger.debug(`Powered: ${powered}`);
+    // });
 
     myAndroidRemote.on('volume', (volume) => {
-        logger.debug(`Volume: ${volume.level} / ${volume.maximum} | Muted : " + ${volume.muted}`);
+        metaLog({type:LOG_TYPE.DEBUG, content:'Volume:',params: volume.level});
+        metaLog({type:LOG_TYPE.DEBUG, content:'Volume maximum:',params: volume.maximum});
+        metaLog({type:LOG_TYPE.DEBUG, content:'Muted:',params: volume.muted});
     });
 
     myAndroidRemote.on('current_app', (current_app) => {
-        logger.debug(`Current App : ${current_app}`);
+        metaLog({type:LOG_TYPE.DEBUG, content:'Current App:',params: current_app});
     });
 
     myAndroidRemote.on('error', (error) => {
-        logger.debug(`Error: ${error}`);
+        metaLog({type:LOG_TYPE.ERROR, content:'Error:',params: err});
     });
 
     myAndroidRemote.on('unpaired', () => {
-        logger.debug(`Unpaired`);
+        metaLog({type:LOG_TYPE.DEBUG, content:'Unpaired'});
     });
 
     myAndroidRemote.on('ready',  () => {
-        logger.debug(`Connection with GoogleTV is ready`);
+        metaLog({type:LOG_TYPE.VERBOSE, content:'Connection with GoogleTV is ready'});
         resolve(myAndroidRemote)
     });
     myAndroidRemote.start().then (() => {
     })
     
   })
+}
+
+async function exists(path) {
+  try {
+    await access(path);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 async function HandleDownload(MyType,MyElement,res)
@@ -95,108 +120,92 @@ async function HandleDownload(MyType,MyElement,res)
         var FilePath = Path + "/"+MyElement
         var ResolvedPath = path.resolve(FilePath);         // Resolve the path that is defined to the actual path
         if (ResolvedPath.substring(0,Path.length) == Path) // And check to see if the path is not manipulated to download files that aren;t supposed to.
-            {logger.info(`Request to download type  ${MyType} ${MyElement}`)
+            {metaLog({type:LOG_TYPE.INFO, content:"Request to download type "+MyType,params: MyElement});
             //var myFile = new File(ResolvedPath);
-            if (fs.existsSync(ResolvedPath))
-                {logger.info(`File successfully downloaded: ${ResolvedPath}`)
+            if (await exists(ResolvedPath))
+                {metaLog({type:LOG_TYPE.INFO, content:"File successfully downloaded: "+MyType,params: ResolvedPath});
                     res.download(ResolvedPath)
                 }
             else
-                {logger.error(`File not found: ${ResolvedPath}`)
+                {metaLog({type:LOG_TYPE.ERROR, content:"File not found:"+MyType,params: ResolvedPath});
                 res.status(404).json({"Status": "fail",error: 404, reason: "File not found"});
                 } 
             }
         else   
-            {logger.error(`Manipulation found:  ${MyType} ${MyElement}`)
+            {metaLog({type:LOG_TYPE.ERROR, content:"Manipulation found: "+MyType,params: MyElement});
             res.status(505).json({"Status": "fail",error: 505, reason: "Invalid path manipulation"});
             } 
         }
     else
-        {logger.error(`Invalid type:  ${MyType} ${MyElement}`)
+        {metaLog({type:LOG_TYPE.ERROR, content:"Invalid type"+MyType,params: MyElement});
         res.status(506).json({"Status": "fail",error: 506, reason: "Type not allowed"});
         }
 }
 
-async function FillInCodeRequest(code)
+async function FillInCodeRequest(code,thisDevice)
 {
-    logger.info("Sending code");
-    logger.info(code);
+    metaLog({type:LOG_TYPE.INFO, content:"Sending code",params: code});
     myAndroidRemote.sendCode(code);
-    logger.info("Need to get new certificate")
+    metaLog({type:LOG_TYPE.INFO, content:"Need to get new certificate"});
     let NewCert = MyCert;
     if (NewCert.key.length == 0)  { 
-        logger.info("Need to get new certificate")
+        metaLog({type:LOG_TYPE.INFO, content:"Need to get new certificate"});
         NewCert = myAndroidRemote.getCertificate();
-        logger.info(`Writing certificates to .ssh`)    
-        fs.writeFile('/opt/meta/.ssh/GoogleCert.pem',  JSON.stringify(NewCert.cert), (err) =>
+        const theCert = `/opt/meta/.ssh/GoogleCert@${thisDevice}.pem`;
+        const theCertKey = `/opt/meta/.ssh/GoogleKey@${thisDevice}.pem`;
+        metaLog({type:LOG_TYPE.INFO, content:"Saving certificate as",params:theCert});
+        fs.writeFile(theCert,  JSON.stringify(NewCert.cert), (err) =>
             { if (err)
                 throw err;
-            logger.info('Write cert complete');
             });  
-        fs.writeFile('/opt/meta/.ssh/GoogleKey.pem',    JSON.stringify(NewCert.key), (err) => 
+        fs.writeFile(theCertKey,    JSON.stringify(NewCert.key), (err) => 
             {if (err) 
                 throw err;
-            logger.info('Write key complete');
             });  
     }
 
 }
 
-async function LoadSpecificCert(Host)
-{
-    let theCert='/opt/meta/.ssh/GoogleCert'+Host+'.pem'
-    let theCertKey='/opt/meta/.ssh/GoogleKey'+Host+'.pem'
+async function LoadSpecificCert(thisDevice)
+{   
+    const theCert = `/opt/meta/.ssh/GoogleCert@${thisDevice}.pem`;
+    const theCertKey = `/opt/meta/.ssh/GoogleKey@${thisDevice}.pem`;
+    
+    metaLog({type:LOG_TYPE.INFO, content:"Looking for certificate",params:theCert});
+    try {    
+        await fs.access(theCert, fs.constants.F_OK);
+        metaLog({type:LOG_TYPE.INFO, content:"Certificate available, we will now load it"});
 
-    fs.access(theCert, fs.constants.F_OK | fs.constants.W_OK, (err) => {
-        if (err) {
-            logger.info("No certificates to load")
-            return
-        } 
-        logger.info("Certificate available, we will now load them")
-        let cert = fs.readFileSync(theCert)
-        let key = fs.readFileSync(theCertKey)
-        MyCert.cert = JSON.parse(cert)
-        MyCert.key = JSON.parse(key)
-        logger.info("Certificates loaded")            
-        });
-}
+        const certData = await fs.readFile(theCert);
+        const keyData = await fs.readFile(theCertKey);
 
+        MyCert.cert = JSON.parse(certData);
+        MyCert.key = JSON.parse(keyData);        
+        return 1;
+    } catch (err) {
+        metaLog({type:LOG_TYPE.INFO, content:"No certificates to load or error: ",params:err});
+        return 0;
+    }
 
-async function LoadCert()
-{
-    fs.access('/opt/meta/.ssh/GoogleCert.pem', fs.constants.F_OK | fs.constants.W_OK, (err) => {
-        if (err) {
-            logger.info("No certificates to load")
-        } else {
-            logger.info("Certificates available, we will now load them")
-            let cert = fs.readFileSync('/opt/meta/.ssh/GoogleCert.pem')
-            let key = fs.readFileSync('/opt/meta/.ssh/GoogleKey.pem')
-            MyCert.cert = JSON.parse(cert)
-            MyCert.key = JSON.parse(key)
-            logger.info("Certificates loaded")            }
-        });
 }
 
 async function Handle_NewSecretCode(Newcode) 
 {let MyMessage;
     //http://10.0.0.99:6468/secret?secret=fced8e
-    logger.info(`Received secret code: ${Newcode}`);
+    metaLog({type:LOG_TYPE.INFO, content:"Received secret code:",params:Newcode});
     if (Coderequested == true)
     {    MyMessage =  "Thank you for code " + Newcode;
-        FillInCodeRequest(Newcode);
+        FillInCodeRequest(Newcode,CodeRequestedForHost);
         Coderequested = false;
     }
     else
          MyMessage =  "Thanks for providing this code, but no pairing code was asked for....";        
-    logger.info(MyMessage);
+    metaLog({type:LOG_TYPE.INFO, content:Newcode});
     return MyMessage;
 
 }
 
 async function main() {
-    //var Return = getSession()
-    // await LoadCert();
-    // logger.info(`Loaded cert: ${MyCert}`)
 	server.use(bodyParser.json());
 	server.use(bodyParser.urlencoded({
 			extended: true
@@ -207,7 +216,7 @@ async function main() {
         } 
 
 	await server.listen(config.webPort, () => {
-		logger.info(`Webserver running on port: ${config.webPort}`);
+		metaLog({type:LOG_TYPE.INFO, content:"Webserver running on port" ,params:config.webPort});
     });
 		
 	server.get("/shutdown", (req, res, next) => {
@@ -218,45 +227,41 @@ async function main() {
         let MyResult = await Handle_NewSecretCode(NewCode);
         res.json({"Type": "Post", "Status": MyResult});        
     });
+    server.get("/OverrideLogLevel", async (req, res, next) => {
+        let logLevel = req.query.logLevel
+        metaLog({type:LOG_TYPE.INFO, content:"Setting loglevel for GoogleTV through get to"+logLevel})
+        OverrideLoglevel(logLevel,logModule);
+        res.json({"Type": "OverrideLogLevel", "Status": "Processed"});        
+    });
     server.get("/secret", async (req, res, next) => {
         NewCode=req.query.secret;
         let MyResult = await Handle_NewSecretCode(NewCode);
         res.json({"Status": MyResult});        
     });
     server.get("/api",  (req, res, next) => {
-        logger.info(`GTV-api query: ${req.query}`)
-        logger.info(`GTV-api cmd: ${req.cmd}`)
         MyHost = req.query.host
-        logger.info(`GET GoogleTV Call for ${MyHost}`)
-         HandleApi(req,res,next)
+        metaLog({type:LOG_TYPE.INFO, content:"GoogleTV API Call for" ,params:MyHost});
+        HandleApi(req,res,next)
     });
-    server.get("/init", async (req, res, next) => {
-        try {
-            const { host: MyIP, port: Myport, mac: MyMac } = req.query;
-            const resultaat = await LoadSpecificCert(host, Myport,);
-            logger.info(`Init SSH-key for: ${host} with MAC ${mac}`)            
-            logger.info(`Resultaat van andere functie: ${resultaat}`);
+    server.get("/init", async (req, res, next) => { // here we look for a Google-certificate created befiore for this SPECIFIC device.
+        try {const parms = { host: MyIP, port: Myport, mac: MyMac } = req.query;
+            const resultaat = await LoadSpecificCert(parms.host);
+            metaLog({type:LOG_TYPE.INFO, content:"Init Connection with" ,params:parms.host});
             res.send("Succesvol uitgevoerd");
         } catch (err) {
-            logger.error(`Something's wrong ${err.message}`);
+            metaLog({type:LOG_TYPE.ERROR, content:"Something's wrong within GoogleTV init call" ,params:err});
             next(err);
         }
     });
-    server.get("/dapi",  (req, res, next) => {
-        logger.info(`GTV: ${req.query}`)
-        MyHost = req.query.host
-        logger.info(`GET download Call for ${MyHost}`)
-         //HandleApi(req,res,next)
-    });
     server.get("/download",  (req, res, next) => {
         var MyType=req.query.type;
-        logger.info(`GET (download)  ${MyType}`)
+        metaLog({type:LOG_TYPE.INFO, content:"Download "+MyType});
         if (MyType != undefined && MyType != "")
             {var MyName = req.query.name;
             if (MyName != undefined && MyName != "")
                 HandleDownload(MyType,MyName,res);
             else
-                {logger.error(`Missing object name:  ${MyType} ${MyElement}`)
+                {metaLog({type:LOG_TYPE.ERROR, content:"Missing object name:"+ MyType ,params:MyElement});
                 res.status(404).json({
                     error: 404,
                     message: "Route not found."
@@ -265,37 +270,52 @@ async function main() {
                 }
             }
         else
-            {logger.error(`Missing object Type:  ${MyType} ${MyElement}`)    
+            {metaLog({type:LOG_TYPE.ERROR, content:"Missing object type:"+ MyType ,params:MyElement});
             res.json({"Status": "fail",reason: "Type of object not given"});        
         }
     });
     server.post("/api",  (req, res, next) => {
-        logger.info(`GTV: ${req.body}`)
         MyHost = req.body.host
-        logger.info(`POST GoogleTV Call for ${MyHost}`)
          HandleApi(req,res,next)
     });
 
 }
 
-async function sendPower() {
-    
-    GetConnection(MyHost).then  ((androidRemote) => {
-        logger.info("Toggling power");
-        androidRemote.sendPower();
-    })
+async function sendPower(desiredState) {
+
+    androidRemote = await GetConnection(MyHost)
+    const waitForPowerEvent = new Promise((resolve) => {
+        androidRemote.once('powered', (powered) => {
+            metaLog({type:LOG_TYPE.INFO, content:"Powerstate event received...Status is now"+ powered});
+            resolve(powered); // returning state to function that is waiting on us
+        });
+    });
+    await androidRemote.sendPower(); // toggle power; this should trigger a powered event which shows the toggled powerstate.
+
+    const newStatus = await waitForPowerEvent;
+    if (desiredState === 'ON')
+    {   if (!newStatus) {
+            metaLog({type:LOG_TYPE.INFO, content:"Desired: "+desiredState+"; however, device is OFF... toggle power"});
+            await androidRemote.sendPower();
+        }
+    }
+    else    // Desiredstate = off
+        if (newStatus) {
+            metaLog({type:LOG_TYPE.INFO, content:"Desired: "+desiredState+"; however, device is ON... toggle power"});
+            await androidRemote.sendPower();
+        }
+
 };
 
 async function sendKey(key) {
-    logger.debug(`Send key: ${key}; ${RemoteKeyCode[key]}`);
-
+    metaLog({type:LOG_TYPE.VERBOSE, content:"Send key "+key,params:RemoteKeyCode[key]});
     GetConnection(MyHost).then  ((androidRemote) => {
         androidRemote.sendKey(RemoteKeyCode[key], RemoteDirection.SHORT);
     })
 };
 
 async function sendAppLink(AppLink) {
-    logger.debug(`Send appLink: ${AppLink}`);
+    metaLog({type:LOG_TYPE.VERBOSE, content:"Send appLink: ",params:AppLink});
 
     GetConnection(MyHost).then  ((androidRemote) => {
         androidRemote.sendAppLink(AppLink);
@@ -309,10 +329,10 @@ async function sendAppLink(AppLink) {
                 sendKey(req.body.key);
                 break;						
             case 'sendAction':
-                sendKey(req.body.theAction);
+                sendKey(req.body.theAction );
                 break;            
             case 'sendPower':
-                sendPower();
+                sendPower(req.body.DesiredState);
                 break;            
             case 'sendAppLink':
                 sendAppLink(req.body.AppLink);
@@ -320,20 +340,20 @@ async function sendAppLink(AppLink) {
                 // am start -a android.intent.action.VIEW -n org.xbmc.kodi/.Splash
             default:
                 res.json({"Status": "Error"});
-                logger.info(`resolve default`)
                 return;
                 break;
     }
     res.json({"Status": "Ok"});
 }
 
-function GetConnection(MyHost) {
-  return new Promise(function (resolve, reject) {
+ function GetConnection(MyHost) {
+  return new Promise(async function (resolve, reject) {
 
-    logger.debug(`Checking availability of connection`);
+    metaLog({type:LOG_TYPE.DEBUG, content:"Checking availability of connection"});
     let connectionIndex = Connections.findIndex((con) => {return con.Host == MyHost});
     if  (connectionIndex < 0) {
-        logger.debug(`Connection not yet created, doing now for: ${MyHost}`)
+        metaLog({type:LOG_TYPE.DEBUG, content:"Connection not yet created, doing now for "+MyHost});
+        let result = await LoadSpecificCert(MyHost);
         getSession(MyHost,MyCert).then ((Connection) => { 
 	        GotSession(Connection);
             myAndroidRemote = Connection;
@@ -342,12 +362,13 @@ function GetConnection(MyHost) {
 	}
     else {
         myAndroidRemote = Connections[connectionIndex].Connector
+        metaLog({type:LOG_TYPE.DEBUG, content:"Connection found for "+MyHost});
         resolve(myAndroidRemote)
     }
     })
  }
 function GotSession(Connection) {
     myAndroidRemote = Connection 
-    Connections.push({"Host": MyHost, "Connector": Connection});
+    Connections.push({"Host": MyHost, "Connector ": Connection});
 }
 main();

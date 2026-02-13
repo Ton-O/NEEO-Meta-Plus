@@ -121,8 +121,8 @@ function OverrideLoglevel(NewLogLevelParm,Module,ORIGIN = "META")
         NewLogLevelText="";
 
     // first, get the latest content of the logComponents.js file; this makes sure that changes that were applied from other components (by metaCore f.e.) aren't discarded
-
     initialiseLogSeverity(ORIGIN);
+
     let CompIndex;
     let MyMessage = "";
     let GlobalIndex = myComponents.findIndex((Comp) => {return Comp.Name == "Global"} );
@@ -151,13 +151,14 @@ function OverrideLoglevel(NewLogLevelParm,Module,ORIGIN = "META")
                     //NewLogLevel=myComponents[GlobalIndex].LOG_LEVEL;
                 }
                 else
+                    if (ORIGIN=="BRAIN")                     
                 {   metaMessage({component:"metaMessage",type:LOG_TYPE.ALWAYS, content:"Cannot remove global loglevel for BRAIN: "+globalSeverityText});
                     return -4;
                 }
             }
         }
         else 
-        {Console.log("Invalid module specified:",Module,";ignoring this")
+        {console.log("Invalid module specified:",Module,";ignoring this")
             return -1
         }
     }

@@ -1270,7 +1270,22 @@ class LogLevelProcessor {
             }
           else
             {metaLog({type:LOG_TYPE.VERBOSE, content:"MetaCore receipe asks for: ",params:TheParts});
-            if  (TheParts.length>2&&TheParts[2].toUpperCase()=="META")
+            if  (TheParts.length>1&&TheParts[1].toUpperCase()=="GOOGLETV")
+              {metaLog({type:LOG_TYPE.VERBOSE, content:"Calling GoogleTV.js for loglevel override"})
+              let theUrl = "http://127.0.0.1:6468/OverrideLogLevel?logLevel="+TheParts[0];
+              metaLog({type:LOG_TYPE.DEBUG, content:theUrl})
+                got(theUrl)
+                .then(function (result) {
+                if (typeof result.body == "string")
+                      result.body = JSON.parse(result.body)
+                resolve(result.body);
+                })
+                .catch((err) => {
+                  metaLog({type:LOG_TYPE.ERROR, content:err});
+                  resolve();
+                });
+              }
+            else if  (TheParts.length>2&&TheParts[2].toUpperCase()=="META")
             { metaLog({type:LOG_TYPE.ALWAYS,content:"Local loglevel-override=",params:TheParts[2]});
               let RC = OverrideLoglevel(TheParts[0],TheParts[1]);
               if (RC<0)
@@ -1282,7 +1297,7 @@ class LogLevelProcessor {
                 resolve('OK')
                 }
             }                
-            else
+            else 
               {metaLog({type:LOG_TYPE.VERBOSE, content:"Calling brain for loglevel override"})
               let theUrl = "http://"+process.env.BRAINIP+":3000/v1/api/OverrideLogLevel?Module="+TheParts[1]+"&logLevel="+TheParts[0];
               metaLog({type:LOG_TYPE.DEBUG, content:theUrl})
@@ -1296,7 +1311,7 @@ class LogLevelProcessor {
                   metaLog({type:LOG_TYPE.ERROR, content:err});
                   resolve();
                 });
-              }  
+              }    
 
             }
     });
