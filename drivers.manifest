@@ -28,8 +28,16 @@
       "name": "Tasmota",
       "author": "TonO",
       "description": "Control your Tasmota devices",
-      "version": 2,
+      "version": 4,
       "driverLocation": "https://raw.githubusercontent.com/Ton-O/meta-driver-library/main/Tasmota.json",
+      "iconLocation":   "https://raw.githubusercontent.com/Ton-O/meta-driver-library/main/pics/Tasmota.png"
+    },     
+    {
+      "name": "Tasmota-oldproto",
+      "author": "TonO",
+      "description": "Control your Tasmota devices",
+      "version": 1,
+      "driverLocation": "https://raw.githubusercontent.com/Ton-O/meta-driver-library/main/Tasmota-oldproto.json",
       "iconLocation":   "https://raw.githubusercontent.com/Ton-O/meta-driver-library/main/pics/Tasmota.png"
     },     
     {
