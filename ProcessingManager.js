@@ -1166,7 +1166,7 @@ class dnssdProcessor {
           discovery.destroy();
         }
         catch (err) {metaLog({type:LOG_TYPE.ERROR, content:"Error in dnssd timer process " ,params: err });} 
-
+console.log("services",Services)
       resolve(Services)
       }, 4000);
 
@@ -1834,6 +1834,7 @@ class replProcessor {
 exports.replProcessor = replProcessor;
 
 function UnsubscribeMQTT (params,connectionIndex,TheTopic) {
+  try{
   metaLog({type:LOG_TYPE.DEBUG, content :"Unsubscribing MQTT ",params: connectionIndex})
   params.connection.connections[connectionIndex].connector.unsubscribe(TheTopic);
   for (const key in params.connection.connections[connectionIndex].connector.messageIdToTopic) {
@@ -1841,10 +1842,10 @@ function UnsubscribeMQTT (params,connectionIndex,TheTopic) {
       let elem = params.connection.connections[connectionIndex].connector.messageIdToTopic[key][i]
       if (elem == TheTopic)  params.connection.connections[connectionIndex].connector.messageIdToTopic[key].splice(i, 1);
     }
-    if (params.connection.connections[connectionIndex].connector.messageIdToTopic[key].length<=0) delete params.connection.connections[connectionIndex].connector.messageIdToTopic[key] 
   }
-  metaLog({type:LOG_TYPE.DEBUG, content :"Done unsubscribing, subscriptions are now:",params:params.connection.connections[connectionIndex].connector.messageIdToTopic});
-
+  metaLog({type:LOG_TYPE.VERBOSE, content :"Done unsubscribing, subscriptions are now:",params:params.connection.connections[connectionIndex].connector.messageIdToTopic});
+  }
+  catch(err){console.log(err)}
 }
 
  function HandleMQTTIncoming (GetThisTopic,topic,message){
@@ -1876,12 +1877,15 @@ function UnsubscribeMQTT (params,connectionIndex,TheTopic) {
       break;
     }
   }  
-  if (Matched) {
-    metaLog({type:LOG_TYPE.VERBOSE, content:'Topic match: ' ,params: topic.toString()});
-    return(Matched);
-  }
+
+  // if (Matched) {
+  //   metaLog({type:LOG_TYPE.VERBOSE, content:'Topic match: ' ,params: topic.toString()});
+     return(Matched);
+  //}
 
 }
+
+
 
 class mqttProcessor {
   constructor() {
@@ -1920,12 +1924,12 @@ class mqttProcessor {
     }
     catch (err) {metaLog({type:LOG_TYPE.ERROR, content:"Something wrong with getRequest-stack on params ",params:err});oldRequest = -1}
     if (oldRequest == -1) {  // request was not found, that's strange... 
-      metaLog({type:LOG_TYPE.ERROR, content:"Could not find request-entry in params... "});
+      //metaLog({type:LOG_TYPE.ERROR, content:"Could not find request-entry in params... "+Handler});
 
     }
     else {
       if (params.connection.connections[connectionIndex].getRequests[oldRequest].topic != GetTopic) {
-        metaLog({type:LOG_TYPE.ERROR, content:"Topic in entry to remove does not match request... ",params:GetTopic});
+        metaLog({type:LOG_TYPE.ERROR, content:"Topic in entry to remove "+params.connection.connections[connectionIndex].getRequests[oldRequest].topic +"does not match request... ",params:GetTopic});
         metaLog({type:LOG_TYPE.ERROR, content:params.connection.connections[connectionIndex].getRequests[oldRequest]});
       }
       metaLog({type:LOG_TYPE.DEBUG, content:"remove old request from original parms ",params: GetTopic});
@@ -1935,14 +1939,20 @@ class mqttProcessor {
 
     _this.timerRemove(Handler);
     UnsubscribeMQTT(params,connectionIndex,GetTopic);
-    metaLog({type:LOG_TYPE.VERBOSE, content:"Unsubscribed from ",params:GetTopic})
-    params.connection.connections[connectionIndex].connector.off('message',_this.Handlers[Handler]); 
+    metaLog({type:LOG_TYPE.DEBUG, content:"Unsubscribed from handler #"+Handler,params:GetTopic})
+    metaLog({type:LOG_TYPE.DEBUG, content :"Unwinding message handler #"+Handler});
+    try {
+        params.connection.connections[connectionIndex].connector.off('message',_this.Handlers[Handler]);
+        metaLog({type:LOG_TYPE.Debug, content :"Message handler unwound"});
+    }
+    catch(err) {console.log("message off:",err)}
+
     metaLog({type:LOG_TYPE.DEBUG, content:"Removed msg-handler ",params:params.connection.connections[connectionIndex].descriptor})
     MyDetails.availableEntry=true; // flag entry  as available again. 
     metaLog({type:LOG_TYPE.DEBUG, content:"Done with cleanup ",params:params.connection.connections[connectionIndex].descriptor})
 
     }
-    catch(err) {metaLog({type:LOG_TYPE.ERROR, content:"Cleanup got an error: " +Handler +" "+err,params:params})
+    catch(err) {metaLog({type:LOG_TYPE.ERROR, content:"Cleanup got an error: " +Handler +" "+err})
     }     
   }
 
@@ -1959,9 +1969,10 @@ class mqttProcessor {
     });
     var _this = this;
     var tobj = this._MQTTGetTimers[this.timerFind(name)];
+
     const myBoundMethod = (function () {
       tobj.pending = false;
-      //      tobj.func.call(arguments);
+            tobj.func.call(arguments);
       metaLog({type:LOG_TYPE.WARNING, content:"MQTT Timeout occurred waiting on slot " ,params:name})
       _this.CleanupRequest(name)
     }).bind(this.CleanupRequest);
@@ -1978,6 +1989,7 @@ class mqttProcessor {
 
   timerClear (name) {
     if (this.timerFind(name)> -1 && this._MQTTGetTimers[this.timerFind(name)].pending) {
+      metaLog({type:LOG_TYPE.VERBOSE, content:"Clearing MQTT timer "+name });
        clearTimeout(this._MQTTGetTimers[this.timerFind(name)].MQTTGetTimer);
        this._MQTTGetTimers[this.timerFind(name)].pending = false;
     }
@@ -1985,134 +1997,194 @@ class mqttProcessor {
 
    OnMessageHandler (currParams,Handler,topic, message,packet) {
     var _this = this;
+  metaLog({type:LOG_TYPE.DEBUG, content:"We have a message with  topic " ,params: topic.toString(),Handler });
     try {      
       let MyDetails =  this.HandlerDetails[Handler]
       let params = MyDetails.params;
       let connectionIndex = MyDetails.connectionIndex;
       let GetTopic = MyDetails.GetTopic;
+      let Data = MyDetails.Data;
+      let returnTopic = MyDetails.returnTopic;      
+      let timeOutSet = MyDetails.timeOutSet;
 
       let Matched = HandleMQTTIncoming(GetTopic,topic,message)//,message,params.connection.connections[_this.connectionIndex].connector);
       if (Matched ==-1) // not the topic we are interested in
         return;
-      metaLog({type:LOG_TYPE.VERBOSE, content:"We have a message with matching topic in process " ,params: topic.toString() + " "  + message.toString()});
-      _this.CleanupRequest(Handler)      
-      if (typeof (message) == 'string') {
-        try {message = JSON.parse(message); }
-        catch (err) {
-          let tempMessage = message.toString(); // make sure it will fit into the JSON-return (quotes for strings)
-          if (isNaN(tempMessage)) 
-            if(tempMessage[0] != '"' || tempMessage[tempMessage.length - 1] != '"') 
-              message = '"'+message+'"'          
-        }
+      if (!returnTopic.length)
+      { setTimeout(() => {
+          _this.CleanupRequest(Handler)  
+          _this.promiseResolve(Data);    
+        }, timeOutSet);
       }
-        else  {
-          let tempMessage = message.toString(); // make sure it will fit into the JSON-return (quotes for strings)
-          try {tempMessage = JSON.parse(tempMessage); }
+
+      metaLog({type:LOG_TYPE.VERBOSE, content:"Message handler 1 "+Handler+" received message in topic" ,params: topic.toString() + " "  + message.toString()});
+      _this.timerRemove (Handler)   // clear timer, if set
+      if (typeof (message) == 'string') {
+          try {message = JSON.parse(message); 
+            message=JSON.stringify(message)
+          }
           catch (err) {
+            let tempMessage = message.toString(); // make sure it will fit into the JSON-return (quotes for strings)
             if (isNaN(tempMessage)) 
               if(tempMessage[0] != '"' || tempMessage[tempMessage.length - 1] != '"') 
-                message = '"'+tempMessage+'"'
+                message = '"'+message+'"'          
           }
         }
-      _this.promiseResolve("{\"topic\": \""+ topic.toString()+ "\",\"message\" : " +message+"}");                          
+          else  {
+            let tempMessage = message.toString(); // make sure it will fit into the JSON-return (quotes for strings)
+            try {tempMessage = JSON.parse(tempMessage); 
+            tempMessage=JSON.stringify(tempMessage)
+            message=JSON.parse(tempMessage)
+            }
+            catch (err) {
+              if (isNaN(tempMessage)) 
+                if(tempMessage[0] != '"' || tempMessage[tempMessage.length - 1] != '"') 
+                  message = tempMessage;
+            }
+          }
+      
+      Data.push({topic:topic,message:message}) 
+      
+      returnTopic.push(topic) 
     }  
     catch (err) {
       metaLog({type:LOG_TYPE.ERROR,content:"Error in ProcessingManager.js MQTT-process msghandler: " ,params:err});
     }
   }  
-  process (params) {
-    var _this = this;
-    try {
-      metaLog({type:LOG_TYPE.VERBOSE, content:"mqtt Process handler: ",params:params.command});
-      if (!this.Handlers.length) {
-        for (let i =0;i<10;i++) {
-          eval("this.Handler"+i+" = function Handler (topic, message,packet) {_this.OnMessageHandler(params,"+i+",topic, message,packet)}")
-          eval("this.Handlers["+i+"]=this.Handler"+i+";this.HandlerDetails["+i+"]={}")
-        }
+
+ process(params) {
+
+  var _this = this;
+  try {
+    metaLog({type:LOG_TYPE.VERBOSE, content:"mqtt Process handler: ",params:params.command});
+    if (!this.Handlers.length) {
+      for (let i =0;i<10;i++) {
+        eval("this.Handler"+i+" = function Handler (topic, message,packet) {_this.OnMessageHandler(params,"+i+",topic, message,packet)}")
+        eval("this.Handlers["+i+"]=this.Handler"+i+";this.HandlerDetails["+i+"]={}")
       }
     }
-    catch (err) {metaLog({type:LOG_TYPE.ERROR, content:"Init error ",params:err})}
+  }
+  catch (err) {metaLog({type:LOG_TYPE.ERROR, content:"Init error ",params:err})}
+  return new Promise(function (resolve, reject) {
+    _this.promiseResolve = resolve;
+    _this.promiseReject  = reject;
+    params.command = JSON.parse(params.command);
+    if (params.connection == undefined)
+      {resolve('No MQTT-connection given')
+      return;
+    }
+    if  (!params.connection.connections) { params.connection.connections = []};
+    _this.MQTT_IP = (params.command.connection!=undefined&&params.command.connection!="") ?params.command.connection:_this.MQTT_IP = 'mqtt://'+ settings.mqtt 
+    _this.connectionIndex = params.connection.connections.findIndex((con) => {return con.descriptor == _this.MQTT_IP});
 
-    return new Promise(function (resolve, reject) {
-      _this.promiseResolve = resolve;
-      _this.promiseReject  = reject;
-      params.command = JSON.parse(params.command);
-      if (params.connection == undefined)
-        {resolve('No MQTT-connection given')
-        return;
-      }
-      if  (!params.connection.connections) { params.connection.connections = []};
-      _this.MQTT_IP = (params.command.connection!=undefined&&params.command.connection!="") ?params.command.connection:_this.MQTT_IP = 'mqtt://'+ settings.mqtt 
-      _this.connectionIndex = params.connection.connections.findIndex((con) => {return con.descriptor == _this.MQTT_IP});
-      if  (_this.connectionIndex < 0) { //checking if connection exist
-          try {
-            metaLog({type:LOG_TYPE.VERBOSE, content:'New connection for MQTT on: ' ,params: _this.MQTT_IP});
-            mqttClient = mqtt.connect(_this.MQTT_IP, {clientId:"ProcessorConn"+process.hrtime()}); // Connect to the designated mqtt broker, use a unique clientid
-            mqttClient.setMaxListeners(0); //CAREFULL OF MEMORY LEAKS HERE.
-            params.connection.connections.push({"descriptor": _this.MQTT_IP, "connector": mqttClient});
-            _this.connectionIndex = params.connection.connections.length - 1;
-          }
-          catch (err) {metaLog({type:LOG_TYPE.ERROR, content:'Error setting up MQTT-connection ' ,params: err});}
-        }
+    if  (_this.connectionIndex < 0) { //checking if connection exist
         try {
-  //      metaLog({type:LOG_TYPE.DEBUG, content:params.connection.connections[_this.connectionIndex].connector});
-        var MQTTSubscribed = false;
-        if ((params.command.replytopic)||(params.command.topic&&!params.command.message)) {//here we get a value from a topic
-          if (params.command.replytopic)
-            _this.GetThisTopic = params.command.replytopic;   
-          else 
-            _this.GetThisTopic = params.command.topic;
-          _this.CheckOnMessage = true;
-
-          if (params.connection.connections[_this.connectionIndex].getRequests==undefined) params.connection.connections[_this.connectionIndex].getRequests = [];
-          // next actions store the "Get-request"in an array and sets a timer to wait for a response
-          for (_this.RequestItem=0;_this.RequestItem<_this.Handlers.length;_this.RequestItem++) 
-              if (_this.HandlerDetails[_this.RequestItem].availableEntry==undefined||_this.HandlerDetails[_this.RequestItem].availableEntry) {
-                metaLog({type:LOG_TYPE.WARNING, content:"temp Selected request slot: ",params:_this.RequestItem})
-                params.connection.connections[_this.connectionIndex].getRequests.push({"ID":_this.RequestItem,"topic": _this.GetThisTopic});
-                _this.HandlerDetails[_this.RequestItem].availableEntry=false;
-                _this.HandlerDetails[_this.RequestItem].connectionIndex=_this.connectionIndex;
-                _this.HandlerDetails[_this.RequestItem].params=params;// JSON.parse(JSON.stringify(params));
-                _this.HandlerDetails[_this.RequestItem].GetTopic=_this.GetThisTopic;
-                _this.timerSet(_this.RequestItem, function() {
-                  metaLog({type:LOG_TYPE.ERROR, content:"Timeout waiting for MQTT-topic ",params:_this.expiringentry});
-                  //metaLog({type:LOG_TYPE.ERROR, content:_this.HandlerDetails[_this.expiringentry].GetTopic});
-                  //_this.CleanupRequest(_this.expiringentry)
-                  reject('');return;            
-                },   10000);               
-                break;
-              }
-          // Now that we've setup an element in "get0-request array", use message-handler from that entry: _this.Handlers[_this.RequestItem] 
-          params.connection.connections[_this.connectionIndex].connector.on('message', _this.Handlers[_this.RequestItem]);
-          metaLog({type:LOG_TYPE.VERBOSE, content:"Subscribing to " ,params: _this.GetThisTopic });  // and subscribe to topic    
-          params.connection.connections[_this.connectionIndex].connector.subscribe(_this.GetThisTopic);
-          MQTTSubscribed=true;
-          }
+          metaLog({type:LOG_TYPE.VERBOSE, content:'New connection for MQTT on: ' ,params: _this.MQTT_IP});
+          mqttClient = mqtt.connect(_this.MQTT_IP, {clientId:"ProcessorConn"+process.hrtime()}); // Connect to the designated mqtt broker, use a unique clientid
+          mqttClient.setMaxListeners(0); //CAREFULL OF MEMORY LEAKS HERE.
+          params.connection.connections.push({Connected:false,"descriptor": _this.MQTT_IP, "connector": mqttClient});
+          _this.connectionIndex = params.connection.connections.length - 1;
+          params.connection.connections[_this.connectionIndex].connector.on('connect', () => {
+              metaLog({type:LOG_TYPE.VERBOSE, content:"MQTT Connected! "+ params.connection.connections[_this.connectionIndex].descriptor});
+            params.connection.connections[_this.connectionIndex].Connected=true
+          })
+        }
+        catch (err) {console.log("MQTT-process err:",err)}
+    }
     
-        }
-        catch (err) {metaLog({type:LOG_TYPE.ERROR, content:"error in message handler " ,params:err})}
+    try       // NOTE: below "else" contains setInterval function that is used to check if connection was already esatabished before using it 
+    { let  DelayConnect=0;
+      let tries=10;
+      if (params.connection.connections[_this.connectionIndex].Connected!=true)
+          DelayConnect=500;
+      let ConnectionTimer = setInterval(() => 
+      {
+          if (params.connection.connections[_this.connectionIndex].Connected!=true)
+              {if (--tries<0)
+              {
+                clearInterval(ConnectionTimer);
+                metaLog({type:LOG_TYPE.ERROR, content:"Connection to mqtt was not succsful for 5 seconds"});
+              }
+            else
+                metaLog({type:LOG_TYPE.VERBOSE, content:"Connectiontimer INTERVAL! "+params.connection.connections[_this.connectionIndex].Connected});
 
-        try {
-            // Next is a bit complex: if we have a message to send **OR** No listen action started and no message to send? Then send a message (though it will be empty)
-        if (params.command.message || (!MQTTSubscribed && !params.command.message)) {    
-          metaLog({type:LOG_TYPE.VERBOSE, content:'MQTT publishing ' + params.command.message + ' to ' + params.command.topic + ' with options : ' + params.command.options});
-          try {
-            metaLog({type:LOG_TYPE.VERBOSE, content:"Publishing on " ,params: params.connection.connections[_this.connectionIndex].descriptor});
-            params.connection.connections[_this.connectionIndex].connector.publish(params.command.topic, params.command.message, (params.command.options ? JSON.parse(params.command.options) : ""));
-            if (params.command.replytopic== undefined) { //Only resolve when not waiting on response
-              metaLog({type:LOG_TYPE.DEBUG, content:"No replytopic, so we'll return immediately"})
-              resolve('');
             }
-            else 
-            metaLog({type:LOG_TYPE.DEBUG, content:"Replytopic, so we'll wait for a response on MQTT " ,params:params.command.replytopic})
+          else
+          { var MQTTSubscribed = false;
+            if ((params.command.replytopic)||(params.command.topic&&!params.command.message)) {//here we get a value from a topic
+              if (params.command.replytopic)
+                _this.GetThisTopic = params.command.replytopic;   
+              else 
+                _this.GetThisTopic = params.command.topic;
+              _this.CheckOnMessage = true;
+            }
+  /* Logic flow:
+  We always wait until connected (wait a certain times, handled with setInterval and number of retries)
+  If we have a replytopic or we have function="get" we need to subscribe and set a request-handler
+  if we have a message, we need to publish message
+  if we have no message, but we have subscribed , we publish ''
+  */
+
+          // Here we use a window of getRequests defined above to store "our getRequest".  
+          if (params.connection.connections[_this.connectionIndex].getRequests==undefined) params.connection.connections[_this.connectionIndex].getRequests = [];
+
+          if ((params.command.replytopic!= '' && params.command.replytopic!= undefined )|| params.command.function == "get"||params.command.function == "getonly") 
+          { //Need to subscribe?
+            // next actions store the "Get-request"in an array and sets a timer to wait for a response
+            for (_this.RequestItem=0;_this.RequestItem<_this.Handlers.length;_this.RequestItem++) 
+              if (_this.HandlerDetails[_this.RequestItem].availableEntry==undefined||_this.HandlerDetails[_this.RequestItem].availableEntry==true) 
+              {   metaLog({type:LOG_TYPE.WARNING, content:"temp Selected request slot: " +_this.RequestItem})
+                  params.connection.connections[_this.connectionIndex].getRequests.push({"ID":_this.RequestItem,"topic": _this.GetThisTopic});
+                  _this.HandlerDetails[_this.RequestItem].availableEntry=false;
+                  _this.HandlerDetails[_this.RequestItem].connectionIndex=_this.connectionIndex;
+                  _this.HandlerDetails[_this.RequestItem].params=params;
+                  _this.HandlerDetails[_this.RequestItem].GetTopic=_this.GetThisTopic;
+                  _this.HandlerDetails[_this.RequestItem].timeOutSet=params.command.waitTime?params.command.waitTime:2000;
+                  _this.HandlerDetails[_this.RequestItem].Data=[];
+                  params.connection.connections[_this.connectionIndex].connector.on('message', _this.Handlers[_this.RequestItem]);
+                  params.connection.connections[_this.connectionIndex].connector.on('error',(error) => {console.log("Error with MQTT:",error)});
+                  metaLog({type:LOG_TYPE.VERBOSE, content:"Setting up message slot #"+_this.RequestItem+ "for topic "+_this.GetThisTopic})  
+                  _this.HandlerDetails[_this.RequestItem].returnTopic=[];
+                  _this.timerSet(_this.RequestItem, function()  {
+                    metaLog({type:LOG_TYPE.ERROR, content:"Timeout waiting for MQTT-topic ",params:_this.RequestItem});
+                      params.connection.connections[_this.connectionIndex].connector.unsubscribe(_this.GetThisTopic);
+                    reject('');return;            
+                  },   params.command.waitTime?params.command.waitTime:2000); 
+                  metaLog({type:LOG_TYPE.VERBOSE, content:"Done with setting up message handler"})              
+                  break;
+              }
+
+            metaLog({type:LOG_TYPE.VERBOSE, content:"Subscribing to " ,params: _this.GetThisTopic });  // and subscribe to topic  
+            params.connection.connections[_this.connectionIndex].connector.subscribe(_this.GetThisTopic);
+            MQTTSubscribed=true;
           }
-          catch (err) {
-            metaLog({type:LOG_TYPE.ERROR, content:'Meta found an error processing the MQTT command',params:err});
+
+          // Next is a bit complex: if we have a message to send **OR** No listen action started and no message to send? Then send a message (though it will be empty)
+          try 
+            {let thisMessage = params.command.message ? params.command.message:'' 
+            if (params.command.function == "put"||(params.command.message !=undefined&&params.command.message !='')|| (!MQTTSubscribed && params.command.function !='getonly'&&!params.command.message)) {  
+              metaLog({type:LOG_TYPE.VERBOSE, content:'MQTT publishing "'+thisMessage+'" to ' + params.command.topic + ' with options : ' + params.command.options});
+              try 
+              { params.connection.connections[_this.connectionIndex].connector.publish(params.command.topic, thisMessage);
+                if (params.command.replytopic== undefined && params.command.function != "get"&&params.command.function != "getonly") { //Only resolve when not waiting on response
+                  metaLog({type:LOG_TYPE.DEBUG, content:"No replytopic, so we'll return immediately"})
+                  resolve('');
+                }
+                else 
+                metaLog({type:LOG_TYPE.DEBUG, content:"Replytopic, so we'll wait for a response on MQTT " ,params:params.command.replytopic})
+              }
+              catch (err) {
+                metaLog({type:LOG_TYPE.ERROR, content:'Meta found an error processing the MQTT command',params:err});
+              }
+            }
           }
+          catch (err) {metaLog({type:LOG_TYPE.VERBOSE, content:"error in publish part " ,params:err})}
+          clearInterval(ConnectionTimer)
         }
-      }
-      catch (err) {metaLog({type:LOG_TYPE.VERBOSE, content:"error in publish part " ,params:err})}
-    })
+      }, DelayConnect);  
+    }
+    catch (err) {metaLog({type:LOG_TYPE.VERBOSE, content:"error in deel 2 part " ,params:err})} 
+  })
 }
 
   query(params) {
@@ -2122,7 +2194,7 @@ class mqttProcessor {
         metaLog({type:LOG_TYPE.DEBUG, content:params.query});
         metaLog({type:LOG_TYPE.DEBUG, content:params.data});
         try {
-          if (typeof (params.data) == 'string') { params.data = JSON.parse(params.data); }
+          if (typeof (params.data) == 'string')  params.data = JSON.parse(params.data)
           resolve(JSONPath(params.query, params.data));
         }
         catch (err) {
@@ -2141,13 +2213,24 @@ class mqttProcessor {
     //********************************************************************** */
 
     return new Promise(function (resolve, reject) {
-      metaLog({type:LOG_TYPE.VERBOSE, content:'startlisten mqtt'  });
-      // Here, we need top add handler for ip-address of mqtt-server, if provided; else 'mqtt://' + settings.mqtt
-      if (typeof (params.command) == 'string') { params.command = JSON.parse(params.command); }
-      let connectionIndex = _this.listenerConnections.findIndex((con) => {return (con.Listenerdescriptor == params.command.connection && con.ListenerName == params.listener.name)});
-      metaLog({type:LOG_TYPE.VERBOSE, content:'Connection Index:' ,params: connectionIndex});
+      let connectionIndex;
 
       try {
+      metaLog({type:LOG_TYPE.VERBOSE, content:'startlisten mqtt'  });
+      // Here, we need to add handler for ip-address of mqtt-server, if provided; else 'mqtt://' + settings.mqtt
+      if (typeof (params.command) == 'string') { params.command = JSON.parse(params.command); }
+      connectionIndex = _this.listenerConnections.findIndex((con) => {return (con.Listenerdescriptor == params.command.connection && con.ListenerName == params.listener.name)});
+      console.log("cn",connectionIndex)
+      metaLog({type:LOG_TYPE.VERBOSE, content:'Connection Index:' ,params: connectionIndex});
+      }catch(err){console.log(err)}
+      let GetThisTopic
+      if ((params.command.replytopic)||(params.command.topic&&!params.command.message)) //here we get a value from a topic
+        if (params.command.replytopic)
+          GetThisTopic = params.command.replytopic;   
+        else 
+          GetThisTopic = params.command.topic;
+      try {
+        
         if  (connectionIndex < 0) { //checking if connection exist
             metaLog({type:LOG_TYPE.VERBOSE, content:"Adding connection for mqtt " ,params: params.command.connection})
             let MQTT_IP = (params.command.connection)?params.command.connection:'mqtt://' + settings.mqtt;
@@ -2155,24 +2238,38 @@ class mqttProcessor {
             mqttClient.setMaxListeners(0); //CAREFULL OF MEMORY LEAKS HERE.
             _this.listenerConnections.push({"Listenerdescriptor": params.command.connection, "connector": mqttClient,"ListenerName":params.listener.name});
             connectionIndex = _this.listenerConnections.length - 1;
+            _this.listenerConnections[connectionIndex].connector.on('connect', () => {
+              metaLog({type:LOG_TYPE.VERBOSE, content:"MQTT listener Connected! "});
+              metaLog({type:LOG_TYPE.DEBUG, content:"",params: _this.listenerConnections[_this.connectionIndex].Listenerdescriptor});
+              //params.connection.connections[_this.connectionIndex].Connected=true
+              metaLog({type:LOG_TYPE.VERBOSE, content:"MQTT message handler on connection"});
+             _this.listenerConnections[connectionIndex].connector.on('message', (topic, message) => { 
+                metaLog({type:LOG_TYPE.VERBOSE, content:'Message on listener: '+topic,params: message});
+                let  Matched = HandleMQTTIncoming(GetThisTopic,topic,message);
+                  if (Matched) {  
+                      if (message && message.type === 'Buffer' && Array.isArray(message.data)) {
+                          message = Buffer.from(message.data).toString('utf8');
+                      } else if (Buffer.isBuffer(message)) {
+                          message = message.toString('utf8');
+                      } else if (typeof message === 'object' && message !== null) {
+                          message = JSON.stringify(message);
+                      } else {
+                          message = String(message);
+                      }
+                        let tempMessage = message.toString(); // make sure it will fit into the JSON-return (quotes for strings)
+                        if (isNaN(tempMessage))
+                          if(tempMessage[0] != '"' || tempMessage[tempMessage.length - 1] != '"')
+                            message = '"'+message+'"'
+                      }
+                    params._listenCallback("{\"topic\": \""+ topic.toString()+ "\",\"message\" : " +message+"}", params.listener, deviceId);
+                //  }
+                });
+              _this.listenerConnections[connectionIndex].connector.subscribe(GetThisTopic, (result) => {
+                  metaLog({type:LOG_TYPE.VERBOSE, content:'Status of subscription MQTT: '+GetThisTopic,params: result})});
+              })
           }
-      _this.listenerConnections[connectionIndex].connector.subscribe(params.command.topic, (result) => {
-        metaLog({type:LOG_TYPE.VERBOSE, content:'Status of subscription MQTT : ',params: result})});
-        _this.listenerConnections[connectionIndex].connector.on('message', function (topic, message,packet) {
-          let  Matched = HandleMQTTIncoming(JSON.stringify(params.command.topic).split('"')[1],topic,message);
-            if (Matched) {  
-              if (typeof (message) == 'string')  
-                try {message = JSON.parse(message); }
-                catch (err) {
-                  let tempMessage = message.toString(); // make sure it will fit into the JSON-return (quotes for strings)
-                  if (isNaN(tempMessage))
-                    if(tempMessage[0] != '"' || tempMessage[tempMessage.length - 1] != '"')
-                      Message = '"'+Message+'"'
-                }
-              params._listenCallback("{\"topic\": \""+ topic.toString()+ "\",\"message\" : " +message+"}", params.listener, deviceId);
-            }
-          });
-        resolve('');
+
+
     }
     catch (err) {metaLog({type:LOG_TYPE.ERROR, content:'Error setting up MQTT-connection ',params:err})}
     });

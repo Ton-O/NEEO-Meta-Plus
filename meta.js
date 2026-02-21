@@ -369,7 +369,7 @@ function discoveryDriverPreparator(controller, driver, deviceId) {
       if (driver.discover) {
             controller.vault.retrieveValueFromDataStore("ToInitiate","default").then((ToInitiate)=>{
               if (ToInitiate == undefined) {ToInitiate = true;}
-              metaLog({deviceId: deviceId, type:LOG_TYPE.VERBOSE, content:"ToInitiate " + ToInitiate});
+              metaLog({deviceId: deviceId, type:LOG_TYPE.VERBOSE, content:"ToInitiate " + ToInitiate+" "+driver.name});
               prepareCommand(controller, driver.discover.initcommandset, deviceId, ToInitiate?0:(driver.discover.initcommandset?driver.discover.initcommandset.length:0)).then(()=> {
               let instanciationTable = [];
               metaLog({deviceId: deviceId, type:LOG_TYPE.DEBUG, content:"Driver Discovery preparation."});
@@ -384,7 +384,7 @@ function discoveryDriverPreparator(controller, driver, deviceId) {
                         tempo.push(result);
                         result = tempo;
                       }
-                      result.forEach(element => {
+                      result.forEach(element => {   // nnow loop over the elements and create a discovered device instance 
                         driverInstance = instanciationHelper(controller, element, driver.template);
                         if (driverInstance != undefined) {
                           instanciationTable.push(driverInstance);
@@ -394,8 +394,8 @@ function discoveryDriverPreparator(controller, driver, deviceId) {
                     })
                   })
                 })
-                
               })
+              
           })
           .catch((err) => {
             metaLog({type:LOG_TYPE.ERROR, content:'Driver has no ToInitiate Persisted Variable.'});
@@ -631,8 +631,8 @@ function executeDriverCreation (driver, hubController, passedDeviceId) {
 
       //DISCOVERY  
       if (driver.discover) {
+        driver.RunningDiscovery=[]
         metaLog({deviceId: deviceId, type:LOG_TYPE.WARNING, content:'Creating discovery process for ' + controller.name});
-
         theDevice.enableDiscovery(
           {
             headerText: driver.discover.welcomeheadertext,
@@ -640,39 +640,21 @@ function executeDriverCreation (driver, hubController, passedDeviceId) {
             enableDynamicDeviceBuilder: true,
           },
           (targetDeviceId) => {
-              let ind0 = controller.discoveredDevices.findIndex(dev => {return dev.id == targetDeviceId});
-              if (ind0>=0) {
-                metaLog({deviceId: deviceId, type:LOG_TYPE.DEBUG, content:"And we have found it"});
-                metaLog({deviceId: deviceId, type:LOG_TYPE.DEBUG, content:'Skipping duplicate discovery of device:'+targetDeviceId}); 
-              }
-              else {
-                metaLog({deviceId: deviceId, type:LOG_TYPE.DEBUG, content:"Device was not created before: "+targetDeviceId});
+              if (!targetDeviceId||ValidCachedEntry(driver,targetDeviceId)<=0)
                 return new Promise(function (resolve, reject) {
                   const formatedTable = [];
-
-                  metaLog({deviceId: deviceId, type:LOG_TYPE.DEBUG, content:'Discovering this device: '+targetDeviceId});
-
-                  if (targetDeviceId) {
-                    let ind = controller.discoveredDevices.findIndex(dev => {return dev.id == targetDeviceId});
-                    if (ind>=0) {
-                      metaLog({deviceId: deviceId, type:LOG_TYPE.INFO, content:"DRIVER CACHE USED"});
-                      formatedTable.push(controller.discoveredDevices[ind]);
-                      resolve(formatedTable); 
-                      return;
-                    }
-                  }
                   discoveryDriverPreparator(controller, driver, deviceId).then((driverList) => {
                     discoveredDriverListBuilder(driverList, formatedTable, 0, controller, targetDeviceId, driver).then((outputTable) => {
-                      outputTable.forEach(output => {if (controller.discoveredDevices.findIndex(dev => {dev.id == output.id})<0) {controller.discoveredDevices.push(output)}});
-                      resolve(outputTable); 
+                      outputTable.forEach(output => {if (controller.discoveredDevices.findIndex(dev => {return dev.id == output.id})<0) {controller.discoveredDevices.push(output)}});
+                      resolve(controller.discoveredDevices); 
                     })
                   })
                 })
-
-              }
-          }
+              else
+                resolve(controller.discoveredDevices); 
+          }   
         )
-      }
+    }
 
       controller.reInitConnectionsValues(deviceId);
       
@@ -811,7 +793,27 @@ function executeDriverCreation (driver, hubController, passedDeviceId) {
       });
   })
 }
+function ValidCachedEntry(driver,targetDeviceId) 
+{try {
+  let ThisTime = new Date();
+  let ind0 = driver.RunningDiscovery.findIndex(dev => {return dev.targetDeviceId == targetDeviceId});
+  if (ind0<0) {
+    driver.RunningDiscovery.push({targetDeviceId:targetDeviceId,Runtime:ThisTime})
+    metaLog({deviceId: targetDeviceId, type:LOG_TYPE.VERBOSE, content:"Discovery: "+driver.name +" not in cache; executing discovery"});
+    return 0
+  }
 
+  if ( ThisTime - driver.RunningDiscovery[ind0].Runtime > 2000)  // cache expired
+    {driver.RunningDiscovery.splice(ind0, 1);
+       metaLog({deviceId: targetDeviceId, type:LOG_TYPE.DEBUG, content:"Discovery: "+driver.name +" cache entry was expired; executig discovery"});
+      return 0
+    }
+    
+  
+    return 1
+  }
+  catch(err){console.log(err)}
+}
 //DISCOVERING BRAIN
         
 function discoverBrain() {

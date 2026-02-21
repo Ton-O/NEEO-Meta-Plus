@@ -234,17 +234,30 @@ module.exports = function controller(driver) {
         givenResult = JSON.stringify(givenResult);
       }
       if (typeof(inputChain) == 'string') {
-        if (inputChain.startsWith('DYNAMIK ')) {
+          let DYNA="DYNAMIK ";
+        if (inputChain.startsWith('DYNAMIK ')||inputChain.startsWith('DYNAMIC ')) {
           if (givenResult && (typeof(givenResult) == 'string' )) {
-            givenResult = givenResult.replace(/\\/g, '\\\\'); // Absolutely necessary to properly escape the escaped character. Or super tricky bug.
-            givenResult = givenResult.replace(/"/g, '\\"'); // Absolutely necessary to properly escape the escaped character. Or super tricky bug.
-            givenResult = givenResult.replace(/(\r\n|\n|\r)/gm,''); //Management of NAIM issue but should be useful in general.
+            if (inputChain.startsWith('DYNAMIK ')) 
+              {givenResult = givenResult.replace(/\\/g, '\\\\'); // Absolutely necessary to properly escape the escaped character. Or super tricky bug.
+              givenResult = givenResult.replace(/"/g, '\\"'); // Absolutely necessary to properly escape the escaped character. Or super tricky bug.
+              givenResult = givenResult.replace(/(\r\n|\n|\r)/gm,''); //Management of NAIM issue but should be useful in general.
+              }
+            else
+              DYNA="DYNAMIC "
           }
           while (inputChain != inputChain.replace(Pattern, givenResult)) {
             inputChain = inputChain.replace(Pattern, givenResult);
           }
           metaLog({type:LOG_TYPE.VERBOSE, content:'Assign To Before Eval. ' ,params: inputChain});
-          let evaluatedValue = eval(inputChain.split('DYNAMIK ')[1]);
+          let evaluatedValue 
+          try {
+            //console.log("meta.js driver.discover.command.evalwrite",JSON.stringify(result));
+            //console.log("MC 1",inputChain.split(DYNA))
+          evaluatedValue = eval(inputChain.split(DYNA)[1]);
+          }
+          catch(err) {console.log("err",err);console.log(inputChain.split('DYNAMIK '))
+
+          }
           metaLog({type:LOG_TYPE.VERBOSE, content:'Assign To After Eval. ' ,params: evaluatedValue});
           return evaluatedValue;
         }
@@ -411,12 +424,12 @@ module.exports = function controller(driver) {
 
   
   this.commandProcessor = function(command, commandtype, deviceId,name) { // process any command according to the target protocol
+
     return new Promise(function (resolve, reject) {
       try {
         self.assignProcessor(commandtype);
         const connection = self.getConnection(commandtype, deviceId);
         command = self.vault.readVariables(command, deviceId);
-
         command = self.assignTo(RESULT, command, '');
         const params = {'command' : command, 'connection' : connection,"Button":name};
         metaLog({type:LOG_TYPE.VERBOSE, content:'Final command to be processed: '+command+ ' - ' + commandtype, deviceId:deviceId});
@@ -434,8 +447,6 @@ module.exports = function controller(driver) {
       } 
     })
   };
-
-  
 
   this.listenProcessor = function(listener, deviceId) { // process any command according to the target protocole
     return new Promise(function (resolve, reject) {
