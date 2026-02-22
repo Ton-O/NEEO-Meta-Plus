@@ -2,24 +2,8 @@
 const fs = require('fs').promises; 
 const { access } = require('node:fs/promises');
 const path = require ( 'path');
-//const { createLogger,transports,format} = require ( 'winston');
-//const { combine, timestamp, json } = format;
 const logModule="GoogleTV";
-// const logger = createLogger({
-//     defaultMeta: { component: 'G-TV' },
-//     format: format.combine(
-//         format.timestamp({
-//             format: 'YYMMDD-HH:mm:ss'
-//         }),
-//         format.json(),
-//         format.printf(info => {
-//             return `${info.timestamp} ${info.level}: ${info.message}`;
-//           })
-//       ),
-//    transports: [
-//        new transports.Console({ level: 'debug' })
-//      ]
-//  });
+
 
 const express = require ( 'express');
 process.env.StartupPath="/opt/meta"    // small trick (for now) to incorporate GoogleTV.js into logLevel environment from meta.js
@@ -52,9 +36,9 @@ var Coderequested=false;
 var CodeRequestedForHost;
 
 
-async function getSession(MyHost,MyCerts) {
+function getSession(MyHost,MyCerts) {
 return new Promise(function (resolve, reject) {
-
+    try {
     let host = MyHost 
     let options = {
     pairing_port : 6467,
@@ -62,6 +46,7 @@ return new Promise(function (resolve, reject) {
     name : 'androidtv-remote', 
     cert : MyCerts}
     myAndroidRemote = new AndroidRemote(host, options)
+
     myAndroidRemote.on('secret', () => {
         metaLog({type:LOG_TYPE.ALLWAYS, content:'We need a new secret; provide this via web interface please (for example: port http://10.0.0.1:6468/secret?secret=1cba6d)'});
         metaLog({type:LOG_TYPE.ALLWAYS, content:'`replace 10.0.01 with the ip-address of meta, and fill in code that is shown on screen`'});
@@ -69,37 +54,37 @@ return new Promise(function (resolve, reject) {
         CodeRequestedForHost=MyHost;
         }
     )
-
-    // myAndroidRemote.on('powered', (powered) => {
-    //     globalPowered = powered;
-    //     logger.debug(`Powered: ${powered}`);
-    // });
-
+    myAndroidRemote.on('powered', (powered) => {
+         globalPowered = powered;
+         metaLog({type:LOG_TYPE.DEBUG, content:'Powered:',params: powered});
+     });
     myAndroidRemote.on('volume', (volume) => {
         metaLog({type:LOG_TYPE.DEBUG, content:'Volume:',params: volume.level});
         metaLog({type:LOG_TYPE.DEBUG, content:'Volume maximum:',params: volume.maximum});
         metaLog({type:LOG_TYPE.DEBUG, content:'Muted:',params: volume.muted});
     });
-
     myAndroidRemote.on('current_app', (current_app) => {
         metaLog({type:LOG_TYPE.DEBUG, content:'Current App:',params: current_app});
     });
-
     myAndroidRemote.on('error', (error) => {
         metaLog({type:LOG_TYPE.ERROR, content:'Error:',params: err});
     });
-
     myAndroidRemote.on('unpaired', () => {
         metaLog({type:LOG_TYPE.DEBUG, content:'Unpaired'});
     });
-
     myAndroidRemote.on('ready',  () => {
         metaLog({type:LOG_TYPE.VERBOSE, content:'Connection with GoogleTV is ready'});
-        resolve(myAndroidRemote)
+        myAndroidRemote.Ready=true;
+        metaLog({type:LOG_TYPE.VERBOSE, content:'flagged ready`'});
+        setTimeout(() => {
+            resolve(myAndroidRemote) // add a short delay before actually using the remote. allows init of android-remote lib
+        }, 500);
     });
     myAndroidRemote.start().then (() => {
+        //myAndroidRemote
     })
-    
+}
+catch(err) {console.log(err)}
   })
 }
 
@@ -180,11 +165,11 @@ async function LoadSpecificCert(thisDevice)
         const keyData = await fs.readFile(theCertKey);
 
         MyCert.cert = JSON.parse(certData);
-        MyCert.key = JSON.parse(keyData);        
-        return 1;
+        MyCert.key = JSON.parse(keyData);     
+        return ;
     } catch (err) {
         metaLog({type:LOG_TYPE.INFO, content:"No certificates to load or error: ",params:err});
-        return 0;
+        return ;
     }
 
 }
@@ -284,15 +269,20 @@ async function main() {
 async function sendPower(desiredState) {
 
     androidRemote = await GetConnection(MyHost)
+
     const waitForPowerEvent = new Promise((resolve) => {
         androidRemote.once('powered', (powered) => {
-            metaLog({type:LOG_TYPE.INFO, content:"Powerstate event received...Status is now"+ powered});
+            metaLog({type:LOG_TYPE.INFO, content:"Powerstate event received... `"+ powered});
             resolve(powered); // returning state to function that is waiting on us
         });
     });
+    metaLog({type:LOG_TYPE.INFO, content:"sendPower (Toggle) will be send"});
     await androidRemote.sendPower(); // toggle power; this should trigger a powered event which shows the toggled powerstate.
+    metaLog({type:LOG_TYPE.INFO, content:"sendPower (Toggle) sent"});
 
     const newStatus = await waitForPowerEvent;
+    metaLog({type:LOG_TYPE.DEBUG, content:"Desired: "+desiredState+"; current state: "+ newStatus});
+
     if (desiredState === 'ON')
     {   if (!newStatus) {
             metaLog({type:LOG_TYPE.INFO, content:"Desired: "+desiredState+"; however, device is OFF... toggle power"});
@@ -309,8 +299,10 @@ async function sendPower(desiredState) {
 
 async function sendKey(key) {
     metaLog({type:LOG_TYPE.VERBOSE, content:"Send key "+key,params:RemoteKeyCode[key]});
-    GetConnection(MyHost).then  ((androidRemote) => {
-        androidRemote.sendKey(RemoteKeyCode[key], RemoteDirection.SHORT);
+    GetConnection(MyHost)
+    .catch(error => metaLog({type:LOG_TYPE.VERBOSE, content:"We do not have a connection setup yet",params:error}))
+    .then  ((androidRemote) => {metaLog({type:LOG_TYPE.DEBUG, content:'Got connection;SendKey'});
+        androidRemote.sendKey(RemoteKeyCode[key], RemoteDirection.SHORT)
     })
 };
 
@@ -329,9 +321,11 @@ async function sendAppLink(AppLink) {
                 sendKey(req.body.key);
                 break;						
             case 'sendAction':
+                metaLog({type:LOG_TYPE.DEBUG, content:"Received action-request ",params:req.body.theAction});
                 sendKey(req.body.theAction );
                 break;            
             case 'sendPower':
+                metaLog({type:LOG_TYPE.DEBUG, content:"Received power-request ",params:req.body.DesiredState});
                 sendPower(req.body.DesiredState);
                 break;            
             case 'sendAppLink':
@@ -353,22 +347,23 @@ async function sendAppLink(AppLink) {
     let connectionIndex = Connections.findIndex((con) => {return con.Host == MyHost});
     if  (connectionIndex < 0) {
         metaLog({type:LOG_TYPE.DEBUG, content:"Connection not yet created, doing now for "+MyHost});
-        let result = await LoadSpecificCert(MyHost);
+        await LoadSpecificCert(MyHost);
         getSession(MyHost,MyCert).then ((Connection) => { 
-	        GotSession(Connection);
-            myAndroidRemote = Connection;
-            resolve(Connection); 
-        })
+                GotSession(Connection);
+                myAndroidRemote = Connection;
+                resolve(Connection); 
+            })
 	}
     else {
         myAndroidRemote = Connections[connectionIndex].Connector
-        metaLog({type:LOG_TYPE.DEBUG, content:"Connection found for "+MyHost});
+        metaLog({type:LOG_TYPE.VERBOSE, content:"Connection found for "+MyHost});
+        // metaLog({type:LOG_TYPE.DEBUG, content:"myAndroidRemote",params:myAndroidRemote});
         resolve(myAndroidRemote)
     }
     })
  }
 function GotSession(Connection) {
     myAndroidRemote = Connection 
-    Connections.push({"Host": MyHost, "Connector ": Connection});
+    Connections.push({"Host": MyHost, "Connector": Connection});
 }
 main();

@@ -1166,7 +1166,6 @@ class dnssdProcessor {
           discovery.destroy();
         }
         catch (err) {metaLog({type:LOG_TYPE.ERROR, content:"Error in dnssd timer process " ,params: err });} 
-console.log("services",Services)
       resolve(Services)
       }, 4000);
 
