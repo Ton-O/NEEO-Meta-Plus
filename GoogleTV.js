@@ -151,27 +151,53 @@ async function FillInCodeRequest(code,thisDevice)
 
 }
 
-async function LoadSpecificCert(thisDevice)
-{   
-    const theCert = `/opt/meta/.ssh/GoogleCert@${thisDevice}.pem`;
-    const theCertKey = `/opt/meta/.ssh/GoogleKey@${thisDevice}.pem`;
-    
-    metaLog({type:LOG_TYPE.INFO, content:"Looking for certificate",params:theCert});
+async function load_file(theCert,thekey)
+{
+
     try {    
         await fs.access(theCert, fs.constants.F_OK);
-        metaLog({type:LOG_TYPE.INFO, content:"Certificate available, we will now load it"});
+    } catch (err) {
+        metaLog({type:LOG_TYPE.INFO, content:"Certificate "+theCert+ " not found"});
+        return 0;
+    }
+    try {
+        metaLog({type:LOG_TYPE.INFO, content:"Certificate "+theCert+" is available, we will now load it"});
 
         const certData = await fs.readFile(theCert);
-        const keyData = await fs.readFile(theCertKey);
+        const keyData = await fs.readFile(thekey);
 
         MyCert.cert = JSON.parse(certData);
         MyCert.key = JSON.parse(keyData);     
-        return ;
+	metaLog({type:LOG_TYPE.INFO, content:"Loading successfull "+theCert});
+        return MyCert;
     } catch (err) {
-        metaLog({type:LOG_TYPE.INFO, content:"No certificates to load or error: ",params:err});
-        return ;
+        metaLog({type:LOG_TYPE.INFO, content:"Error loading "+theCert,params:err});
+        return 0;
     }
 
+}
+
+async function LoadSpecificCert(thisDevice)
+{   
+    const Part1 = "/opt/meta/.ssh/Google"
+    var   Part2C = "Cert"
+    var   Part2K = "Key"
+    var   Part5 = "@"+thisDevice
+    const Part9 = ".pem"
+    var theCert = Part1+Part2C+Part5+Part9
+    
+    var theKey  = Part1+Part2K+Part5+Part9
+    
+
+    //var theCertKey = `/opt/meta/.ssh/GoogleKey@${thisDevice}.pem`;
+    var theCertJSON = await load_file(theCert,theKey)
+    if (theCertJSON!=0)
+        return theCertJSON
+
+    theCert = Part1+Part2C+Part9
+    theKey  = Part1+Part2K+Part9
+    metaLog({type:LOG_TYPE.VERBOSE, content:"No specific certificate found, trying to load generic one: ",params:theCert});
+    return load_file(theCert,theKey)
 }
 
 async function Handle_NewSecretCode(Newcode) 
@@ -303,6 +329,7 @@ async function sendKey(key) {
     .catch(error => metaLog({type:LOG_TYPE.VERBOSE, content:"We do not have a connection setup yet",params:error}))
     .then  ((androidRemote) => {metaLog({type:LOG_TYPE.DEBUG, content:'Got connection;SendKey'});
         androidRemote.sendKey(RemoteKeyCode[key], RemoteDirection.SHORT)
+	metaLog({type:LOG_TYPE.VERBOSE, content:"Send key done"+key,params:RemoteKeyCode[key]});
     })
 };
 
