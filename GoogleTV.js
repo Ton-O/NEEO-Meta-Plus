@@ -8,7 +8,10 @@ const logModule="GoogleTV";
 const express = require ( 'express');
 process.env.StartupPath="/opt/meta"    // small trick (for now) to incorporate GoogleTV.js into logLevel environment from meta.js
 const { metaMessage, LOG_TYPE,OverrideLoglevel,initialiseLogSeverity } = require("./metaMessage");
+
+// TIP: If you experience problems with modules below this GoogleTV.js level, comment the following line (by oplacing // in front of it)
 console.error = console.info = console.debug = console.warn = console.trace = console.dir = console.dirxml = console.group = console.groupEnd = console.time = console.timeEnd = console.assert = console.profile = function() {};
+// TIP: The line above... with console.error etc change it to //console.error.... etc
 function metaLog(message) {
   let initMessage = { component:'GoogleTV', type:LOG_TYPE.INFO, content:'', deviceId: '' };
   let myMessage = {...initMessage, ...message}
