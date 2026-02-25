@@ -1011,7 +1011,7 @@ if (process.argv.length>2) {
     
 }
 
-metaLog({type:LOG_TYPE.ALWAYS, content:'META Starting'});
+metaLog({type:LOG_TYPE.ALWAYS, content:'META Starting '+process.env.META_VERSION });
 
 getConfig().then(() => {
     networkDiscovery();
