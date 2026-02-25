@@ -2,7 +2,7 @@ const express = require('express');
 const logModule="BroadlinkManager";
 
 
-//process.env.StartupPath="/opt/meta"    // small trick (for now) to incorporate this module into logLevel environment from meta.js
+process.env.StartupPath="/opt/meta"    // small trick (for now) to incorporate this module into logLevel environment from meta.js
 const { metaMessage, LOG_TYPE,OverrideLoglevel,initialiseLogSeverity } = require("./metaMessage");
 
 // TIP: If you experience problems with modules below this GoogleTV.js level, comment the following line (by oplacing // in front of it)
