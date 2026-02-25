@@ -29,6 +29,8 @@ var localDevices = [];
 exports.localDevices = localDevices;
 exports.neeoBrainIp = returnBrainIp;
 var mqttClient;
+process.env.META_VERSION = 3.7;
+
 
 //LOGGING SETUP AND WRAPPING
 //Disable the NEEO library console warning.
@@ -888,7 +890,6 @@ function runNeeo () {
     };
     metaLog({type:LOG_TYPE.INFO, content:"Current directory: " + __dirname});
     metaLog({type:LOG_TYPE.INFO, content:"Trying to start the meta."});
-    process.env.META_VERSION = 3.7;
     process.env.BRAINIP = neeoSettings.brain;
     process.env.BRAINPORT = neeoSettings.port;
     neeoapi.startServer(neeoSettings)
