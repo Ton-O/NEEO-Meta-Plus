@@ -1,6 +1,7 @@
 const logModules = [ 
                     {logComponent: "Global",logLevel:"QUIET"},
                     {logComponent: "meta",logLevel:"VERBOSE",FollowGlobal:true},
+                    {logComponent: "broadlinkManager",logLevel:"VERBOSE",FollowGlobal:true},
                     {logComponent: "directoryHelper",logLevel:"VERBOSE",FollowGlobal:true},
                     {logComponent: "imageHelper",logLevel:"VERBOSE",FollowGlobal:true},
                     {logComponent: "labelHelper",logLevel:"VERBOSE",FollowGlobal:true},

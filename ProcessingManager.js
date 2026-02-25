@@ -1942,7 +1942,7 @@ class mqttProcessor {
     metaLog({type:LOG_TYPE.DEBUG, content :"Unwinding message handler #"+Handler});
     try {
         params.connection.connections[connectionIndex].connector.off('message',_this.Handlers[Handler]);
-        metaLog({type:LOG_TYPE.Debug, content :"Message handler unwound"});
+        metaLog({type:LOG_TYPE.DEBUG, content :"Message handler unwound"});
     }
     catch(err) {console.log("message off:",err)}
 
@@ -2321,3 +2321,72 @@ class mqttProcessor {
   }
 }
 exports.mqttProcessor = mqttProcessor;
+
+class broadlinkProcessor {
+  constructor() {
+  };
+  initiate(connection) {
+    return new Promise(function (resolve, reject) {
+      resolve();
+    });
+  }
+  process(params) {
+    return new Promise(function (resolve, reject) {
+      try {
+        metaLog({type:LOG_TYPE.DEBUG, content:'Broadlink processor:' ,params: params.command});
+        //============================
+
+
+      if (typeof (params.command) == 'string') { params.command = JSON.parse(params.command); };
+      metaLog({type:LOG_TYPE.DEBUG, content:params.command});
+
+      // NOTE: The Broadlinkhandler (BroadlinkProcessor.js) uses it's own discovery and caching mechanism
+      let BroadlinkHost=params.command.connection;
+      let BroadlinkFunction=params.command.function ? params.command.function:"xmitGC" // if not specified, use generic "xmitgc" function
+      let stream=params.command.message;
+      let BroadlinkProcessorHost="http://127.0.0.1:5384"
+      let BroadlinkProcessorCommand=BroadlinkProcessorHost+"/"+BroadlinkFunction+"?host="+BroadlinkHost+"&stream="+stream
+      metaLog({type:LOG_TYPE.VERBOSE, content:'Execute ths bnroadlink command '+BroadlinkProcessorCommand});
+      got(BroadlinkProcessorCommand)
+          .then(function (result) {
+            metaLog({type:LOG_TYPE.VERBOSE, content:'response:' ,params: result.body});
+            try {
+              resolve(JSON.parse(result.body));
+            }
+            catch (err) {resolve(result.body)}
+          })
+          .catch((err) => {
+            metaLog({type:LOG_TYPE.ERROR, content:err});
+            resolve();
+          });
+      }
+      catch (err) {
+        metaLog({type:LOG_TYPE.ERROR, content:err});
+        resolve();
+      }
+    })
+  }
+  query(params) {
+    return new Promise(function (resolve, reject) {
+      if (params.query) {
+        try {
+          if (typeof (params.data) == 'string') { params.data = JSON.parse(params.data); };
+          metaLog({type:LOG_TYPE.DEBUG, content:'query-result' ,params: JSONPath(params.query, params.data)});
+          resolve(JSONPath(params.query, params.data));
+        }
+        catch (err) {
+          metaLog({type:LOG_TYPE.ERROR, content:err});
+        }
+      }
+      else { resolve(params.data); }
+    });
+  }
+  startListen(params, deviceId) {
+    return new Promise(function (resolve) {
+            resolve('');
+          })
+  }
+  stopListen(listener) {
+      }
+}
+exports.broadlinkProcessor = broadlinkProcessor;

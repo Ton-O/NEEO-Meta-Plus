@@ -1,5 +1,5 @@
 # META-PLUS... the evolution of META towards more functionality and interoperability with Brain.
-## Version.... I lost count, but we're somewhere in 3.4.....
+## Version 3.7.....
 ## I've been maintaining a fully working version Docker image, to make reproduction of META much simpler. This image runs perfectly on a X86-based Docker host.[Docker image](https://hub.docker.com/r/tonot1/neeo-meta-plus)
 I have been making many, many changes to this alternative meta - a driver to utilize NEEO with many custom device drivers.
 These changes have now ben consolidated in new releases, starting with V2.0.
@@ -150,4 +150,7 @@ The xxx part is described in the repositories from my custom drivers:
 - 
 
 
+## Update history
+V3.6 adds support for Android-based devices (through ADB) using the Chromecast device. Note this driver is not only for Chromecast/GoogleTV but adds generic support for Android devices.
 
+V3.7 adds support for Broadlink new style. This makes drivers using Broadlink devices more in-line with other drivers. It also removes the Python based components, replacing them by Javascript too. 
