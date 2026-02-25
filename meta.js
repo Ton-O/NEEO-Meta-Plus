@@ -29,7 +29,7 @@ var localDevices = [];
 exports.localDevices = localDevices;
 exports.neeoBrainIp = returnBrainIp;
 var mqttClient;
-process.env.META_VERSION = 3.7;
+process.env.META_VERSION = "V3.7";
 
 
 //LOGGING SETUP AND WRAPPING

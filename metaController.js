@@ -31,7 +31,9 @@ const MQTT = 'mqtt';
 const WOL = 'wol';
 const MDNS = 'mDNS';
 const dnssd = 'dnssd';
-const { ProcessingManager, httpgetProcessor, httprestProcessor, httpgetSoapProcessor, httppostProcessor, cliProcessor, staticProcessor, webSocketProcessor, jsontcpProcessor, mqttProcessor, socketIOProcessor, NetProcessor,TelnetProcessor,NEEOAPIProcessor,LogLevelProcessor,mDNSProcessor, dnssdProcessor, wolProcessor, replProcessor } = require('./ProcessingManager');
+const Broadlink = 'broadlink';
+
+const { ProcessingManager, httpgetProcessor, httprestProcessor, httpgetSoapProcessor, httppostProcessor, cliProcessor, staticProcessor, webSocketProcessor, jsontcpProcessor, mqttProcessor, socketIOProcessor, NetProcessor,TelnetProcessor,NEEOAPIProcessor,LogLevelProcessor,mDNSProcessor, dnssdProcessor, wolProcessor, replProcessor,broadlinkProcessor } = require('./ProcessingManager');
 const { metaMessage, LOG_TYPE } = require("./metaMessage");
 
 const processingManager = new ProcessingManager();
@@ -53,6 +55,8 @@ const myReplProcessor = new replProcessor();
 const myHttprestProcessor = new httprestProcessor();
 const myMDNSProcessor = new mDNSProcessor();
 const mydnssdProcessor = new dnssdProcessor();
+const mybroadlinkProcessor = new broadlinkProcessor();
+
 
 //LOGGING SETUP AND WRAPPING
 //Disable the NEEO library console warning.
@@ -386,6 +390,9 @@ module.exports = function controller(driver) {
     }
     else if (commandtype == REPL) {
       processingManager.processor = myReplProcessor;
+    }
+    else if (commandtype == Broadlink) {
+      processingManager.processor = mybroadlinkProcessor;
     }
     else {metaLog({type:LOG_TYPE.ERROR, content:'Error in meta: The commandtype to process is not defined: ' ,params: commandtype});}
   };
