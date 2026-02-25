@@ -1939,12 +1939,10 @@ class mqttProcessor {
     _this.timerRemove(Handler);
     UnsubscribeMQTT(params,connectionIndex,GetTopic);
     metaLog({type:LOG_TYPE.DEBUG, content:"Unsubscribed from handler #"+Handler,params:GetTopic})
-    metaLog({type:LOG_TYPE.DEBUG, content :"Unwinding message handler #"+Handler});
     try {
         params.connection.connections[connectionIndex].connector.off('message',_this.Handlers[Handler]);
-        metaLog({type:LOG_TYPE.DEBUG, content :"Message handler unwound"});
     }
-    catch(err) {console.log("message off:",err)}
+    catch(err) {metaLog({type:LOG_TYPE.ERROR, content:"Error unsubscribing from handler #"+Handler+" topic"+GetTopic,params:err})}
 
     metaLog({type:LOG_TYPE.DEBUG, content:"Removed msg-handler ",params:params.connection.connections[connectionIndex].descriptor})
     MyDetails.availableEntry=true; // flag entry  as available again. 
@@ -2016,7 +2014,7 @@ class mqttProcessor {
         }, timeOutSet);
       }
 
-      metaLog({type:LOG_TYPE.VERBOSE, content:"Message handler 1 "+Handler+" received message in topic" ,params: topic.toString() + " "  + message.toString()});
+      metaLog({type:LOG_TYPE.VERBOSE, content:"Message handler "+Handler+" received message in topic" ,params: topic.toString() + " "  + message.toString()});
       _this.timerRemove (Handler)   // clear timer, if set
       if (typeof (message) == 'string') {
           try {message = JSON.parse(message); 
@@ -2145,7 +2143,7 @@ class mqttProcessor {
                   metaLog({type:LOG_TYPE.VERBOSE, content:"Setting up message slot #"+_this.RequestItem+ "for topic "+_this.GetThisTopic})  
                   _this.HandlerDetails[_this.RequestItem].returnTopic=[];
                   _this.timerSet(_this.RequestItem, function()  {
-                    metaLog({type:LOG_TYPE.ERROR, content:"Timeout waiting for MQTT-topic ",params:_this.RequestItem});
+                    metaLog({type:LOG_TYPE.VERBOSE, content:"Timeout waiting for MQTT-topic ",params:_this.HandlerDetails[_this.RequestItem].GetTopic});
                       params.connection.connections[_this.connectionIndex].connector.unsubscribe(_this.GetThisTopic);
                     reject('');return;            
                   },   params.command.waitTime?params.command.waitTime:2000); 
@@ -2176,6 +2174,8 @@ class mqttProcessor {
                 metaLog({type:LOG_TYPE.ERROR, content:'Meta found an error processing the MQTT command',params:err});
               }
             }
+            else
+              {} // metaLog({type:LOG_TYPE.VERBOSE, content:'MQTT No need to publish '});
           }
           catch (err) {metaLog({type:LOG_TYPE.VERBOSE, content:"error in publish part " ,params:err})}
           clearInterval(ConnectionTimer)
