@@ -158,7 +158,7 @@ This functionality is great to reduce the consequences of a restart of meta: Bra
 
 V3.6 adds support for Android-based devices (through ADB) using the Chromecast device. Note this driver is not only for Chromecast/GoogleTV but adds generic support for Android devices.
 
-V3.7 adds support for Broadlink new style. This makes drivers using Broadlink devices more in-line with other drivers. It also removes the Python based components, replacing them by Javascript too. 
+V3.7 adds support for Broadlink new style (tasmota driver). This makes drivers using Broadlink devices more in-line with how other drivers are build. It also removes the Python based components, replacing them by Javascript too. Old driver is now called Tasmota-oldproto.
 
 V3.8 is moving from the outdated node.js V18 to the latest LTS verion of node.
 
