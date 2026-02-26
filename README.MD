@@ -161,3 +161,13 @@ V3.6 adds support for Android-based devices (through ADB) using the Chromecast d
 V3.7 adds support for Broadlink new style. This makes drivers using Broadlink devices more in-line with other drivers. It also removes the Python based components, replacing them by Javascript too. 
 
 V3.8 is moving from the outdated node.js V18 to the latest LTS verion of node.
+
+
+V3.9 Adds support for the avahi-daemon as a function to locate systems that advertise their service.
+This is the same discovery functionality as the original/physical NEEO Brain was using.
+It was abondoned in the old Meta days (pre Meta Plus), but I added it again as I noticed that GoogleTV not always advertize all services anymore.
+This resulted in Kodi instances not being found anymore once they got later firmware.
+KODI driver will be created as KODI_NEW and switch to avahi as discovery function, but the older version (based on dnssd) will linger as well as KODI. This way no current implementations of KODI in Meta Plus will be impacted.
+Using the new avahi discovery function, KODI instances will all be found again....
+Usage in discovery: "command": {"type":"avahi", "command":"xbmc-jsonrpc+\\._tcp", 
+                                "queryresult":["$.*"]}

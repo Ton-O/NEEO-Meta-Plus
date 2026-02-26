@@ -2324,12 +2324,25 @@ exports.mqttProcessor = mqttProcessor;
 
 class broadlinkProcessor {
   constructor() {
-  };
+
+    this.Timer = [];
+    this.MQTT_IP=""; 
+    this.Handlers=[];
+    this._MQTTGetTimers= []
+    this.listenerConnections = [];
+
+
+//    this.Handler0 = function Handler (topic, message,packet) {_this.OnMessageHandler(topic, message,packet,0)}
+
+    this.HandlerDetails=[]
+
+  }
+
   initiate(connection) {
     return new Promise(function (resolve, reject) {
-      resolve();
-    });
-  }
+      resolve('');
+    }); 
+  } 
   process(params) {
     return new Promise(function (resolve, reject) {
       try {
@@ -2390,3 +2403,128 @@ class broadlinkProcessor {
       }
 }
 exports.broadlinkProcessor = broadlinkProcessor;
+
+class avahiProcessor {
+   constructor() { 
+  }
+
+  initiate(connection) {
+    return new Promise(function (resolve, reject) {
+      resolve('');
+      //nothing to do, it is done globally.
+      //connection.connector = mqttClient;
+    }); 
+  } 
+  process(params) {
+    return new Promise(function (resolve, reject) {
+      try {
+        var Services = [];
+        metaLog({type:LOG_TYPE.VERBOSE, content:'Avahi process started for'+params.command})
+        const { spawn } = require('child_process');
+        const avahi = spawn('avahi-browse', ['--all', '--ignore-local', '--resolve', '--terminate', '--parsable']);
+        let buffer = '';
+
+        avahi.stdout.on('data', (data) => {
+            buffer += data.toString();
+            const lines = buffer.split('\n');
+            
+            buffer = lines.pop();
+            lines.forEach(line => {                // Process only lines that star with '='
+              if (line.startsWith('=')) {
+                const fields = line.split(';');
+                const service = {
+                    interface: fields[1],
+                    protocol:  fields[2],
+                    name:      fields[3],
+                    type:      fields[4],
+                    domain:    fields[5],
+                    hostname:  fields[6],
+                    address:   fields[7],
+                    port:      fields[8],
+                    txt:       fields[9]
+                };
+                metaLog({type:LOG_TYPE.DEBUG, content:'Service observed',params:service})
+                let regex =  RegExp(params.command);
+                if (regex.test(service.type)) 
+                { metaLog({type:LOG_TYPE.VERBOSE, content:'Service found'+service.hostname})
+                  Services.push(service);
+                }
+              };
+          });
+        });
+
+
+
+    avahi.stderr.on('data', (data) => {
+        console.error(`Error: ${data}`);
+        resolve(Services)
+    });
+
+    avahi.on('close', (code) => {
+        console.log(`Avahi-browse proces beëindigd met code ${code}`);
+        console.log("Discovered:",Services)
+        resolve(Services)
+    })
+  }
+    catch(err){console.log("Error in Avahi process:",err)}
+    console.log("We should now wait for a resolve....")
+    return
+
+  })
+
+  }
+  query(params) {
+    return new Promise(function (resolve, reject) {
+      try {
+        if (params.query != undefined  && params.query != '') {
+          try {
+          if (typeof(params) == "string") {
+            metaLog({type:LOG_TYPE.DEBUG, content:'Query resolve string'})
+            resolve(JSONPath(params.query, JSON.parse(params.data)));
+          }
+          else {
+              resolve(JSONPath(params.query, params.data));
+          } 
+        }
+        catch (err) {metaLog({type:LOG_TYPE.ERROR, content:"Err handing ",params:err})} 
+        }
+        else {
+          if (params.data != undefined) {
+            if (typeof(params.data) == "string")
+                  resolve(JSON.parse(params.data));
+            else 
+              resolve(params.data)
+          }
+          else { 
+            metaLog({type:LOG_TYPE.ERROR, content:"Not sure what we're resolving, data received is undefined"})
+            resolve(''); }
+        }
+      }
+      catch { (err)
+        metaLog({type:LOG_TYPE.ERROR, content:err})
+        metaLog({type:LOG_TYPE.WARNING, content:'avahiP - Value is not JSON after processed by query: ' + params.query + ' returning as text:' ,params: params.data});
+        resolve(params.data)
+      }
+    });
+  }
+  startListen(params, deviceId) {
+
+    return new Promise(function (resolve, reject) {
+      clearInterval(params.listener.timer);
+      params.listener.timer = setInterval(() => {
+        params._listenCallback(params.command, params.listener, deviceId);
+        resolve(params.command)
+      }, (params.listener.pooltime ? params.listener.pooltime : 1000));
+      if (params.listener.poolduration && (params.listener.poolduration != '')) {
+        setTimeout(() => {
+          clearInterval(params.listener.timer);
+        }, params.listener.poolduration);
+      }
+    });
+  }
+  stopListen(params) {
+    clearInterval(params.timer);
+  }
+}
+exports.avahiProcessor = avahiProcessor;
+

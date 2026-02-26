@@ -32,8 +32,9 @@ const WOL = 'wol';
 const MDNS = 'mDNS';
 const dnssd = 'dnssd';
 const Broadlink = 'broadlink';
+const Avahi = 'avahi';
 
-const { ProcessingManager, httpgetProcessor, httprestProcessor, httpgetSoapProcessor, httppostProcessor, cliProcessor, staticProcessor, webSocketProcessor, jsontcpProcessor, mqttProcessor, socketIOProcessor, NetProcessor,TelnetProcessor,NEEOAPIProcessor,LogLevelProcessor,mDNSProcessor, dnssdProcessor, wolProcessor, replProcessor,broadlinkProcessor } = require('./ProcessingManager');
+const { ProcessingManager, httpgetProcessor, httprestProcessor, httpgetSoapProcessor, httppostProcessor, cliProcessor, staticProcessor, webSocketProcessor, jsontcpProcessor, mqttProcessor, socketIOProcessor, NetProcessor,TelnetProcessor,NEEOAPIProcessor,LogLevelProcessor,mDNSProcessor, dnssdProcessor, wolProcessor, replProcessor,broadlinkProcessor,avahiProcessor } = require('./ProcessingManager');
 const { metaMessage, LOG_TYPE } = require("./metaMessage");
 
 const processingManager = new ProcessingManager();
@@ -56,6 +57,7 @@ const myHttprestProcessor = new httprestProcessor();
 const myMDNSProcessor = new mDNSProcessor();
 const mydnssdProcessor = new dnssdProcessor();
 const mybroadlinkProcessor = new broadlinkProcessor();
+const myavahiProcessor = new avahiProcessor();
 
 
 //LOGGING SETUP AND WRAPPING
@@ -255,13 +257,10 @@ module.exports = function controller(driver) {
           metaLog({type:LOG_TYPE.VERBOSE, content:'Assign To Before Eval. ' ,params: inputChain});
           let evaluatedValue 
           try {
-            //console.log("meta.js driver.discover.command.evalwrite",JSON.stringify(result));
-            //console.log("MC 1",inputChain.split(DYNA))
           evaluatedValue = eval(inputChain.split(DYNA)[1]);
           }
-          catch(err) {console.log("err",err);console.log(inputChain.split('DYNAMIK '))
+          catch(err) {metaLog({type:LOG_TYPE.ERROR, content:'Error ' ,params: err});}
 
-          }
           metaLog({type:LOG_TYPE.VERBOSE, content:'Assign To After Eval. ' ,params: evaluatedValue});
           return evaluatedValue;
         }
@@ -393,6 +392,9 @@ module.exports = function controller(driver) {
     }
     else if (commandtype == Broadlink) {
       processingManager.processor = mybroadlinkProcessor;
+    }
+    else if (commandtype == Avahi) {
+      processingManager.processor = myavahiProcessor;
     }
     else {metaLog({type:LOG_TYPE.ERROR, content:'Error in meta: The commandtype to process is not defined: ' ,params: commandtype});}
   };

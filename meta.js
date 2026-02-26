@@ -29,7 +29,7 @@ var localDevices = [];
 exports.localDevices = localDevices;
 exports.neeoBrainIp = returnBrainIp;
 var mqttClient;
-process.env.META_VERSION = "V3.7";
+// process.env.META_VERSION = "V3.8"; // APP_VERSION evironment variable is now added by the docker build process
 
 
 //LOGGING SETUP AND WRAPPING
@@ -1012,7 +1012,7 @@ if (process.argv.length>2) {
     
 }
 
-metaLog({type:LOG_TYPE.ALWAYS, content:'META Starting '+process.env.META_VERSION });
+metaLog({type:LOG_TYPE.ALWAYS, content:'META Starting '+process.env.$APP_VERSION  });
 
 getConfig().then(() => {
     networkDiscovery();
