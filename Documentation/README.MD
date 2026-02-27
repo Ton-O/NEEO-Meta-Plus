@@ -32,6 +32,7 @@ For that, I added functionality on meta-Plus to host a number of file types:
 These objects are served as HTTP-objects  by the GoogleTV.js module (over port 6468).
 In the same area, I added a protocol to execute NEEO-API calls. Examples are forcing refresh (clear cache) of pictures for the Renmote.  
 
+## how to use
 
 ==================== SNIP ====================
 ## What's version V1.1 and Why?
@@ -41,7 +42,7 @@ This new version of meta-plus builds upon the previous version (See 'Whats this?
 - Supports "live after NEEO stopped their cloud servers"
 ## How can I get this new version?
 I've created this version for my own needs, so the way I work with NEEO and meta is tested and facilitated by tools.
-That means that meta runs "as designed" as a docker-image. Other installation methods will work as well, bit then you're on your own to get it set-up and configured.
+That means that meta runs "as designed" as a docker-image. Other installation methods will work as well, but then you're on your own to get it set-up and configured. I;ve added a docker-cmpose.yml to help you setup Meta Plus as a docker container, and also a script to setup a metavlan in your docker (see folder Documentation)
 
 So, to answer this question: just download the docker image from my repository on the docker hub, it complete replaces the image if you've got it running now already.  
 You will have to make a modification to the cp6.js program from NEEO that runds on your brain. To be able to do so, your NEEO brain has to be hacked as described before. Then you can replace the file '/opt/cp6/cp6.js' by the new version provided here (<== not yet provided in thios repository)
@@ -77,12 +78,17 @@ Though thats a good idea, there are some (good) reasons for not doing that:
 
 ## Can I use Meta-Plus and what support do you offer?
 As said above, I've created Meta-Plus basically for myself so drivers like Kodi, ADB, Telnet and Tasmota can be used fully, not crippled.
-Since I put all my work onto github, you are free to use it. It's free, I'm not going to ask you for donations (in fact, I've decline them in the past), the only thing I'm asking you is to tell me you are using it (ozothe clown et life dit com). 
-If you experience any issues, you are welcome to report them through github-issues. I'm happy to look at them and try to fix them if I see fit, just do not expect gurantees.
+Since I put all my work onto github, you are free to use it. It's free, I'm not going to ask you for donations (in fact, I've decline them in the past), the only thing I'm asking you is to tell me you are using it (ozothe clown et life dot com). 
+If you experience any issues, you are welcome to report them through github-issues. I'm happy to look at them and try to fix them if I see fit, just do not expect guarantees.
 Requests or questions on how to use Meta-Plus with newer versions of meta will not be accepted/answered. 
 
+# How to use?
+Simply use the docker image that is located at [Docker image neeo-meta-plus](https://hub.docker.com/r/tonot1/neeo-meta-plus).\
+You can also build a standalone version by placing all components on your system and experiment.Please note that I'm willing to help, but if you decie to go your own route, you're basically on your own.   
+below are some remarks on what's required to setup your own standalone version (not docker based)
+
 ## Additions:
-# PythonManager.py
+# PythonManager.py becomes BroadlinkManager.js
 This module is a standalone module that was included as integral part of metadriver, but was abondoned when JAC transformed metadiver into meta.
 As it delivers functions that used to be included, but don't work anymore (or completely different), I decided to release this module so it can be used by others as well.
 
@@ -107,17 +113,24 @@ Changes in these modules will:
 
 ## Prerequisites
 # PythonManager
-Pythonmanager relies on a couple of packages to perform its work:
+~~Pythonmanager relies on a couple of packages to perform its work:
 - Flask; for hosting the webserver so you can connect to PythonManager
 - ADB_shell; the actual work horse that does all the ADB work
 - Broadlink-python; the interface that does most of the work contacting BRoadlink devices
-- PM2; Strictly not required, you can start PythonManager in multiple ways. But PM2 is probably in use for meta already.
-# MetaController.js and ProcessingManager.js
-These have Tinkerhub-mdns and Telnet-client as prerequisiste. Install them with npm install Tinkerhub-mdns and npm install Telnet-client
+- PM2; Strictly not required, you can start PythonManager in multiple ways. But PM2 is probably in use for meta already.~~
 
-## Install (please note that I'm showing whats required, but that I'm creating an install-script that will automate all these steps)
+# PythonManager.py becomes BroadlinkManager.js
+No need for any manual work, it is all handled in the docker image.
+BroadlinkManager is a simple function that cane be used in your driver by using "function":"broadlink".
+It handles all communication with your Broadlink devices (IR devices).
+
+
+# MetaController.js and ProcessingManager.js
+These have Tinkerhub-mdns and Telnet-client as prerequisiste. If you do not use the docker image, install them with npm install Tinkerhub-mdns and npm install Telnet-client
+
+## Install (please note that I'm showing whats required, ~~but that I'm creating an install-script that will automate all these steps)~~
 # PythonManager
-Simply place Pythonmanager.py in the same location as meta.
+~~Simply place Pythonmanager.py in the same location as meta.
 Then  install the prereqs, running from the meta directory:
 - pip install Flask 
 - pip install adb_shell
@@ -135,7 +148,7 @@ Now it's time to setuo a startuo for PythonManager.py. I use PM2, and use the fo
 FLASK_APP=/home/pi/meta/PythonManager.py pm2 start   --name PythonManager python -- /usr/local/bin/flask run  --host=0.0.0.0 
 
 Again, if you use other directories (or python3) make the necessary changes.
-if you are sastisfied, you can make startup of PythonManager.py permanent by issuing pm2 save.  
+if you are sastisfied, you can make startup of PythonManager.py permanent by issuing pm2 save. ~~
 
 # MetaController.js and ProcessingManager.js
 Just copy these two modules over the existing ones, then fulfill the prerequisite by:

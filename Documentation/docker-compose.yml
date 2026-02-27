@@ -1,0 +1,34 @@
+services:
+  MetaBeta:
+    image: tonot1/neeo-meta-plus
+    container_name: MetaBeta
+    privileged: true
+    # Below volumes are at your will. I suggest to setup directories on <your local docker host>:
+    # active: contains the drivers that are installed on Meta Plus; not required though!
+    # NoCloud: contains static material (channels and devices; both included here) but also Radio&TV logos
+    # /var/run/dbus/system_bus_socket:/var/run/dbus/system_bus_socket # required if you want to use avahi discovery 
+    #/etc/timezone:/etc/timezone:ro  Added to sync your meta clock with the host; not active yet
+
+    volumes:
+      - <local path on your docker host/active>:/opt/meta/active
+      - <local path on your docker host/cloud>:/opt/meta/NoCloud
+      - /var/run/dbus/system_bus_socket:/var/run/dbus/system_bus_socket
+      - /etc/timezone:/etc/timezone:ro
+      - /var/run/dbus/system_bus_socket:/var/run/dbus/system_bus_socket
+    restart: unless-stopped
+    hostname: MetaBeta
+    networks:
+     metavlan:
+       ipv4_address: 192.168.73.192
+    environment:
+     - TZ=Europe/Amsterdam
+     - BrainIP='192.168.73.110'
+     - Severity=QUIET
+    # below labels re not really reuired; they just are related to watchtowers (automatic update container)
+    labels:
+     - com.centurylinklabs.watchtower.enable=False
+# you have to have a metavlan, OR you have to publish this container with the same IPAddress as your docker hoast.
+# When using the same IP as your docker host, you are probably limited to 1 single Meta Plus docker, multiple  might cause issues 
+networks:
+  metavlan:
+       external: true
