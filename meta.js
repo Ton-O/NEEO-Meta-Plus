@@ -1,4 +1,5 @@
 //"use strict";
+let APP_VERSION="Vx.x"   // will be filled during docker image build
 process.env.StartupPath = __dirname;
 const path = require('path');
 const settings = require(path.join(__dirname,'settings'));
@@ -1012,7 +1013,7 @@ if (process.argv.length>2) {
     
 }
 
-metaLog({type:LOG_TYPE.ALWAYS, content:'META Starting '+process.env.$APP_VERSION  });
+metaLog({type:LOG_TYPE.ALWAYS, content:'META Starting '+ APP_VERSION  });
 
 getConfig().then(() => {
     networkDiscovery();
