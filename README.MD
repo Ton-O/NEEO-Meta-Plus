@@ -154,7 +154,8 @@ The xxx part is described in the repositories from my custom drivers:
 V3.5 added the METAREINIT feature.
 With this feature, the new NEEOBrain firmware will detect a restart of an SDK (Like META Plus) and allows us to "re-initialize" devices at will.
 This is activated per device, simply by means of the presence of a __MEAREINIT button in the driver. If that exists, each time the SDK is restarted, it will simulate the press of the __METAREINIT button for each device that is powered on.
-This functionality is great to reduce the consequences of a restart of meta: Brain still has devices powered on, but meta isn't aware of that status. This would lead to missing connections, listeners not activated etc. The METAREINIT feature solves this.
+This functionality is great to reduce the consequences of a restart of meta: Brain still has devices powered on, but meta isn't aware of that status. This would lead to missing connections, listeners not activated etc. The METAREINIT feature solves this. An xample (from my metaCore.json):
+*"__METAREINIT": {"label": "", "type":"static", "command":"","evaldo":[{"test":true, "then":"POWER ON"}]},*
 
 V3.6 adds support for Android-based devices (through ADB) using the Chromecast device. Note this driver is not only for Chromecast/GoogleTV but adds generic support for Android devices.
 
