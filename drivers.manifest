@@ -62,7 +62,7 @@
       "author": "TonO",
       "description": "Revised MetaCore from JAC459: Control your meta from the remote.",
       "version": 2,
-      "driverLocation": "https://raw.githubusercontent.com/Ton-O/meta-driver-library/main/pics/metaCore.json",
+      "driverLocation": "https://raw.githubusercontent.com/Ton-O/meta-driver-library/main/metaCore.json",
       "iconLocation":   "https://raw.githubusercontent.com/Ton-O/meta-driver-library/main/pics/core.jpg"
     },
     {
