@@ -23,7 +23,7 @@
       "description": "Full Kodi control",
       "version": 39,
       "driverLocation": "https://raw.githubusercontent.com/Ton-O/meta-driver-library/main/KODI.json",
-      "iconLocation":   "https://raw.githubusercontent.com/Ton-O/meta-driver-library/main/pics/kodi-logo.jpg
+      "iconLocation":   "https://raw.githubusercontent.com/Ton-O/meta-driver-library/main/pics/kodi-logo.jpg",
     },    
     {
       "name": "Tasmota",
