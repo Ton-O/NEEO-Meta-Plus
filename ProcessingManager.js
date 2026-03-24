@@ -25,6 +25,7 @@ const meta = require(path.join(__dirname,'meta'));
 const { metaMessage, LOG_TYPE,OverrideLoglevel,getLoglevels } = require("./metaMessage");
 const { MDNSServiceDiscovery } = require('tinkerhub-mdns');
 const find = require('local-devices');
+const BroadlinkProcessorHost="http://127.0.0.1:5384"
 
 console.error = console.info = console.debug = console.warn = console.trace = console.dir = console.dirxml = console.group = console.groupEnd = console.time = console.timeEnd = console.assert = console.profile = function() {};
 function metaLog(message) {
@@ -1268,51 +1269,54 @@ class LogLevelProcessor {
                 metaLog({type:LOG_TYPE.ERROR, content:"Oops, error in loglevel processor: unknow request ",params:TheParts[0]});  
             }
           else
-            {metaLog({type:LOG_TYPE.VERBOSE, content:"MetaCore receipe asks for: ",params:TheParts});
-            if  (TheParts.length>1&&TheParts[1].toUpperCase()=="GOOGLETV")
-              {metaLog({type:LOG_TYPE.VERBOSE, content:"Calling GoogleTV.js for loglevel override"})
-              let theUrl = "http://127.0.0.1:6468/OverrideLogLevel?logLevel="+TheParts[0];
-              metaLog({type:LOG_TYPE.DEBUG, content:theUrl})
-                got(theUrl)
-                .then(function (result) {
-                if (typeof result.body == "string")
-                      result.body = JSON.parse(result.body)
-                resolve(result.body);
-                })
-                .catch((err) => {
-                  metaLog({type:LOG_TYPE.ERROR, content:err});
-                  resolve();
-                });
-              }
-            else if  (TheParts.length>2&&TheParts[2].toUpperCase()=="META")
-            { metaLog({type:LOG_TYPE.ALWAYS,content:"Local loglevel-override=",params:TheParts[2]});
-              let RC = OverrideLoglevel(TheParts[0],TheParts[1]);
-              if (RC<0)
-                {metaLog({type:LOG_TYPE.ERROR,content:"RC from loglevel-override=",params:RC});
-                reject("Override loglevel failed"+RC);
-                }
-              else
-                {metaLog({type:LOG_TYPE.DEBUG,content:"Loglevel changed okay: ",params:RC});
-                resolve('OK')
-                }
-            }                
-            else 
-              {metaLog({type:LOG_TYPE.VERBOSE, content:"Calling brain for loglevel override"})
-              let theUrl = "http://"+process.env.BRAINIP+":3000/v1/api/OverrideLogLevel?Module="+TheParts[1]+"&logLevel="+TheParts[0];
-              metaLog({type:LOG_TYPE.DEBUG, content:theUrl})
-                got(theUrl)
-                .then(function (result) {
-                if (typeof result.body == "string")
-                      result.body = JSON.parse(result.body)
-                resolve(result.body);
-                })
-                .catch((err) => {
-                  metaLog({type:LOG_TYPE.ERROR, content:err});
-                  resolve();
-                });
-              }    
+            {metaLog({type:LOG_TYPE.VERBOSE, content:"MetaCore receipe asks for: ",params:TheParts}); // Find out who and how to inform metaMessage of change
+            if  (TheParts.length>1&&TheParts[1].toUpperCase()=="GOOGLETV" || TheParts.length>1&&TheParts[1].toUpperCase()=="BROADLINKMANAGER")
+                { let theUrl = BroadlinkProcessorHost;    // arbitrary choice, assume we're chaning Broadlink. 
+                  if (TheParts.length>1&&TheParts[1].toUpperCase()=="GOOGLETV")
+                    theUrl = "http://127.0.0.1:6468"                                // we assumed incorrectly;-)
+                  metaLog({type:LOG_TYPE.VERBOSE, content:"Calling "+TheParts[1]+".js for loglevel override"})
+                  theUrl = theUrl+"/OverrideLogLevel?logLevel="+TheParts[0];
+                  metaLog({type:LOG_TYPE.DEBUG, content:theUrl})
+                    got(theUrl)
+                    .then(function (result) {
+                    if (typeof result.body == "string")
+                          result.body = JSON.parse(result.body)
+                    resolve(result.body);
+                    })
+                    .catch((err) => {
+                      metaLog({type:LOG_TYPE.ERROR, content:err});
+                      resolve();
+                    });
+                  }
+                  else if  (TheParts.length>2&&TheParts[2].toUpperCase()=="META")
+                  { metaLog({type:LOG_TYPE.ALWAYS,content:"Local loglevel-override=",params:TheParts[2]});
+                    let RC = OverrideLoglevel(TheParts[0],TheParts[1]);
+                    if (RC<0)
+                      {metaLog({type:LOG_TYPE.ERROR,content:"RC from loglevel-override=",params:RC});
+                      reject("Override loglevel failed"+RC);
+                      }
+                    else
+                      {metaLog({type:LOG_TYPE.DEBUG,content:"Loglevel changed okay: ",params:RC});
+                      resolve('OK')
+                      }
+                  }                
+                  else 
+                    {metaLog({type:LOG_TYPE.VERBOSE, content:"Calling brain for loglevel override"})
+                    let theUrl = "http://"+process.env.BRAINIP+":3000/v1/api/OverrideLogLevel?Module="+TheParts[1]+"&logLevel="+TheParts[0];
+                    metaLog({type:LOG_TYPE.DEBUG, content:theUrl})
+                      got(theUrl)
+                      .then(function (result) {
+                      if (typeof result.body == "string")
+                            result.body = JSON.parse(result.body)
+                      resolve(result.body);
+                      })
+                      .catch((err) => {
+                        metaLog({type:LOG_TYPE.ERROR, content:err});
+                        resolve();
+                      });
+                    }    
 
-            }
+                  }
     });
   }
   query(params) {
@@ -2346,9 +2350,7 @@ class broadlinkProcessor {
   process(params) {
     return new Promise(function (resolve, reject) {
       try {
-        metaLog({type:LOG_TYPE.DEBUG, content:'Broadlink processor:' ,params: params.command});
-        //============================
-
+        metaLog({type:LOG_TYPE.VERBOSE, content:'Broadlink processor'});
 
       if (typeof (params.command) == 'string') { params.command = JSON.parse(params.command); };
       metaLog({type:LOG_TYPE.DEBUG, content:params.command});
@@ -2357,9 +2359,8 @@ class broadlinkProcessor {
       let BroadlinkHost=params.command.connection;
       let BroadlinkFunction=params.command.function ? params.command.function:"xmitGC" // if not specified, use generic "xmitgc" function
       let stream=params.command.message;
-      let BroadlinkProcessorHost="http://127.0.0.1:5384"
       let BroadlinkProcessorCommand=BroadlinkProcessorHost+"/"+BroadlinkFunction+"?host="+BroadlinkHost+"&stream="+stream
-      metaLog({type:LOG_TYPE.VERBOSE, content:'Execute ths bnroadlink command '+BroadlinkProcessorCommand});
+      metaLog({type:LOG_TYPE.VERBOSE, content:'Execute this broadlink command '+BroadlinkProcessorCommand});
       got(BroadlinkProcessorCommand)
           .then(function (result) {
             metaLog({type:LOG_TYPE.VERBOSE, content:'response:' ,params: result.body});

@@ -137,13 +137,18 @@ async function CheckDevs(host)
     return 0
 }
 
-async function Connect_Broadlink(req) {
-   let host = req.query.host;
-   if (devs == undefined)
-   {    devs = await broadlink.discover(2500)
+async function  Discover_Broadlinks(timeout = 2500) {
+        devs = await broadlink.discover(timeout)
         for(let ind=0;ind<devs.length;ind++)
             metaLog({type:LOG_TYPE.DEBUG, content:"Broadlink device discovered: "+devs[ind].name+" IP: "+devs[ind].host.address})
-   }
+        return devs
+}
+
+async function Connect_Broadlink(req) {
+   let host = req.query.host;
+
+   if (devs == undefined)
+       Discover_Broadlinks(2500)
    else
        {if (dev !=undefined &&host == dev.host.address)
             {metaLog({type:LOG_TYPE.DEBUG, content:"Reuse Broadlink device : "+dev.name})
@@ -172,6 +177,20 @@ app.get('/init', async (req, res) => {
     metaLog({type:LOG_TYPE.DEBUG, content:"Broadlink_Driver discover",params:devs})
     res.send(devs);
 });
+
+app.get('/discover', async (req, res) => {
+    metaLog({type:LOG_TYPE.VERBOSE, content:"Broadlink_Driver: discover all devices"})
+    await Discover_Broadlinks(15000)
+    res.json(devs);
+});
+
+app.get("/OverrideLogLevel", async (req, res, next) => {
+        let logLevel = req.query.logLevel
+        metaLog({type:LOG_TYPE.INFO, content:"Setting loglevel for BroadLinkManager through get to"+logLevel})
+        OverrideLoglevel(logLevel,logModule);
+        res.json({"Type": "OverrideLogLevel", "Status": "Processed"});        
+    });
+
 
 app.get('/xmit', async (req, res) => {
     metaLog({type:LOG_TYPE.VERBOSE, content:"Broadlink_Driver: xmit-request"})
