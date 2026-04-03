@@ -100,9 +100,13 @@ class httprestProcessor {
       try {
         if (typeof (params.command) == 'string') { params.command = JSON.parse(params.command); };
         let myRestFunction;
-        if (params.command.verb == 'post') {myRestFunction = got.post};
-        if (params.command.verb == 'put') {myRestFunction = got.put};
-        if (params.command.verb == 'get') {myRestFunction = got};
+        if (params.command.verb == 'post') {myRestFunction = got.post}
+        else if (params.command.verb == 'put') {myRestFunction = got.put}
+        else if (params.command.verb == 'get') {myRestFunction = got}
+        else {
+          metaLog({type:LOG_TYPE.ERROR, content:'Unknown httprest function',params:params.command})
+          reject("Unknown httprest function"); 
+        }
         let param;
         if (typeof params.command.message === 'string' && params.command.message.startsWith("<")) {
           param = {body:params.command.message,headers:params.command.headers};
@@ -300,6 +304,7 @@ class wolProcessor {
     });
   }
   process(params) {
+     metaLog({type:LOG_TYPE.DEBUG, content:"WOL",params:params.command});
     return new Promise(function (resolve, reject) {
       try {
         wol.wake(params.command, function(err, res){
@@ -579,7 +584,7 @@ class webSocketProcessor {
   process(params) {
     var _this = this;
     return new Promise(function (resolve, reject) {
-      metaLog({type:LOG_TYPE.VERBOSE, content:'Entering the websocket processor'});
+      metaLog({type:LOG_TYPE.VERBOSE, content:'Entering the websocket processor',params:params.command});
       if (typeof (params.command) == 'string') { params.command = JSON.parse(params.command); };
       metaLog({type:LOG_TYPE.DEBUG, content:params.command});
       if (!params.connection) {params.connection = {}}
@@ -791,7 +796,7 @@ class webSocketProcessor {
   }
   stopListen(listener) {
     metaLog({type:LOG_TYPE.VERBOSE, content:"Requesting Websocket listener "+listener.name+" to stop"}); 
-    var connectionIndex = _this.listenerConnections.findIndex((con) => {
+    var connectionIndex = this.listenerConnections.findIndex((con) => {
       return (con.descriptor == JSON.parse(listener.command).connection && con.ListenerName == listener.name && con.deviceId == listener.deviceId)});
     if (connectionIndex != -1) {
       try {
@@ -2447,7 +2452,7 @@ class avahiProcessor {
                 metaLog({type:LOG_TYPE.DEBUG, content:'Service observed',params:service})
                 let regex =  RegExp(params.command);
                 if (regex.test(service.type)) 
-                { metaLog({type:LOG_TYPE.VERBOSE, content:'Service found'+service.hostname})
+                { metaLog({type:LOG_TYPE.VERBOSE, content:'Service found '+service.hostname})
                   Services.push(service);
                 }
               };
@@ -2457,18 +2462,17 @@ class avahiProcessor {
 
 
     avahi.stderr.on('data', (data) => {
-        console.error(`Error: ${data}`);
+        //console.error(`Error: ${data}`);
         resolve(Services)
     });
 
     avahi.on('close', (code) => {
-        console.log(`Avahi-browse proces beëindigd met code ${code}`);
-        console.log("Discovered:",Services)
+        //console.log(`Avahi-browse process ended with return code ${code}`);
+        //console.log("Discovered:",Services)
         resolve(Services)
     })
   }
     catch(err){console.log("Error in Avahi process:",err)}
-    console.log("We should now wait for a resolve....")
     return
 
   })
