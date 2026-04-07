@@ -1755,18 +1755,22 @@ class cliProcessor {
     });
   }
   process(params) {
+    metaLog({type:LOG_TYPE.VERBOSE, content:"CLIProcessor : ",params:params});
     return new Promise(function (resolve, reject) {
       try {
         exec(params.command, (stdout, stderr) => {
+          metaLog({type:LOG_TYPE.VERBOSE, content:"CLI done"});
           if (stdout) {
+            metaLog({type:LOG_TYPE.DEBUG, content:"CLI stdout:",params:stdout });
             resolve(stdout);
           }
           else {
+            metaLog({type:LOG_TYPE.DEBUG, content:"CLI stderr:",params:stderr });
             resolve(stderr);
           }
         });
       }
-      catch (err) {
+      catch (err) {console.log("CLI Processor got error:",err)
         resolve(err);
       }
     });
