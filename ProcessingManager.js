@@ -1152,9 +1152,9 @@ class dnssdProcessor {
                     let serviceIndex = Services.findIndex((theService) => {
                       return theService.id == service.id})
                     if (serviceIndex<0) {
-                      metaLog({type:LOG_TYPE.DEBUG, content:"Discovery result: " ,params: service });
                       if (params.command == "googlecast")
                           service.fn = service.data.get('fn') 
+                      metaLog({type:LOG_TYPE.DEBUG, content:"Discovery result: " ,params: service });
                       Services.push(service);
                     }
                   }
@@ -2453,11 +2453,13 @@ class avahiProcessor {
                     port:      fields[8],
                     txt:       fields[9]
                 };
-                metaLog({type:LOG_TYPE.DEBUG, content:'Service observed',params:service})
                 let regex =  RegExp(params.command);
                 if (regex.test(service.type)) 
-                { metaLog({type:LOG_TYPE.VERBOSE, content:'Service found '+service.hostname})
+                { const isDuplicate = Services.some(s => s.name === service.name && s.type === service.type && s.protocol === service.protocol);
+                  if (!isDuplicate) {
+                  metaLog({type:LOG_TYPE.DEBUG, content:'Service found ',params:service.hostname})
                   Services.push(service);
+                  }
                 }
               };
           });
