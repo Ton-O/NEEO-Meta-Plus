@@ -14,7 +14,6 @@ services:
       - <local path on your docker host/cloud>:/opt/meta/NoCloud
       - /var/run/dbus/system_bus_socket:/var/run/dbus/system_bus_socket
       - /etc/timezone:/etc/timezone:ro
-      - /var/run/dbus/system_bus_socket:/var/run/dbus/system_bus_socket
     restart: unless-stopped
     hostname: MetaBeta
     networks:
