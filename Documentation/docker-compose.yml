@@ -14,6 +14,7 @@ services:
       - <local path on your docker host/cloud>:/opt/meta/NoCloud
       - /var/run/dbus/system_bus_socket:/var/run/dbus/system_bus_socket
       - /etc/timezone:/etc/timezone:ro
+    # The /var/run/dbus volume needs to be there for avahi to work
     restart: unless-stopped
     hostname: MetaBeta
     networks:
@@ -23,10 +24,10 @@ services:
      - TZ=Europe/Amsterdam
      - BrainIP='192.168.73.110'
      - Severity=QUIET
-    # below labels re not really reuired; they just are related to watchtowers (automatic update container)
+    # below labels are not really required; they just are related to watchtowers (automatic update container)
     labels:
      - com.centurylinklabs.watchtower.enable=False
-# you have to have a metavlan, OR you have to publish this container with the same IPAddress as your docker hoast.
+# you have to have a metavlan, OR you have to publish this container with the same IPAddress as your docker host.
 # When using the same IP as your docker host, you are probably limited to 1 single Meta Plus docker, multiple  might cause issues 
 networks:
   metavlan:
