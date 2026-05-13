@@ -1,4 +1,4 @@
-## THISN IS AN OLDER ARCHIVED README... somehow the original one was removed; IT'L BE UPDATED TO CURRENT STATE SOON
+## THIS IS AN OLDER ARCHIVED README... somehow the original one was removed; IT'L BE UPDATED TO CURRENT STATE SOON
 ## Woah... V2.2 already??? What happened??
 I have been making many, many changes to this alternative meta - a driver to utilize NEEO with many custom device drivers.
 These changes have now ben consolidated in new releases, starting with V2.0.
