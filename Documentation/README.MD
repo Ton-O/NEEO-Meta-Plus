@@ -13,10 +13,10 @@ When Docker became popular, I developed custom images to run both comoponents as
 I now run three parallel Meta-environments in Docker, that replaced the three physical brains and Raspberry PI's (The three old Physical brains are still there, as a backup, but rarely active anymore).
 # How to setup Docker
 As I'm using this repository for my own use, it reflects my usage of Brain and Meta; as docker images.  
-to start with, the docker-compose.yml file is key (in my configuration) for running a docker image. The file in the Documentation directory shows exactly what is needed to run this. If your new to docker then please note that I'm not here to teach you Docker and that I'm not a teacher. I expect some basic knowledge of Docker from you before jumping into this adventure. 
-Docker containers run mainly as "isolated systems on yourn physical host". A such, they are highly unaware of whats happening in your host-enviroment.
-If you want the container to use some of your host-resurces (other than RAM and CPU), you must configure these resources in your main configuration file of the container: docker-compose.yml . In that file, you place the relationships that your container has with your host; in essence: you draw a specific picture of parts of your Host environment for your container and choose how the container sees that world.
-Put nearly nothjing in the file and the container will not see much of your Host; add entries like "volumes" in there and you allow the container to see a file or directory of your host under the name and location that YOU specify.
+to start with, the docker-compose.yml file is key (in my configuration) for running a docker image. The file in the Documentation directory shows exactly what is needed to run this. If you're new to docker then please note that I'm not here to teach you Docker and that I'm not a teacher. I expect some basic knowledge of Docker from you before jumping into this adventure. 
+Docker containers run mainly as "isolated systems on youn physical host". As such, they are highly unaware of whats happening in your host-enviroment.
+If you want the container to use some of your host-resources (other than RAM and CPU), you must configure these resources in your main configuration file of the container: docker-compose.yml  In that file, you place the relationships that your container has with your host; in essence: you draw a specific picture of parts of your Host environment for your container and choose how the container sees that world.
+Put almost nothing in the file and the container will not see much of your Host; add entries like "volumes" in there and you allow the container to see a file or directory of your host under the name and location that YOU specify. The same applies to "environment"; here you specify envirnment variables that the entire Linux conmtainer can use. 
 
 
 Enough teaching on Docker, below a breakdown of interesting parts of that file:
@@ -33,7 +33,8 @@ Enough teaching on Docker, below a breakdown of interesting parts of that file:
 7. for the more sophisticated way of networking, I've added some extra parameters in docker-compose.yml.
 8. **environment**; here you need to set some parameters that allow Meta-Plus to connect to your (physical or virtual) Brain:
   - **- BrainIP='192.168.73.110'**; simple, just put the IP-address of your Brain here
-  i **- Severity=QUIET**; this instructs meta to be as quiet as possible in its messaging. Thats fine when everythingis up and running dfine, but to start with, I suggest to use this **- Severity=VERBOSE** in-stead.
+  i **- Severity=QUIET**; this instructs meta to be as quiet as possible in its messaging to not waste disk-space and CPU (every line shown costs resources and can EVEN to failure of yourn Host0environment if you preoduce a lot of messages and disks are running out of space). 
+  On the other hand, less messsages is fine when everything is up and running, but to start with, I suggest to use this **- Severity=VERBOSE** in-stead and change it back later
 
 9. Then the file **settings.js**; this file controls some of the internal behavior of Meta-Plus. Leave it as is works fine. If you want integration with other systems (f.e. Home Assistant or Node-red), you need to fill in a topic at   'mqtt' : 'localhost',
   'mqtt_topic' : '',; I personally use Home Assistant but do not integrate with it and although Node-red is powerful, I find it a terrible system to use, so abondoned it.   
