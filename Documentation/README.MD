@@ -23,7 +23,21 @@ Enough teaching on Docker, below a breakdown of interesting parts of that file:
 2. **container_name: MetaBeta**; Just for your own recognisability, the name of the container in docker
 3. **privileged: true**; optional but required when you want to use Avahi for discovering devices.
 4. **volumes**; the bridge between your own Host environment and what the docker container will see. You HAVE to have some entries here:
-  1. **- <local path on your docker host/active>:/opt/meta/active**; This will hold al of your active Meta-drivers. I just fill in a previosuly defined path on my Host computer (the left part before the colon), the right part HAS to be **/opt/meta/active** as Meta-Plus looks there for the drivers.   
-  2. **- <local path on your docker host/cloud>:/opt/meta/NoCloud**; Meta-Plus also functions as the host for NEEO-objects now that NEEO-cloud has ended.
-  3. **- /var/run/dbus/system_bus_socket:/var/run/dbus/system_bus_socket**; needed if you want to run Avahi-discovery
-  4. **- /etc/timezone:/etc/timezone:ro**; use time from your host. Please note that Docker images run with their own timezone, so you might see 1 or 2 (or more hours discrepancy with the time on your host; you can change the timezone on your container, I just live with the fixed 2 hours difference.
+  a. **- <local path on your docker host/active>:/opt/meta/active**; This will hold al of your active Meta-drivers. I just fill in a previosuly defined path on my Host computer (the left part before the colon), the right part HAS to be **/opt/meta/active** as Meta-Plus looks there for the drivers.   
+  b. **- <local path on your docker host/cloud>:/opt/meta/NoCloud**; Meta-Plus also functions as the host for NEEO-objects now that NEEO-cloud has ended.
+  c. **- /var/run/dbus/system_bus_socket:/var/run/dbus/system_bus_socket**; needed if you want to run Avahi-discovery
+  d. **- /etc/timezone:/etc/timezone:ro**; use time from your host. Please note that Docker images run with their own timezone, so you might see 1 or 2 (or more hours discrepancy with the time on your host; you can change the timezone on your container, I just live with the fixed 2 hours difference.
+5. **hostname: MetaBeta** I like to have the hostname of the system representative of its function. Furthermore, the Brain firmware uses it quite often defining keys for a system or device; preferably, use the same hostname as your current Meta installation uses.
+6. **networks**; this one is very important as it defines the address and visibility of this Meta-Plus instance. You can either use the same ip-address (network_mode: "host") or use a "meta-vlan" (where meta happens to be the name that Docker also uses;-)). If you start, you could suffice with network_mode: host; your Meta-plus environment will then be available at <host-ip-address:4015>
+7. for the more sophisticated way of networking, I've added some extra parameters in docker-compose.yml.
+8. **environment**; here you need to set some parameters that allow Meta-Plus to connect to your (physical or virtual) Brain:
+  a. **- BrainIP='192.168.73.110'**; simple, just put the IP-address of your Brain here
+  b. **- Severity=QUIET**; this instructs meta to be as quiet as possible in its messaging. Thats fine when everythingis up and running dfine, but to start with, I suggest to use this **- Severity=VERBOSE** in-stead.
+
+9. Then the file **settings.js**; this file controls some of the internal behavior of Meta-Plus. Leave it as is works fine. If you want integration with other systems (f.e. Home Assistant or Node-red), you need to fill in a topic at   'mqtt' : 'localhost',
+  'mqtt_topic' : '',; I personally use Home Assistant but do not integrate with it and although Node-red is powerful, I find it a terrible system to use, so abondoned it.   
+
+Okay, once this file is created and filled with (hopefully) the correct values, you can start the Docker container by using this command:
+**docker compose up -d**
+This start the container with Meta-Plus 
+You should name have a container running Meta-Plus; if all went well, you can startup a  console in it
