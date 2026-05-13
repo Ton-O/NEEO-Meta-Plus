@@ -1,5 +1,5 @@
 # META-PLUS... the evolution of META towards more functionality and interoperability with Brain.
-As in the global README fioe can be read, this is an evolution of JAC's masterpiece Meta; it can be seen as a fork of his work, going it's own direction.  
+As in the global README fioe can be read, this is the evolution of JAC's masterpiece Meta; it can be seen as a fork of his work, but going it's own direction.  
 NEEO-Meta-Plus is used by me primarily for my own needs. Caring is sharing, so I've also created this github repository for it.
 ## META-Brain
 I've also invested a lot of time in it's big sister, META-Brain. 
@@ -19,11 +19,11 @@ If you want the container to use some of your host-resurces (other than RAM and 
 Put nearly nothjing in the file and the container will not see much of your Host; add entries like "volumes" in there and you allow the container to see a file or directory of your host under the name and location that YOU specify.
 
 Enough teaching on Docker, below a breakdown of interesting parts of that file:
-1. image: tonot1/neeo-meta-plus; this will use the "latest stable" omage of meta-plus
-2. container_name: MetaBeta; Just for your own recognisability, the name of the cointainer in docker
-3. privileged: true; optional but required when you want to use Avahi for discovering devices.
-4. volumes; the bridge between your own Host environment and what the docker container will see. You HAVE to have some entries here:
-  1. - <local path on your docker host/active>:/opt/meta/active; This will hold al of your active Meta-drivers. I just map this 
-      - <local path on your docker host/cloud>:/opt/meta/NoCloud
-      - /var/run/dbus/system_bus_socket:/var/run/dbus/system_bus_socket
-      - /etc/timezone:/etc/timezone:ro
+1. **image: tonot1/neeo-meta-plus**; this will tell docker to use the "latest stable" image of meta-plus
+2. **container_name: MetaBeta**; Just for your own recognisability, the name of the container in docker
+3. **privileged: true**; optional but required when you want to use Avahi for discovering devices.
+4. **volumes**; the bridge between your own Host environment and what the docker container will see. You HAVE to have some entries here:
+  1. **- <local path on your docker host/active>:/opt/meta/active**; This will hold al of your active Meta-drivers. I just fill in a previosuly defined path on my Host computer (the left part before the colon), the right part HAS to be **/opt/meta/active** as Meta-Plus looks there for the drivers.   
+  2. **- <local path on your docker host/cloud>:/opt/meta/NoCloud**; Meta-Plus also functions as the host for NEEO-objects now that NEEO-cloud has ended.
+  3. **- /var/run/dbus/system_bus_socket:/var/run/dbus/system_bus_socket**; needed if you want to run Avahi-discovery
+  4. **- /etc/timezone:/etc/timezone:ro**; use time from your host. Please note that Docker images run with their own timezone, so you might see 1 or 2 (or more hours discrepancy with the time on your host; you can change the timezone on your container, I just live with the fixed 2 hours difference.
