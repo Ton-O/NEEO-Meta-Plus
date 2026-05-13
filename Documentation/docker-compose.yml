@@ -17,6 +17,9 @@ services:
     # The /var/run/dbus volume needs to be there for avahi to work
     restart: unless-stopped
     hostname: MetaBeta
+    ## depending on your needs and knowledge, you can use this simple association of your host ip-address to the container:
+    #network_mode: "host"
+    ## or make use of a more sophisticated way of assigning IP-addresses:
     networks:
      metavlan:
        ipv4_address: 192.168.73.192
