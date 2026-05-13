@@ -1,22 +1,24 @@
-## THIS IS AN OLDER ARCHIVED README... somehow the original one was removed; IT'L BE UPDATED TO CURRENT STATE SOON
-## Woah... V2.2 already??? What happened??
-I have been making many, many changes to this alternative meta - a driver to utilize NEEO with many custom device drivers.
+# META-PLUS... the evolution of META towards more functionality and interoperability with Brain.
+## Version 3.8.....
+## I've been maintaining a fully working version Docker image, to make reproduction of META much simpler. This image runs perfectly on a X86-based Docker host.[Docker image](https://hub.docker.com/r/tonot1/neeo-meta-plus)
+I have been making many, many changes to this alternative meta - a driver to utilize NEEO remotes with many custom device drivers.
 These changes have now ben consolidated in new releases, starting with V2.0.
 ## What was changed (and why)?
 Well, NEEO-public servers have been shutdown and with that, a number of "accidents" have started to occur.
-I took a deep dive in the NEEO-firmware and made a number of changes that allow the NEEO-Brain and -Remotes to keep working as they were.
+I took a deep dive in the NEEO-firmware and made a number of changes that allow the NEEO-Brain and -remotes to keep working as they were.
 Second, I made a number of additional protocols available to meta-plus (a more versatile MQTT, Websocket enhancements, Telnet and "some others".
 
-One of the others is a very important one: dynamic loglevels.
+One of the "others" is a very important one: dynamic loglevels.
 
 With this version, you are now able to keep you meta-installation completely (well, 99.99%) silent (by the LOGLEVEL=QUIET parameter)), but in case of debugging required, you can set loglevels on each component dynamically through NEEO's remote WITHOUT making changes to meta or restarting it. To this end, one has a global loglevel (the one you set when starting meta) and allowing a loglevel per major component of meta-Plus; this includes loglevels for the Brain itself!! All of these loglevels can be set individually to the level that suits you best for debugging.
 For this, changes have been made to the metaCore.json driver (of which the source is located in one of my [other repositories])(https://github.com/Ton-O/meta-driver-library).
 
 Also, "some other changes" have been made to allow meta-Plus to run in docker (which was possible for a long time already, but now it's even easier).
 
-And lastly, I've setup a Docker based version of the Brain..... This version has roughly 80% of the normal Brain functionality but the biggest advantage is that it is lightning fast compared to the dedicated hardware. Some hurdles still need to be taken (hence the 80% coverage), like ~~Infrared transmission,~~ easy connection of the Docker-Brain with the normal TR2; biggest issue is the functionality of the "network-chip in Brain", the JN5168-chip. That chip run s most of the wifi and related special functions but also controls via GPIO, the In fraRed leds. But, I'm working on  it.
-Infrared transmission is added now too, by using the well know Broadlink devices..... Only part missing now is "pairing remote to Brain"(the JN5168-device; but I;m working on that one). 
-As this Docker Brain version is still experimental, I'm not releasing that, but it looks very promising. 
+And lastly, I've setup a Docker based version of the Brain..... This version has roughly 80% of the normal Brain functionality but the biggest advantage is that it is lightning fast compared to the dedicated hardware. Some hurdles still need to be taken (hence the 80% coverage), like ~~Infrared transmission,~~ easy connection of the Docker-Brain with the normal TR2; biggest issue is the functionality of the "network-chip in Brain", the JN5168-chip. That chip runs most of the wifi and related special functions but also controls via GPIO, the infraRed leds. But, I'm working on  it.
+Infrared transmission is added now too, by using the well know Broadlink devices..... Comparing with the physical NEEO Braoin, the only part missing now is "pairing remote to Brain"(the JN5168-device; but I'm working on that one). 
+<del>As this Docker Brain version is still experimental, I'm not releasing that, but it looks very promising.</del> 
+After many months of running in my own environment perfectly (running continuously 3 brain environments in parallel: Beta, Test and Prod),  I have decided to make this Docker image publicly available at docxker hub [Docker image Brain](https://hub.docker.com/r/tonot1/neeobrain), and also the Github repository: [Github Brain](https://github.com/Ton-O/MetaBrain);    
 
 ### Please note: I've built this alternative version of Jac's masterpiece "meta" for my own purposes and I'm sharing it "as is" to others.... No commerical reasoning, therefore no strings attached as well. And you still need the NEEO hardware (namely the remote) so I'm not trying to outsmart NEEO (or its current owner CM). 
 
@@ -148,4 +150,24 @@ The xxx part is described in the repositories from my custom drivers:
 - 
 
 
+## Update history
+V3.5 added the METAREINIT feature.
+With this feature, the new NEEOBrain firmware will detect a restart of an SDK (Like META Plus) and allows us to "re-initialize" devices at will.
+This is activated per device, simply by means of the presence of a __MEAREINIT button in the driver. If that exists, each time the SDK is restarted, it will simulate the press of the __METAREINIT button for each device that is powered on.
+This functionality is great to reduce the consequences of a restart of meta: Brain still has devices powered on, but meta isn't aware of that status. This would lead to missing connections, listeners not activated etc. The METAREINIT feature solves this.
 
+V3.6 adds support for Android-based devices (through ADB) using the Chromecast device. Note this driver is not only for Chromecast/GoogleTV but adds generic support for Android devices.
+
+V3.7 adds support for Broadlink new style. This makes drivers using Broadlink devices more in-line with other drivers. It also removes the Python based components, replacing them by Javascript too. 
+
+V3.8 is moving from the outdated node.js V18 to the latest LTS verion of node.
+
+
+V3.9 Adds support for the avahi-daemon as a function to locate systems that advertise their service.
+This is the same discovery functionality as the original/physical NEEO Brain was using.
+It was abondoned in the old Meta days (pre Meta Plus), but I added it again as I noticed that GoogleTV not always advertize all services anymore.
+This resulted in Kodi instances not being found anymore once they got later firmware.
+KODI driver will be created as KODI_NEW and switch to avahi as discovery function, but the older version (based on dnssd) will linger as well as KODI. This way no current implementations of KODI in Meta Plus will be impacted.
+Using the new avahi discovery function, KODI instances will all be found again....
+Usage in discovery: "command": {"type":"avahi", "command":"xbmc-jsonrpc+\\._tcp", 
+                                "queryresult":["$.*"]}
