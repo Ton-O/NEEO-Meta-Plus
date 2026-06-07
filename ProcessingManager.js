@@ -1024,6 +1024,7 @@ class staticProcessor {
     });
   }
   query(params) {
+
     return new Promise(function (resolve, reject) {
       try {
         if (params.query != undefined  && params.query != '') {
@@ -1032,7 +1033,13 @@ class staticProcessor {
         else {
           if (params.data != undefined&&params.data !='') {
             if (typeof(params.data) == "string"){
-              resolve(JSON.parse(params.data));
+              try {
+                resolve(JSON.parse(params.data));
+              }
+              catch(err) {
+                console.log("StaticP result is not JSON, returning string:",params.data);
+                resolve(params.data);
+              }
             }
             else 
             {

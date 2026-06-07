@@ -54,12 +54,16 @@ class directoryHelper {
           if (finalNextTest) {
             if (evalN.then && evalN.then != '')
             { self.currentFeederIndex = self.feederH.findIndex((feed) => {return (feed.name == evalN.then)});
+              if (self.currentFeederIndex == -1)      // location to evalnext to not found
+                  metaLog({type:LOG_TYPE.ERROR, content:'Directory evalNext THEN not found: ' + evalN.then, deviceId:deviceId});
             }
           }
           else { 
             if (evalN.or && evalN.or != '')
             {
               self.currentFeederIndex = self.feederH.findIndex((feed) => {return (feed.name == evalN.or)});
+              if (self.currentFeederIndex == -1)      // location to evalnext to not found
+                  metaLog({type:LOG_TYPE.ERROR, content:'Directory evalNext OR not found: ' + evalN.or, deviceId:deviceId});
 
             }
           }
