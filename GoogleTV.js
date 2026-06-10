@@ -332,7 +332,7 @@ async function sendKey(key) {
     .catch(error => metaLog({type:LOG_TYPE.VERBOSE, content:"We do not have a connection setup yet",params:error}))
     .then  ((androidRemote) => {metaLog({type:LOG_TYPE.DEBUG, content:'Got connection;SendKey'});
         androidRemote.sendKey(RemoteKeyCode[key], RemoteDirection.SHORT)
-	metaLog({type:LOG_TYPE.VERBOSE, content:"Send key done"+key,params:RemoteKeyCode[key]});
+	metaLog({type:LOG_TYPE.VERBOSE, content:"Send key done "+key,params:RemoteKeyCode[key]});
     })
 };
 

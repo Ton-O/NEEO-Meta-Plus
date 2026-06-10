@@ -79,7 +79,7 @@ class directoryHelper {
       let SearchQueryId;
       var needSpecialcare = "";
       self.keybardBuffer = self.controller.vault.readVariables("$KEYBOARDSEARCH", deviceId)
-      if (params.browseIdentifier != undefined && params.browseIdentifier != '') { //case were a directory was selected in the list
+      if (params.browseIdentifier != undefined && params.browseIdentifier != '') { //case where a directory was selected in the list
         //Take the good feeder:
         //Take the good commandset:
         
@@ -110,8 +110,9 @@ class directoryHelper {
           metaLog({type:LOG_TYPE.VERBOSE, content:SearchQueryValue, deviceId:deviceId});
           PastQueryValue = SearchQueryValue  //So fill it with the value from SearchQueryValue
         }
-        else 
+        else  {
           PastQueryValue = self.cacheList[PastQueryId].myPastQuery; // Or it's normal value, obtained from browseidentifier
+          }
         // Ton-o keyboardsearch done  
         params.browseIdentifier = params.browseIdentifier.split("$PastQueryId=")[0];
         let commandSetIndex = params.browseIdentifier.split("$CommandSet=")[1];
@@ -143,7 +144,7 @@ class directoryHelper {
           self.currentFeederIndex = self.browseHistory[params.history.length];
           if (self.currentFeederIndex==undefined)
             self.currentFeederIndex = 0;
-          metaLog({type:LOG_TYPE.VERBOSE, content:'current feeder' + self.currentFeederIndex, deviceId:deviceId});
+          metaLog({type:LOG_TYPE.VERBOSE, content:'current feeder ' + self.currentFeederIndex, deviceId:deviceId});
         }
         else if ( params.offset != undefined && params.offset>0)  {
           //console.log("offset > 0")
@@ -499,67 +500,72 @@ class directoryHelper {
         var needSpecialcare = params.actionIdentifier.split("$SearchID="); //<------- 
         var SearchQueryValue;var SearchQueryId;
 
-      if (params.actionIdentifier!= undefined && params.actionIdentifier != undefined) {
-        if (needSpecialcare.length > 1) { // yes
-          SearchQueryId = needSpecialcare[1]
-          params.actionIdentifier = needSpecialcare[0]; // restore original param
-          let theResultEntry = self.ResultItems[SearchQueryId]
-          SearchQueryValue = theResultEntry
-          if (theResultEntry.RESULTENTRIES==1) {
-           self.keyboardBuffer = theResultEntry.NAMEFOUND
-           theResultEntry.SEARCHPARM = theResultEntry.NAMEFOUND // Only one found, set setsearchparm to full name
+        if (params.actionIdentifier!= undefined && params.actionIdentifier != undefined) {
+          if (needSpecialcare.length > 1) { // yes
+            SearchQueryId = needSpecialcare[1]
+            params.actionIdentifier = needSpecialcare[0]; // restore original param
+            let theResultEntry = self.ResultItems[SearchQueryId]
+            SearchQueryValue = theResultEntry
+            if (theResultEntry.RESULTENTRIES==1) {
+            self.keyboardBuffer = theResultEntry.NAMEFOUND
+            theResultEntry.SEARCHPARM = theResultEntry.NAMEFOUND // Only one found, set setsearchparm to full name
+            }
+            else 
+            self.keyboardBuffer = theResultEntry.SEARCHPARM
           }
-          else 
-           self.keyboardBuffer = theResultEntry.SEARCHPARM
-        }
-      }// Ton-O Keyboardsearch done
-        let PastQueryId = params.actionIdentifier.split("$PastQueryId=")[1];
-        self.actionId = PastQueryId;
-        // Ton-O Keyboardsearch <--- 
-        let PastQueryValue;  // Pastqueryvalue will be filled with either:
-        if (needSpecialcare.length>1) {   // The result of the keyboard search so far
-          metaLog({type:LOG_TYPE.VERBOSE, content:'Using result from Search keyboard: ', deviceId:deviceId});
-          metaLog({type:LOG_TYPE.VERBOSE, content:SearchQueryValue, deviceId:deviceId});
-          PastQueryValue = SearchQueryValue  //So fill it with the value from SearchQueryValue
-        }
-        else 
-          PastQueryValue = self.cacheList[PastQueryId].myPastQuery; // Or it's normal value, obtained from browseidentifier
         // Ton-O Keyboardsearch done
-        //MQTT Logging
-        self.controller.commandProcessor("{\"topic\":\"" + settings.mqtt_topic + self.controller.name + "/" + deviceId + "/directory/" + self.name + "\",\"message\":\"" + PastQueryId + "\", \"options\":\"{\\\"retain\\\":true}\"}", MQTT, deviceId)
-        params.actionIdentifier = params.actionIdentifier.split("$PastQueryId=")[0];
-        let commandSetIndex = params.actionIdentifier.split("$CommandSet=")[1];
-        //self.commandSetIndex = commandSetIndex;
-        params.actionIdentifier = params.actionIdentifier.split("$CommandSet=")[0];
-        if (self.feederH[self.currentFeederIndex].commandset[commandSetIndex]) {
-          let tmpCommandSet = JSON.stringify(self.feederH[self.currentFeederIndex].commandset[commandSetIndex]);
-          tmpCommandSet = tmpCommandSet.replace(/\$ListIndex/g, PastQueryId);
-          tmpCommandSet = JSON.parse(tmpCommandSet);
-/*          // Ton-O Keyboardsearch <--- Seems to be a bug...... evalnext when handling an itemaction
-          if (params.actionIdentifier==undefined||params.actionIdentifier=='') // bug!! don't do evalnext when itemaction is filled in
-            self.evalNext(deviceId, self.feederH[self.currentFeederIndex].commandset[commandSetIndex].evalnext, PastQueryValue, params.browseIdentifier);//assign the good value to know the feeder
+          let PastQueryId = params.actionIdentifier.split("$PastQueryId=")[1];
+          self.actionId = PastQueryId;
+          // Ton-O Keyboardsearch <--- 
+          let PastQueryValue;  // Pastqueryvalue will be filled with either:
+          if (needSpecialcare.length>1) {   // The result of the keyboard search so far
+            metaLog({type:LOG_TYPE.VERBOSE, content:'Using result from Search keyboard: ', deviceId:deviceId});
+            metaLog({type:LOG_TYPE.VERBOSE, content:SearchQueryValue, deviceId:deviceId});
+            PastQueryValue = SearchQueryValue  //So fill it with the value from SearchQueryValue
+          }
           else {
-            metaLog({type:LOG_TYPE.ERROR, content:"BUG: evalnext with itemaction suppressed:" + params.actionIdentifier, deviceId:deviceId});
-            metaLog({type:LOG_TYPE.ERROR, content:self.feederH[self.currentFeederIndex].commandset[commandSetIndex].evalnext, deviceId:deviceId});
+            PastQueryValue = self.cacheList[PastQueryId].myPastQuery; // Or it's normal value, obtained from browseidentifier
           }
-          // Ton-O Keyboardsearch <--- Use SearchQueryValue in-stead of PastQueryValue (ResultList vs CacheList)
-          */
-          if (needSpecialcare.length > 1) {
-            self.controller.evalWrite(tmpCommandSet.evalwrite, SearchQueryValue.SEARCHPARM, deviceId);
+          // Ton-O Keyboardsearch done
+          //MQTT Logging
+          self.controller.commandProcessor("{\"topic\":\"" + settings.mqtt_topic + self.controller.name + "/" + deviceId + "/directory/" + self.name + "\",\"message\":\"" + PastQueryId + "\", \"options\":\"{\\\"retain\\\":true}\"}", MQTT, deviceId)
+          params.actionIdentifier = params.actionIdentifier.split("$PastQueryId=")[0];
+          let commandSetIndex = params.actionIdentifier.split("$CommandSet=")[1];
+          //self.commandSetIndex = commandSetIndex;
+          params.actionIdentifier = params.actionIdentifier.split("$CommandSet=")[0];
+          if (self.feederH[self.currentFeederIndex].commandset[commandSetIndex]) {
+            let tmpCommandSet = JSON.stringify(self.feederH[self.currentFeederIndex].commandset[commandSetIndex]);
+            tmpCommandSet = tmpCommandSet.replace(/\$ListIndex/g, PastQueryId);
+            tmpCommandSet = JSON.parse(tmpCommandSet);
+  /*          // Ton-O Keyboardsearch <--- Seems to be a bug...... evalnext when handling an itemaction
+            if (params.actionIdentifier==undefined||params.actionIdentifier=='') // bug!! don't do evalnext when itemaction is filled in
+              self.evalNext(deviceId, self.feederH[self.currentFeederIndex].commandset[commandSetIndex].evalnext, PastQueryValue, params.browseIdentifier);//assign the good value to know the feeder
+            else {
+              metaLog({type:LOG_TYPE.ERROR, content:"BUG: evalnext with itemaction suppressed:" + params.actionIdentifier, deviceId:deviceId});
+              metaLog({type:LOG_TYPE.ERROR, content:self.feederH[self.currentFeederIndex].commandset[commandSetIndex].evalnext, deviceId:deviceId});
+            }
+            // Ton-O Keyboardsearch <--- Use SearchQueryValue in-stead of PastQueryValue (ResultList vs CacheList)
+            */
+            if (needSpecialcare.length > 1) {
+              self.controller.evalWrite(tmpCommandSet.evalwrite, SearchQueryValue.SEARCHPARM, deviceId);
+            }
+            else
+              self.controller.evalWrite(tmpCommandSet.evalwrite, PastQueryValue, deviceId);
+
           }
-          else
-            self.controller.evalWrite(tmpCommandSet.evalwrite, PastQueryValue, deviceId);
+          //finding the feeder which is actually an action feeder
+          let ActionIndex = self.feederH.findIndex((feed) => {return (feed.name == params.actionIdentifier)});
+          if (ActionIndex<0)
+            metaLog({type:LOG_TYPE.ERROR, content:"Could not find directory in feeder",params:params.actionIdentifier,deviceId:deviceId})
 
-        }
-        //finding the feeder which is actually an action feeder
-        let ActionIndex = self.feederH.findIndex((feed) => {return (feed.name == params.actionIdentifier)});
 
-        //Processing all commandset recursively
-        if (ActionIndex>=0){
-          let tmpActionCommandSet = JSON.stringify(self.feederH[ActionIndex].commandset);
-          tmpActionCommandSet = tmpActionCommandSet.replace(/\$ListIndex/g, PastQueryId);
-          tmpActionCommandSet = JSON.parse(tmpActionCommandSet);
-          resolve(self.executeAllActions(deviceId, PastQueryValue, tmpActionCommandSet, 0));
+          //Processing all commandset recursively
+          if (ActionIndex>=0){
+            let tmpActionCommandSet = JSON.stringify(self.feederH[ActionIndex].commandset);
+            tmpActionCommandSet = tmpActionCommandSet.replace(/\$ListIndex/g, PastQueryId);
+            tmpActionCommandSet = JSON.parse(tmpActionCommandSet);
+            resolve(self.executeAllActions(deviceId, PastQueryValue, tmpActionCommandSet, 0));
+          }
         }
       });
     };

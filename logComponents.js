@@ -12,7 +12,7 @@ const logModules = [
                     {logComponent: "sliderHelper",logLevel:"VERBOSE",FollowGlobal:true},
                     {logComponent: "switchHelper",logLevel:"VERBOSE",FollowGlobal:true},
                     {logComponent: "variablesVault",logLevel:"VERBOSE",FollowGlobal:true},
-                    {logComponent: "GoogleTV",logLevel:"DEBUG",FollowGlobal:false,Enum:undefined},                    
+                    {logComponent: "GoogleTV",logLevel:"DEBUG",FollowGlobal:true,Enum:undefined},                    
                     {logComponent: "telnet-client",logLevel:"VERBOSE",FollowGlobal:true}
                    ]
 const  produceNrSnapshotWhenError = 200;

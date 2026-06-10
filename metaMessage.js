@@ -178,11 +178,35 @@ function initialiseLogSeverity(ORIGIN = "META")
 { // This is the first initialisation of logLevels, obtained from logComponents.js
 // If desired, it can be overridden by every component (by the OverrideLogLevel function), but initially,this is it.
     myComponents = [];
-        const requireUncached = module => {
-        delete require.cache[require.resolve(module)];
-        return require(module);
-    };
-    const {logModules} = requireUncached(path.join(StartupPath,'logComponents')); 
+    let logModules = [];
+
+    const filePath = path.join(StartupPath, 'logComponents.js');
+    try {
+        // Read the raw string directly and synchronously from storage, requireuncached failed with slower hosts (Raspberry pi 3)
+        const fileContent = fs.readFileSync(filePath, 'utf8');
+        const localModule = { exports: {} };
+        
+        // We wrap the code in a function to strictly isolate the scope
+        const runContext = new Function('module', 'exports', fileContent);
+        runContext(localModule, localModule.exports);
+        
+        // 4. Extract the up-to-date array
+        if (localModule.exports && localModule.exports.logModules) {
+            logModules = localModule.exports.logModules;
+        }
+    } catch (error) {
+        // Immediate retry in case the host blocks the file I/O at this exact millisecond
+        try {
+            const fileContentRetry = fs.readFileSync(filePath, 'utf8');
+            const localModuleRetry = { exports: {} };
+            const runContextRetry = new Function('module', 'exports', fileContentRetry);
+            runContextRetry(localModuleRetry, localModuleRetry.exports);
+            logModules = localModuleRetry.exports.logModules || [];
+        } catch (retryError) {
+            console.error("CRITICAL I/O ERROR: logComponents could not be read after retry:", retryError);
+        }
+    }
+
     logModules.forEach((metaComponent) =>
         {metaComponent.ORIGIN = ORIGIN;
          metaComponent.Name = metaComponent.logComponent;
