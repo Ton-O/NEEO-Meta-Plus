@@ -2452,7 +2452,8 @@ class avahiProcessor {
                 const service = {
                     interface: fields[1],
                     protocol:  fields[2],
-                    name:      fields[3],
+                    // In-line fix to restore all strange characters back to normal ones
+                    name:      fields[3] ? fields[3].replace(/\\\./g, '.').replace(/\\(\d{3})/g, (m, g) => String.fromCharCode(parseInt(g, 10))) : fields[3],
                     type:      fields[4],
                     domain:    fields[5],
                     hostname:  fields[6],
@@ -2475,13 +2476,13 @@ class avahiProcessor {
 
 
     avahi.stderr.on('data', (data) => {
-        //console.error(`Error: ${data}`);
+        console.error(`data: ${data}`);
         resolve(Services)
     });
 
     avahi.on('close', (code) => {
-        //console.log(`Avahi-browse process ended with return code ${code}`);
-        //console.log("Discovered:",Services)
+        console.log(`Avahi-browse process ended with return code ${code}`);
+        console.log("Discovered:",Services)
         resolve(Services)
     })
   }
