@@ -1,4 +1,7 @@
 # META-PLUS... the evolution of META towards more functionality and interoperability with Brain.
+## Version 4.0.....
+Some additions to styay in line with the virtualized Brain firmware.  
+Please note that I'll be withdrawing the Brain firmware somewhere this year from github.  
 ## Version 3.8.....
 ## I've been maintaining a fully working version Docker image, to make reproduction of META much simpler. This image runs perfectly on a X86-based Docker host.[see Docker image](https://hub.docker.com/r/tonot1/neeo-meta-plus). A setup guide to use this repository within docker is added under the Documentation folder.
 I have been making many, many changes to this alternative meta - a driver to utilize NEEO remotes with many custom device drivers.
