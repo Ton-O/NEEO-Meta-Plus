@@ -2481,8 +2481,8 @@ class avahiProcessor {
     });
 
     avahi.on('close', (code) => {
-        console.log(`Avahi-browse process ended with return code ${code}`);
-        console.log("Discovered:",Services)
+        //console.log(`Avahi-browse process ended with return code ${code}`);
+        //console.log("Discovered:",Services)
         resolve(Services)
     })
   }
