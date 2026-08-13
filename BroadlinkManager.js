@@ -146,9 +146,9 @@ async function  Discover_Broadlinks(timeout = 2500) {
 
 async function Connect_Broadlink(req) {
    let host = req.query.host;
-
+   
    if (devs == undefined)
-       Discover_Broadlinks(2500)
+       await Discover_Broadlinks(2500)
    else
        {if (dev !=undefined &&host == dev.host.address)
             {metaLog({type:LOG_TYPE.DEBUG, content:"Reuse Broadlink device : "+dev.name})
