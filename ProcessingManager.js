@@ -14,6 +14,7 @@ const {Telnet} = require(path.join(__dirname,'/Telnet-meta'));
 const Promise = require('bluebird');
 const mqtt = require('mqtt');
 const util = require('util');
+const fs = require('fs'); 
 
 const settings = require(path.join(__dirname,'settings'));
 var mqttClient;
@@ -24,6 +25,7 @@ const wol = require('wol');
 const meta = require(path.join(__dirname,'meta'));
 const { metaMessage, LOG_TYPE,OverrideLoglevel,getLoglevels } = require("./metaMessage");
 const { MDNSServiceDiscovery } = require('tinkerhub-mdns');
+const { spawn } = require('child_process');
 const find = require('local-devices');
 const BroadlinkProcessorHost="http://127.0.0.1:5384"
 
@@ -2437,16 +2439,34 @@ class avahiProcessor {
       try {
         var Services = [];
         metaLog({type:LOG_TYPE.VERBOSE, content:'Avahi process started for'+params.command})
-        const { spawn } = require('child_process');
         const avahi = spawn('avahi-browse', ['--all', '--ignore-local', '--resolve', '--terminate', '--parsable']);
         let buffer = '';
+
+        const getMacAddress = (ipAddress) => {
+            if (!ipAddress) return 'unknown';
+            try {
+                const arpTable = fs.readFileSync('/proc/net/arp', 'utf8');
+                const lines = arpTable.split('\n');
+                for (let i = 1; i < lines.length; i++) { // Sla de header over
+                    const columns = lines[i].split(/\s+/);
+                    if (columns[0] === ipAddress) {
+                        return columns[3] !== '00:00:00:00:00:00' ? columns[3] : 'unknown';
+                    }
+                }
+            } catch (err) {
+                // in case of error accessing /proc/net/arp, give message
+                metaLog({type:LOG_TYPE.WARNING, content:'Problem accessing ARP in AVAHI-call',params:err})
+                return 'unknown';
+            }
+            return 'unknown';
+        };
 
         avahi.stdout.on('data', (data) => {
             buffer += data.toString();
             const lines = buffer.split('\n');
             
             buffer = lines.pop();
-            lines.forEach(line => {                // Process only lines that star with '='
+            lines.forEach(line => {                // Process only lines that start with '='
               if (line.startsWith('=')) {
                 const fields = line.split(';');
                 const service = {
@@ -2459,14 +2479,15 @@ class avahiProcessor {
                     hostname:  fields[6],
                     address:   fields[7],
                     port:      fields[8],
-                    txt:       fields[9]
+                    txt:       fields[9],
+                    mac:       getMacAddress(fields[7]) // <--- MAC-address added (lookup via arp-table)                
                 };
                 let regex =  RegExp(params.command);
                 if (regex.test(service.type)) 
-                { const isDuplicate = Services.some(s => s.name === service.name && s.type === service.type && s.protocol === service.protocol);
+                { const isDuplicate = Services.some(s => s.name === service.name && s.type === service.type && s.protocol === service.protocol &&s.mac === service.mac);
                   if (!isDuplicate) {
-                  metaLog({type:LOG_TYPE.DEBUG, content:'Service found ',params:service.hostname})
-                  Services.push(service);
+                    metaLog({type:LOG_TYPE.DEBUG, content:'Service found ',params:service.hostname})
+                    Services.push(service);
                   }
                 }
               };
