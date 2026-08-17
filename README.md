@@ -1,6 +1,9 @@
 # META-PLUS... the evolution of META towards more functionality and interoperability with Brain.
+## Version 4.1.....
+Some improvement in discovery via avahi.
+I dropped docker images for ARM64; this was requested but never received any feedback on it. As it costs me a lot of extra time to build for ARM64, so I decided to abondon it.
 ## Version 4.0.....
-Some additions to styay in line with the virtualized Brain firmware.  
+Some additions to stay in line with the virtualized Brain firmware.  
 Please note that I'll be withdrawing the Brain firmware somewhere this year from github.  
 ## Version 3.8.....
 ## I've been maintaining a fully working version Docker image, to make reproduction of META much simpler. This image runs perfectly on a X86-based Docker host.[see Docker image](https://hub.docker.com/r/tonot1/neeo-meta-plus). A setup guide to use this repository within docker is added under the Documentation folder.
