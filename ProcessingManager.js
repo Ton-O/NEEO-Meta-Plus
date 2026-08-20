@@ -131,8 +131,7 @@ class httprestProcessor {
             })
           }
           else {
-            metaLog({type:LOG_TYPE.VERBOSE, content:'HTTP process response',params:response.body});
-            resolve(response.body);
+            metaLog({type:LOG_TYPE.VERBOSE, content:'HTTP process response from call '+JSON.stringify(params.command.message),params:response.body});            resolve(response.body);
           }
         })
         .catch((err) => {
