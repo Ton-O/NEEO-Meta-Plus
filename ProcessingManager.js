@@ -2483,7 +2483,7 @@ class avahiProcessor {
                 };
                 let regex =  RegExp(params.command);
                 if (regex.test(service.type)) 
-                { const isDuplicate = Services.some(s => s.name === service.name && s.type === service.type && s.protocol === service.protocol &&s.mac === service.mac);
+                { const isDuplicate = Services.some(s => s.name === service.name &&s.mac === service.mac);
                   if (!isDuplicate) {
                     metaLog({type:LOG_TYPE.DEBUG, content:'Service ' + params.command + ' found: '+ service.hostname})
                     Services.push(service);
