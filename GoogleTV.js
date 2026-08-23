@@ -19,7 +19,7 @@ function metaLog(message) {
 } 
 
 initialiseLogSeverity(logModule); 
-OverrideLoglevel("DEBUG",logModule)
+//OverrideLoglevel("DEBUG",logModule)
 const server = express();
 const bodyParser = require ( 'body-parser');
  const {

@@ -15,7 +15,7 @@ function metaLog(message) {
 } 
 
 initialiseLogSeverity(logModule); 
-OverrideLoglevel("DEBUG",logModule)
+//OverrideLoglevel("DEBUG",logModule)
 
 const broadlink = require('node-broadlink');
 const binascii = {
