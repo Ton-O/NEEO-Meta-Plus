@@ -215,7 +215,7 @@ app.get('/xmitGC', async (req, res) => {
     await dev.sendData(Buffer.from(ConvData, 'hex'));
     }
     catch(err){
-        metaLog({type:LOG_TYPE.ERROR, content:"err in xmitGC"+ err}),result=err}
+        metaLog({type:LOG_TYPE.ERROR, content:"err in xmitGC "+ err,param:data}),result=err}
     res.send(result);
 });
 
