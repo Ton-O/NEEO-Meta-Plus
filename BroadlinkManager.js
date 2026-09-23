@@ -211,11 +211,11 @@ app.get('/xmitGC', async (req, res) => {
     metaLog({type:LOG_TYPE.VERBOSE, content:"Broadlink_Driver: GC data " + data})
     let ConvData = Convert_GC_to_Broadlink(data);  
     try {  
-        metaLog({type:LOG_TYPE.VERBOSE, content:"Broadlink_Driver: Conversion done, sending this data " + ConvData})
+        metaLog({type:LOG_TYPE.DEBUG, content:"Broadlink_Driver: Conversion done; sending converted data"});
     await dev.sendData(Buffer.from(ConvData, 'hex'));
     }
     catch(err){
-        metaLog({type:LOG_TYPE.ERROR, content:"err in xmitGC "+ err,param:data}),result=err}
+        metaLog({type:LOG_TYPE.ERROR, content:"err in converting xmitGC "+ err,params:data}),result=err}
     res.send(result);
 });
 
