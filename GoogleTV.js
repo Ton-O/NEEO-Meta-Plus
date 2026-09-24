@@ -49,7 +49,6 @@ return new Promise(function (resolve, reject) {
     name : 'androidtv-remote', 
     cert : MyCerts}
     myAndroidRemote = new AndroidRemote(host, options)
-
     myAndroidRemote.on('secret', () => {
         metaLog({type:LOG_TYPE.ALLWAYS, content:'We need a new secret; provide this via web interface please (for example: port http://10.0.0.1:6468/secret?secret=1cba6d)'});
         metaLog({type:LOG_TYPE.ALLWAYS, content:'`replace 10.0.01 with the ip-address of meta, and fill in code that is shown on screen`'});
@@ -83,12 +82,11 @@ return new Promise(function (resolve, reject) {
             resolve(myAndroidRemote) // add a short delay before actually using the remote. allows init of android-remote lib
         }, 500);
     });
-    myAndroidRemote.start().then (() => {
-        resolve("")
+    myAndroidRemote.start().then (() => {resolve("") ;
         //myAndroidRemote
     })
 }
-catch(err) {console.log(err)}
+catch(err) {console.log("Erorr in getSession function:",err)}
   })
 }
 
@@ -203,9 +201,8 @@ async function LoadSpecificCert(thisDevice)
     metaLog({type:LOG_TYPE.VERBOSE, content:"No specific certificate found, trying to load generic one: ",params:theCert});
     return await load_file(theCert,theKey)
 }
-catch(err) {console.log("Error in loadspecific", err)}
+catch(err) {console.log("Error in LoadSpecificCert function:", err)}
  }
-
 async function Handle_NewSecretCode(Newcode) 
 {let MyMessage;
     //http://10.0.0.99:6468/secret?secret=fced8e
@@ -262,7 +259,6 @@ async function main() {
     });
     server.get("/init", async (req, res, next) => { // here we look for a Google-certificate created befiore for this SPECIFIC device.
         try {const parms = { host: MyIP, port: Myport, mac: MyMac } = req.query;
-            console.log("")
             const resultaat = await LoadSpecificCert(parms.host);
             metaLog({type:LOG_TYPE.INFO, content:"Init Connection with" ,params:parms.host});
             res.send("Succesvol uitgevoerd");
@@ -381,7 +377,9 @@ async function sendAppLink(AppLink) {
     let connectionIndex = Connections.findIndex((con) => {return con.Host == MyHost});
     if  (connectionIndex < 0) {
         metaLog({type:LOG_TYPE.DEBUG, content:"Connection not yet created, doing now for "+MyHost});
-         const resultaat = await LoadSpecificCert(MyHost);
+        //await LoadSpecificCert(MyHost);
+    const resultaat = await LoadSpecificCert(MyHost);
+
         getSession(MyHost,MyCert).then ((Connection) => { 
                 GotSession(Connection);
                 myAndroidRemote = Connection;
@@ -400,6 +398,7 @@ async function sendAppLink(AppLink) {
  }
 function GotSession(Connection) {
     myAndroidRemote = Connection 
+     
     Connections.push({"Host": MyHost, "Connector": Connection});
 }
 main();
