@@ -124,7 +124,7 @@ function Convert_Broadlink_to_GC(stream) {
 async function CheckDevs(host)
 {
     for(let ind=0;ind<devs.length;ind++)
-    if (devs[ind].host.address == host)
+    if (devs[ind].name == host)
     {   dev=devs[ind];
         metaLog({type:LOG_TYPE.VERBOSE, content:"Broadlink device discovered:"+dev.name})
         if (dev.autenticated!=true)
@@ -146,11 +146,10 @@ async function  Discover_Broadlinks(timeout = 2500) {
 
 async function Connect_Broadlink(req) {
    let host = req.query.host;
-   
    if (devs == undefined)
        await Discover_Broadlinks(2500)
    else
-       {if (dev !=undefined &&host == dev.host.address)
+       {if (dev !=undefined &&host == dev.name)
             {metaLog({type:LOG_TYPE.DEBUG, content:"Reuse Broadlink device : "+dev.name})
             return dev;
             }
@@ -211,11 +210,11 @@ app.get('/xmitGC', async (req, res) => {
     metaLog({type:LOG_TYPE.VERBOSE, content:"Broadlink_Driver: GC data " + data})
     let ConvData = Convert_GC_to_Broadlink(data);  
     try {  
-        metaLog({type:LOG_TYPE.DEBUG, content:"Broadlink_Driver: Conversion done; sending converted data"});
+        metaLog({type:LOG_TYPE.VERBOSE, content:"Broadlink_Driver: Conversion done, sending this data " + ConvData})
     await dev.sendData(Buffer.from(ConvData, 'hex'));
     }
     catch(err){
-        metaLog({type:LOG_TYPE.ERROR, content:"err in converting xmitGC "+ err,params:data}),result=err}
+        metaLog({type:LOG_TYPE.ERROR, content:"err in xmitGC"+ err}),result=err}
     res.send(result);
 });
 

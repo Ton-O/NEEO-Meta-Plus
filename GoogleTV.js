@@ -84,6 +84,7 @@ return new Promise(function (resolve, reject) {
         }, 500);
     });
     myAndroidRemote.start().then (() => {
+        resolve("")
         //myAndroidRemote
     })
 }
@@ -181,7 +182,7 @@ async function load_file(theCert,thekey)
 }
 
 async function LoadSpecificCert(thisDevice)
-{   
+{ try {
     const Part1 = "/opt/meta/.ssh/Google"
     var   Part2C = "Cert"
     var   Part2K = "Key"
@@ -200,8 +201,10 @@ async function LoadSpecificCert(thisDevice)
     theCert = Part1+Part2C+Part9
     theKey  = Part1+Part2K+Part9
     metaLog({type:LOG_TYPE.VERBOSE, content:"No specific certificate found, trying to load generic one: ",params:theCert});
-    return load_file(theCert,theKey)
+    return await load_file(theCert,theKey)
 }
+catch(err) {console.log("Error in loadspecific", err)}
+ }
 
 async function Handle_NewSecretCode(Newcode) 
 {let MyMessage;
@@ -259,6 +262,7 @@ async function main() {
     });
     server.get("/init", async (req, res, next) => { // here we look for a Google-certificate created befiore for this SPECIFIC device.
         try {const parms = { host: MyIP, port: Myport, mac: MyMac } = req.query;
+            console.log("")
             const resultaat = await LoadSpecificCert(parms.host);
             metaLog({type:LOG_TYPE.INFO, content:"Init Connection with" ,params:parms.host});
             res.send("Succesvol uitgevoerd");
@@ -373,16 +377,18 @@ async function sendAppLink(AppLink) {
  function GetConnection(MyHost) {
   return new Promise(async function (resolve, reject) {
 
-    metaLog({type:LOG_TYPE.DEBUG, content:"Checking availability of connection"});
+    metaLog({type:LOG_TYPE.DEBUG, content:"Checking availability of connection",params:MyHost});
     let connectionIndex = Connections.findIndex((con) => {return con.Host == MyHost});
     if  (connectionIndex < 0) {
         metaLog({type:LOG_TYPE.DEBUG, content:"Connection not yet created, doing now for "+MyHost});
-        await LoadSpecificCert(MyHost);
+         const resultaat = await LoadSpecificCert(MyHost);
         getSession(MyHost,MyCert).then ((Connection) => { 
                 GotSession(Connection);
                 myAndroidRemote = Connection;
                 resolve(Connection); 
-            })
+            }).catch((err) => {console.log("catch Err in getSession",err )
+                reject(err);
+            });
 	}
     else {
         myAndroidRemote = Connections[connectionIndex].Connector
