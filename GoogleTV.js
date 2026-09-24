@@ -82,7 +82,7 @@ return new Promise(function (resolve, reject) {
             resolve(myAndroidRemote) // add a short delay before actually using the remote. allows init of android-remote lib
         }, 500);
     });
-    myAndroidRemote.start().then (() => {resolve("") ;
+    myAndroidRemote.start().then (() => {
         //myAndroidRemote
     })
 }
