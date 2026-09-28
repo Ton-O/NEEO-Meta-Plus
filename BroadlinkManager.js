@@ -126,37 +126,125 @@ async function CheckDevs(host)
     for(let ind=0;ind<devs.length;ind++)
     if (devs[ind].name == host)
     {   dev=devs[ind];
-        metaLog({type:LOG_TYPE.VERBOSE, content:"Broadlink device discovered:"+dev.name})
+        metaLog({type:LOG_TYPE.VERBOSE, content:"Broadlink device in cache:"+dev.name})
         if (dev.autenticated!=true)
-        {   await    dev.auth()
+        {   metaLog({type:LOG_TYPE.DEBUG, content:"AUTH required"})
+            await    dev.auth()
             metaLog({type:LOG_TYPE.DEBUG, content:"AUTH succeeded"})
             devs[ind].authenticated=true;
         }
         return dev;
         }
+    console.log("Broadlink host not found:",host,devs)
     return 0
 }
 
-async function  Discover_Broadlinks(timeout = 2500) {
-        devs = await broadlink.discover(timeout)
-        for(let ind=0;ind<devs.length;ind++)
-            metaLog({type:LOG_TYPE.DEBUG, content:"Broadlink device discovered: "+devs[ind].name+" IP: "+devs[ind].host.address})
-        return devs
+let discoveryPromise = null; 
+
+async function Discover_Broadlinks(timeout = 2500) {
+    // Als er al een scan loopt, gebruik die belofte
+    if (discoveryPromise) {
+        return discoveryPromise;
+    }
+
+    // Start een nieuwe scan-belofte
+    discoveryPromise = new Promise((resolve) => {
+        metaLog({type: LOG_TYPE.DEBUG, content: "Broadlink scan started forcibly..."});
+        
+        // Zorg dat devs in ieder geval een array is bij de start
+        if (!Array.isArray(devs)) {
+            devs = [];
+        }
+
+        broadlink.discover(Number(timeout))
+            .then((result) => {
+                if (result && result.length > 0) {
+                    // Loop door alle nieuw gevonden apparaten heen
+                    result.forEach((newDev) => {
+                        // Bepaal de unieke sleutel (MAC-adres heeft voorkeur, oars IP)
+                        const newKey = newDev.mac ? newDev.mac.toString() : newDev.host.address;
+                        
+                        // Zoek of dit apparaat al in onze huidige cache staat
+                        const existingIndex = devs.findIndex((oldDev) => {
+                            const oldKey = oldDev.mac ? oldDev.mac.toString() : oldDev.host.address;
+                            return oldKey === newKey;
+                        });
+
+                        if (existingIndex !== -1) {
+                            // BEHOUD AUTHENTICATIE: Als het oude apparaat al geauthenticeerd was, 
+                            // neem die status dan over naar het nieuwe object
+                            if (devs[existingIndex].authenticated === true) {
+                                newDev.authenticated = true;
+                            }
+                            
+                            // Vervang het oude apparaat door de verse netwerkinstantie
+                            devs[existingIndex] = newDev;
+                            metaLog({type: LOG_TYPE.DEBUG, content: `Broadlink cache updated for device: ${newDev.name}`});
+                        } else {
+                            // Het is een gloednieuw apparaat, voeg hem toe aan de lijst
+                            devs.push(newDev);
+                            metaLog({type: LOG_TYPE.DEBUG, content: `Broadlink new device added to cache: ${newDev.name}`});
+                        }
+                    });
+                    
+                    metaLog({type: LOG_TYPE.DEBUG, content: `Broadlink background scan done. Total cache now contains ${devs.length} devices.`});
+                }
+                else {
+                    metaLog({type: LOG_TYPE.VERBOSE, content: `Broadlink scan did not provide new devices, keeping current cache (${devs.length} devices)`});
+                }
+            })
+            .catch((err) => {
+                metaLog({type: LOG_TYPE.ERROR, content: "Error during background scan: " + err});
+            });
+
+        setTimeout(() => { 
+            for(let ind = 0; ind < devs.length; ind++) {
+                metaLog({type: LOG_TYPE.DEBUG, content: "Broadlink device in cache: " + devs[ind].name + " IP: " + devs[ind].host.address + " (Auth: " + (devs[ind].authenticated || false) + ")"});
+            }
+            
+            // Reset the promise blocker to allow future scans
+            discoveryPromise = null; 
+            resolve(devs);
+        }, timeout);
+    });
+
+    return discoveryPromise;
 }
 
+
 async function Connect_Broadlink(req) {
-   let host = req.query.host;
-   if (devs == undefined)
-       await Discover_Broadlinks(2500)
-   else
-       {if (dev !=undefined &&host == dev.name)
-            {metaLog({type:LOG_TYPE.DEBUG, content:"Reuse Broadlink device : "+dev.name})
-            return dev;
-            }
-       }
-    return await CheckDevs(host)
-          
+    let host = req.query.host;
+    
+    if (devs == undefined) {
+        metaLog({type: LOG_TYPE.VERBOSE, content: "Broadlink device-list empty; discovering now"});
+        await Discover_Broadlinks(7500); 
+    } else {
+        for (let ind = 0; ind < devs.length; ind++) 
+            if (devs[ind].name == host) 
+                metaLog({type: LOG_TYPE.DEBUG, content: "Reuse Broadlink device: " + devs[ind].name});
+        
+        await Discover_Broadlinks(7500); // Try to find the device again
+    }
+    
+    metaLog({type: LOG_TYPE.VERBOSE, content: "Broadlink device not in cache/list; checking now " + host});    
+    return await CheckDevs(host);
 }
+
+async function CheckDevs(host) {
+    for(let ind=0; ind < devs.length; ind++) {
+        if (devs[ind].name == host) {
+            let localDev = devs[ind];
+            if (localDev.authenticated !== true) {   
+                await localDev.auth();
+                metaLog({type:LOG_TYPE.DEBUG, content:"AUTH succeeded"});
+                devs[ind].authenticated = true;
+            }
+            return localDev;
+        }
+    }
+    return null;
+}
+
 
 // --- Routes ---
 
@@ -200,24 +288,43 @@ app.get('/xmit', async (req, res) => {
     res.send('OK');
 });
 
-app.get('/xmitGC', async (req, res) => {
-    let result="ok"
-    let host = req.query.host;
-    metaLog({type:LOG_TYPE.VERBOSE, content:"Broadlink_Driver: Send GC requested for "+host})
+let sendingQueue = Promise.resolve(); // Startpunt van de wachtrij
 
-    await Connect_Broadlink(req);  
-    let data = req.query.stream;
-    metaLog({type:LOG_TYPE.VERBOSE, content:"Broadlink_Driver: GC data " + data})
-    let ConvData = Convert_GC_to_Broadlink(data);  
-    try {  
-        metaLog({type:LOG_TYPE.VERBOSE, content:"Broadlink_Driver: Conversion done, sending this data " + ConvData})
-    await dev.sendData(Buffer.from(ConvData, 'hex'));
-    }
-    catch(err){
-        metaLog({type:LOG_TYPE.ERROR, content:"err in xmitGC"+ err}),result=err}
+app.get('/xmitGC', async (req, res) => {
+    let result = "ok";
+    let host = req.query.host;
+    metaLog({type: LOG_TYPE.VERBOSE, content: "Broadlink_Driver: Send GC requested for " + host});
+
+    // Add element to queue
+    sendingQueue = sendingQueue.then(async () => {
+        try {
+            let activeDev = await Connect_Broadlink(req);  
+            
+            if (!activeDev) {
+                throw new Error("Device nnot found on netwerk");
+            }
+
+            let data = req.query.stream;
+            metaLog({type: LOG_TYPE.VERBOSE, content: "Broadlink_Driver: GC data " + data});
+            
+            let ConvData = Convert_GC_to_Broadlink(data);  
+            metaLog({type: LOG_TYPE.VERBOSE, content: "Broadlink_Driver: Conversion done, sending this data " + ConvData});
+            
+            await activeDev.sendData(Buffer.from(ConvData, 'hex'));
+            
+            // small delay added for stability 
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+        } catch(err) {
+            metaLog({type: LOG_TYPE.ERROR, content: "err in xmitGC: " + err});
+            result = err.message || err;
+        }
+    });
+
+    // Wait for request to be completed, then send response
+    await sendingQueue;
     res.send(result);
 });
-
 app.get('/GCToBroad', (req, res) => {
     let Stream = req.query.stream;
     metaLog({type:LOG_TYPE.VERBOSE, content:"Broadlink_Driver: Conversion GC to Broadlink requested"})
@@ -258,7 +365,31 @@ app.get('/rcve', async (req, res) => {
     res.send(data ? data.toString('hex') : 'timeout');
 });
 
-// Starten op exact de poort uit jouw main()
+
 app.listen(5384, '0.0.0.0', () => {
-    metaLog({type:LOG_TYPE.VERBOSE, content:"Server gestart op poort 5384"})
+    metaLog({type:LOG_TYPE.VERBOSE, content:"Server started on port 5384"})
 });
+
+async function main() {
+    metaLog({type: LOG_TYPE.VERBOSE, content: "Initial discovery started..."});
+    
+    // Initially gather all Broadlink devices from the network; then periodically (every 10 minutes) run discovery to add/replace entries 
+    await Discover_Broadlinks(15000); 
+    metaLog({type: LOG_TYPE.VERBOSE, content: "Initial discovery completed. Starting 10-minute interval."});
+
+    const TEN_MINUTES = 10 * 60 * 1000;
+    
+    setInterval(async () => {
+        metaLog({type: LOG_TYPE.VERBOSE, content: "Starting periodic 10-minute Broadlink network scan..."});
+        try {
+            await Discover_Broadlinks(15000); 
+            metaLog({type: LOG_TYPE.VERBOSE, content: "Periodic Broadlink scan completed."});
+        } catch (err) {
+            metaLog({type: LOG_TYPE.ERROR, content: "Error during periodic Broadlink scan: " + err});
+        }
+    }, TEN_MINUTES);
+}
+
+main();
+
+    

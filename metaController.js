@@ -227,7 +227,7 @@ module.exports = function controller(driver) {
   };
 
   this.dynamicallyAssignSubscription = function(deviceId) {
-    metaLog({type:LOG_TYPE.FATAL, content:'dynamicallyAssignSubscription', deviceId:deviceId});
+    metaLog({type:LOG_TYPE.VERBOSE, content:'dynamicallyAssignSubscription', deviceId:deviceId});
     //  self.registerInitiationCallback(self.discoverHubController.updateFunction);
     //self.discoverHubController.updateFunction
     
