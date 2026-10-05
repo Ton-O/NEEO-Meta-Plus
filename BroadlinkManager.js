@@ -121,10 +121,10 @@ function Convert_Broadlink_to_GC(stream) {
     let result = lirc2gc(durations.map(d => d.toString(16)).join(' '));
     return result;
 }
-async function CheckDevs(host)
+async function CheckDevs(mac)
 {
     for(let ind=0;ind<devs.length;ind++)
-    if (devs[ind].mac == host)
+    if (devs[ind].mac == mac)
     {   dev=devs[ind];
         metaLog({type:LOG_TYPE.VERBOSE, content:"Broadlink device in cache:"+dev.mac})
         if (dev.autenticated!=true)
@@ -135,7 +135,7 @@ async function CheckDevs(host)
         }
         return dev;
         }
-    console.log("Broadlink host not found:",host,devs)
+    metaLog({type:LOG_TYPE.ERROR, content:"Broadlink: host not found" + mac})
     return 0
 }
 
@@ -208,30 +208,31 @@ async function Discover_Broadlinks(timeout = 2500) {
 }
 
 
-async function Connect_Broadlink(req) {
-    let host = req.query.host;
+async function Connect_Broadlink(req,timeout = 2500) {
+//    let host = req.query.host;
+    let mac = req.query.mac;
     if (devs == undefined) {
         metaLog({type: LOG_TYPE.VERBOSE, content: "Broadlink device-list empty; discovering now"});
-        await Discover_Broadlinks(7500); 
+        await Discover_Broadlinks(timeout); 
     } else {
         let Found=false;
         for (let ind = 0; ind < devs.length; ind++) 
-            if (devs[ind].mac == host) 
+            if (devs[ind].mac == mac) 
                 {metaLog({type: LOG_TYPE.DEBUG, content: "Reuse Broadlink device: " + devs[ind].mac});
                 Found=true;
                 break;
                 }
         if (!Found)       
-            await Discover_Broadlinks(7500); // Try to find the device again
+            await Discover_Broadlinks(timeout); // Try to find the device again
     }
     
-    metaLog({type: LOG_TYPE.VERBOSE, content: "Broadlink device not in cache/list; checking now " + host});    
-    return await CheckDevs(host);
+    metaLog({type: LOG_TYPE.VERBOSE, content: "Broadlink device not in cache/list; checking now " + mac});    
+    return await CheckDevs(mac);
 }
 
-async function CheckDevs(host) {
+async function CheckDevs(mac) {
     for(let ind=0; ind < devs.length; ind++) {
-        if (devs[ind].mac == host) {
+        if (devs[ind].mac == mac) {
             let localDev = devs[ind]; 
             if (localDev.authenticated != true) {   
                 await localDev.auth();
@@ -291,8 +292,10 @@ let sendingQueue = Promise.resolve(); // Startpunt van de wachtrij
 
 app.get('/xmitGC', async (req, res) => {
     let result = "ok";
-    let host = req.query.host;
-    metaLog({type: LOG_TYPE.VERBOSE, content: "Broadlink_Driver: Send GC requested for " + host});
+    let mac = req.query.mac;
+    if (mac == undefined)
+        mac = req.query.ip
+    metaLog({type: LOG_TYPE.VERBOSE, content: "Broadlink_Driver: Send GC requested for " + mac});
 
     // Add element to queue
     sendingQueue = sendingQueue.then(async () => {
@@ -386,7 +389,7 @@ async function main() {
     // Then scan network a bit relaxter to discover the Broadlink devices that weren't found previously
     const ONE_MINUTE = 1 * 60 * 1000
     for (let count = 0; count <8; count++) 
-        {await Discover_Broadlinks(15000); 
+        {await Discover_Broadlinks(10000); 
         metaLog({type: LOG_TYPE.VERBOSE, content: "Second sweep for Broadlink devices done"});
         await new Promise(resolve => setTimeout(resolve, ONE_MINUTE));
         }
