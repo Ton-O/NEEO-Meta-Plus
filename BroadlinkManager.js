@@ -124,9 +124,9 @@ function Convert_Broadlink_to_GC(stream) {
 async function CheckDevs(host)
 {
     for(let ind=0;ind<devs.length;ind++)
-    if (devs[ind].name == host)
+    if (devs[ind].mac == host)
     {   dev=devs[ind];
-        metaLog({type:LOG_TYPE.VERBOSE, content:"Broadlink device in cache:"+dev.name})
+        metaLog({type:LOG_TYPE.VERBOSE, content:"Broadlink device in cache:"+dev.mac})
         if (dev.autenticated!=true)
         {   metaLog({type:LOG_TYPE.DEBUG, content:"AUTH required"})
             await    dev.auth()
@@ -160,7 +160,10 @@ async function Discover_Broadlinks(timeout = 2500) {
             .then((result) => {
                 if (result && result.length > 0) {
                     // Loop door alle nieuw gevonden apparaten heen
-                    result.forEach((newDev) => {
+                    result.forEach((newDev) => {console.log(newDev);
+newDev.mac = newDev.mac
+    .map(b => b.toString(16).padStart(2, '0').toUpperCase())
+    .join(':');
                         // Bepaal de unieke sleutel (MAC-adres heeft voorkeur, oars IP)
                         const newKey = newDev.mac ? newDev.mac.toString() : newDev.host.address;
                         
@@ -179,11 +182,11 @@ async function Discover_Broadlinks(timeout = 2500) {
                             
                             // Vervang het oude apparaat door de verse netwerkinstantie
                             devs[existingIndex] = newDev;
-                            metaLog({type: LOG_TYPE.DEBUG, content: `Broadlink cache updated for device: ${newDev.name}`});
+                            metaLog({type: LOG_TYPE.DEBUG, content: `Broadlink cache updated for device: ${newDev.mac}`});
                         } else {
                             // Het is een gloednieuw apparaat, voeg hem toe aan de lijst
                             devs.push(newDev);
-                            metaLog({type: LOG_TYPE.DEBUG, content: `Broadlink new device added to cache: ${newDev.name}`});
+                            metaLog({type: LOG_TYPE.DEBUG, content: `Broadlink new device added to cache: ${newDev.mac}`});
                         }
                     });
                     
@@ -199,7 +202,7 @@ async function Discover_Broadlinks(timeout = 2500) {
 
         setTimeout(() => { 
             for(let ind = 0; ind < devs.length; ind++) {
-                metaLog({type: LOG_TYPE.DEBUG, content: "Broadlink device in cache: " + devs[ind].name + " IP: " + devs[ind].host.address + " (Auth: " + (devs[ind].authenticated || false) + ")"});
+                metaLog({type: LOG_TYPE.DEBUG, content: "Broadlink device in cache: " + devs[ind].name + " MAC: " + devs[ind].mac + " IP: " + devs[ind].host.address + " (Auth: " + (devs[ind].authenticated || false) + ")"});
             }
             
             // Reset the promise blocker to allow future scans
@@ -214,16 +217,19 @@ async function Discover_Broadlinks(timeout = 2500) {
 
 async function Connect_Broadlink(req) {
     let host = req.query.host;
-    
     if (devs == undefined) {
         metaLog({type: LOG_TYPE.VERBOSE, content: "Broadlink device-list empty; discovering now"});
         await Discover_Broadlinks(7500); 
     } else {
+        let Found=false;
         for (let ind = 0; ind < devs.length; ind++) 
-            if (devs[ind].name == host) 
-                metaLog({type: LOG_TYPE.DEBUG, content: "Reuse Broadlink device: " + devs[ind].name});
-        
-        await Discover_Broadlinks(7500); // Try to find the device again
+            if (devs[ind].mac == host) 
+                {metaLog({type: LOG_TYPE.DEBUG, content: "Reuse Broadlink device: " + devs[ind].mac});
+                Found=true;
+                break;
+                }
+        if (!Found)       
+            await Discover_Broadlinks(7500); // Try to find the device again
     }
     
     metaLog({type: LOG_TYPE.VERBOSE, content: "Broadlink device not in cache/list; checking now " + host});    
@@ -232,9 +238,9 @@ async function Connect_Broadlink(req) {
 
 async function CheckDevs(host) {
     for(let ind=0; ind < devs.length; ind++) {
-        if (devs[ind].name == host) {
-            let localDev = devs[ind];
-            if (localDev.authenticated !== true) {   
+        if (devs[ind].mac == host) {
+            let localDev = devs[ind]; 
+            if (localDev.authenticated != true) {   
                 await localDev.auth();
                 metaLog({type:LOG_TYPE.DEBUG, content:"AUTH succeeded"});
                 devs[ind].authenticated = true;
