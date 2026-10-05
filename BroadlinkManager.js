@@ -147,11 +147,10 @@ async function Discover_Broadlinks(timeout = 2500) {
         return discoveryPromise;
     }
 
-    // Start een nieuwe scan-belofte
+    // Start a new scan-promise
     discoveryPromise = new Promise((resolve) => {
         metaLog({type: LOG_TYPE.DEBUG, content: "Broadlink scan started forcibly..."});
         
-        // Zorg dat devs in ieder geval een array is bij de start
         if (!Array.isArray(devs)) {
             devs = [];
         }
@@ -159,32 +158,26 @@ async function Discover_Broadlinks(timeout = 2500) {
         broadlink.discover(Number(timeout))
             .then((result) => {
                 if (result && result.length > 0) {
-                    // Loop door alle nieuw gevonden apparaten heen
-                    result.forEach((newDev) => {console.log(newDev);
-newDev.mac = newDev.mac
-    .map(b => b.toString(16).padStart(2, '0').toUpperCase())
-    .join(':');
-                        // Bepaal de unieke sleutel (MAC-adres heeft voorkeur, oars IP)
-                        const newKey = newDev.mac ? newDev.mac.toString() : newDev.host.address;
-                        
-                        // Zoek of dit apparaat al in onze huidige cache staat
+                    // Loop over all found entries
+                    result.forEach((newDev) => {
+                        newDev.mac = newDev.mac.map(b => b.toString(16).padStart(2, '0').toUpperCase()).join(':');
+                        const newKey = newDev.mac ? newDev.mac.toString() : newDev.host.address;                        
                         const existingIndex = devs.findIndex((oldDev) => {
                             const oldKey = oldDev.mac ? oldDev.mac.toString() : oldDev.host.address;
                             return oldKey === newKey;
                         });
 
                         if (existingIndex !== -1) {
-                            // BEHOUD AUTHENTICATIE: Als het oude apparaat al geauthenticeerd was, 
-                            // neem die status dan over naar het nieuwe object
+                            // AuthL: if olddevice is already authenticated, keep that state
                             if (devs[existingIndex].authenticated === true) {
                                 newDev.authenticated = true;
                             }
                             
-                            // Vervang het oude apparaat door de verse netwerkinstantie
+                            // replace old entry buy new one (for timeout-check)
                             devs[existingIndex] = newDev;
                             metaLog({type: LOG_TYPE.DEBUG, content: `Broadlink cache updated for device: ${newDev.mac}`});
                         } else {
-                            // Het is een gloednieuw apparaat, voeg hem toe aan de lijst
+                            // New device, add to cache
                             devs.push(newDev);
                             metaLog({type: LOG_TYPE.DEBUG, content: `Broadlink new device added to cache: ${newDev.mac}`});
                         }
@@ -380,15 +373,30 @@ async function main() {
     metaLog({type: LOG_TYPE.VERBOSE, content: "Initial discovery started..."});
     
     // Initially gather all Broadlink devices from the network; then periodically (every 10 minutes) run discovery to add/replace entries 
-    await Discover_Broadlinks(15000); 
+    for (let count = 0; count <5; count++) // if nothing discovered, immediately try 5 times then give up
+        {await Discover_Broadlinks(15000); 
+        if  (devs.length) 
+            break;
+        else    
+            metaLog({type: LOG_TYPE.VERBOSE, content: "Nothing received so far, retrying"});        
+        }
+
     metaLog({type: LOG_TYPE.VERBOSE, content: "Initial discovery completed. Starting 10-minute interval."});
+
+    // Then scan network a bit relaxter to discover the Broadlink devices that weren't found previously
+    const ONE_MINUTE = 1 * 60 * 1000
+    for (let count = 0; count <8; count++) 
+        {await Discover_Broadlinks(15000); 
+        metaLog({type: LOG_TYPE.VERBOSE, content: "Second sweep for Broadlink devices done"});
+        await new Promise(resolve => setTimeout(resolve, ONE_MINUTE));
+        }
 
     const TEN_MINUTES = 10 * 60 * 1000;
     
     setInterval(async () => {
         metaLog({type: LOG_TYPE.VERBOSE, content: "Starting periodic 10-minute Broadlink network scan..."});
         try {
-            await Discover_Broadlinks(15000); 
+            await Discover_Broadlinks(5000); 
             metaLog({type: LOG_TYPE.VERBOSE, content: "Periodic Broadlink scan completed."});
         } catch (err) {
             metaLog({type: LOG_TYPE.ERROR, content: "Error during periodic Broadlink scan: " + err});
