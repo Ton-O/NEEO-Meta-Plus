@@ -195,7 +195,7 @@ async function Discover_Broadlinks(timeout = 2500) {
 
         setTimeout(() => { 
             for(let ind = 0; ind < devs.length; ind++) {
-                metaLog({type: LOG_TYPE.DEBUG, content: "Broadlink device in cache: " + devs[ind].name + " MAC: " + devs[ind].mac + " IP: " + devs[ind].host.address + " (Auth: " + (devs[ind].authenticated || false) + ")"});
+                metaLog({type: LOG_TYPE.DEBUG, content: "Broadlink device in cache:  MAC: " + devs[ind].mac + " IP: " + devs[ind].host.address + " (Auth: " + (devs[ind].authenticated || false) + ")"});
             }
             
             // Reset the promise blocker to allow future scans
@@ -206,7 +206,6 @@ async function Discover_Broadlinks(timeout = 2500) {
 
     return discoveryPromise;
 }
-
 
 async function Connect_Broadlink(req,timeout = 2500) {
 //    let host = req.query.host;
@@ -288,7 +287,7 @@ app.get('/xmit', async (req, res) => {
     res.send('OK');
 });
 
-let sendingQueue = Promise.resolve(); // Startpunt van de wachtrij
+let sendingQueue = Promise.resolve(); // Starting point of queue
 
 app.get('/xmitGC', async (req, res) => {
     let result = "ok";
@@ -303,7 +302,7 @@ app.get('/xmitGC', async (req, res) => {
             let activeDev = await Connect_Broadlink(req);  
             
             if (!activeDev) {
-                throw new Error("Device nnot found on netwerk");
+                throw new Error("Device not found on netwerk");
             }
 
             let data = req.query.stream;
@@ -312,7 +311,7 @@ app.get('/xmitGC', async (req, res) => {
             let ConvData = Convert_GC_to_Broadlink(data);  
             metaLog({type: LOG_TYPE.VERBOSE, content: "Broadlink_Driver: Conversion done, sending this data " + ConvData});
             
-            await activeDev.sendData(Buffer.from(ConvData, 'hex'));
+            result = await activeDev.sendData(Buffer.from(ConvData, 'hex'));
             
             // small delay added for stability 
             await new Promise(resolve => setTimeout(resolve, 100));
