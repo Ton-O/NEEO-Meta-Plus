@@ -5,7 +5,7 @@ const logModule="BroadlinkManager";
 process.env.StartupPath="/opt/meta"    // small trick (for now) to incorporate this module into logLevel environment from meta.js
 const { metaMessage, LOG_TYPE,OverrideLoglevel,initialiseLogSeverity } = require("./metaMessage");
 
-// TIP: If you experience problems with modules below this GoogleTV.js level, comment the following line (by oplacing // in front of it)
+// TIP: If you experience problems with modules below this GoogleTV.js level, comment the following line (by placing // in front of it)
 console.error = console.info = console.debug = console.warn = console.trace = console.dir = console.dirxml = console.group = console.groupEnd = console.time = console.timeEnd = console.assert = console.profile = function() {};
 // TIP: The line above... with console.error etc change it to //console.error.... etc
 function metaLog(message) {
@@ -162,6 +162,7 @@ async function Discover_Broadlinks(timeout = 2500) {
                     result.forEach((newDev) => {
                         newDev.mac = newDev.mac.map(b => b.toString(16).padStart(2, '0').toUpperCase()).join(':');
                         const newKey = newDev.mac ? newDev.mac.toString() : newDev.host.address;                        
+                        newDev.lastDiscovered = Date.now();
                         const existingIndex = devs.findIndex((oldDev) => {
                             const oldKey = oldDev.mac ? oldDev.mac.toString() : oldDev.host.address;
                             return oldKey === newKey;
@@ -173,8 +174,8 @@ async function Discover_Broadlinks(timeout = 2500) {
                                 newDev.authenticated = true;
                             }
                             
-                            // replace old entry buy new one (for timeout-check)
-                            devs[existingIndex] = newDev;
+                            // replace old entry by new one (for timeout-check)
+                            devs[existingIndex].host = newDev.host;
                             metaLog({type: LOG_TYPE.DEBUG, content: `Broadlink cache updated for device: ${newDev.mac}`});
                         } else {
                             // New device, add to cache
@@ -195,10 +196,13 @@ async function Discover_Broadlinks(timeout = 2500) {
 
         setTimeout(() => { 
             for(let ind = 0; ind < devs.length; ind++) {
-                metaLog({type: LOG_TYPE.DEBUG, content: "Broadlink device in cache:  MAC: " + devs[ind].mac + " IP: " + devs[ind].host.address + " (Auth: " + (devs[ind].authenticated || false) + ")"});
+                // Laat in de logs zien hoe oud de entry is
+                const ageSec = Math.round((Date.now() - devs[ind].lastDiscovered) / 1000);
+                metaLog({
+                    type: LOG_TYPE.DEBUG, 
+                    content: `Broadlink device in cache: MAC: ${devs[ind].mac} | Last seen: ${ageSec}s ago | Auth: ${devs[ind].authenticated || false}`
+                });
             }
-            
-            // Reset the promise blocker to allow future scans
             discoveryPromise = null; 
             resolve(devs);
         }, timeout);
@@ -214,15 +218,12 @@ async function Connect_Broadlink(req,timeout = 2500) {
         metaLog({type: LOG_TYPE.VERBOSE, content: "Broadlink device-list empty; discovering now"});
         await Discover_Broadlinks(timeout); 
     } else {
-        let Found=false;
         for (let ind = 0; ind < devs.length; ind++) 
             if (devs[ind].mac == mac) 
                 {metaLog({type: LOG_TYPE.DEBUG, content: "Reuse Broadlink device: " + devs[ind].mac});
-                Found=true;
-                break;
+                return await CheckDevs(mac);
                 }
-        if (!Found)       
-            await Discover_Broadlinks(timeout); // Try to find the device again
+        await Discover_Broadlinks(timeout); // Try to find the device again
     }
     
     metaLog({type: LOG_TYPE.VERBOSE, content: "Broadlink device not in cache/list; checking now " + mac});    
@@ -242,6 +243,34 @@ async function CheckDevs(mac) {
         }
     }
     return null;
+}
+
+function Clean_Broadlink_Cache(maxAgeMs = 12 * 60 * 60 * 1000) {
+    if (!Array.isArray(devs) || devs.length === 0) return;
+
+    const now = Date.now();
+    const initialCount = devs.length;
+
+    // Filter apparaten: behoud alleen degene waarvan de leeftijd binnen de grens valt
+    devs = devs.filter((dev) => {
+        // Mocht een apparaat (om wat voor reden dan ook) geen timestamp hebben, geef hem het voordeel van de twijfel
+        if (!dev.lastDiscovered) return true; 
+
+        const age = now - dev.lastDiscovered;
+        const isFresh = age < maxAgeMs;
+
+        if (!isFresh) {
+            metaLog({
+                type: LOG_TYPE.VERBOSE, 
+                content: `Evicting stale Broadlink device from cache: ${dev.name} (IP: ${dev.host.address}), not seen for > 12 hours.`
+            });
+        }
+        return isFresh;
+    });
+
+    const removedCount = initialCount - devs.length;
+    //if (removedCount > 0) 
+        metaLog({type: LOG_TYPE.VERBOSE, content: `Cache cleaning completed. Removed ${removedCount} stale device(s).`});
 }
 
 
@@ -394,6 +423,8 @@ async function main() {
         }
 
     const TEN_MINUTES = 10 * 60 * 1000;
+    const TWELVE_HOURS = 1 * 60 * 60 * 1000;
+
     
     setInterval(async () => {
         metaLog({type: LOG_TYPE.VERBOSE, content: "Starting periodic 10-minute Broadlink network scan..."});
@@ -404,6 +435,11 @@ async function main() {
             metaLog({type: LOG_TYPE.ERROR, content: "Error during periodic Broadlink scan: " + err});
         }
     }, TEN_MINUTES);
+
+    setInterval(() => {
+        metaLog({type: LOG_TYPE.VERBOSE, content: "Starting periodic 12-hour cache cleanup..."});
+        Clean_Broadlink_Cache(TWELVE_HOURS);
+    }, TWELVE_HOURS);
 }
 
 main();
