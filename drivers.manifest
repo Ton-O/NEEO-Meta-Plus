@@ -64,6 +64,14 @@
       "version": 2,
       "driverLocation": "https://raw.githubusercontent.com/Ton-O/meta-driver-library/main/HA-ODIDO.json",
       "iconLocation":   "https://raw.githubusercontent.com/Ton-O/meta-driver-library/main/pics/Odido.jpeg"
+    },    
+    {
+      "name": "32PFL5206-broadlink",
+      "author": "TonO",
+      "description": "An example on how to control TV via custom broadlink",
+      "version": 2,
+      "driverLocation": "https://raw.githubusercontent.com/Ton-O/meta-driver-library/main/32PFL5206H.json",
+      "iconLocation":   "https://raw.githubusercontent.com/Ton-O/meta-driver-library/main/pics/BroadlinkTV.jpg"
     },        
     {
       "name": "meta-core",
