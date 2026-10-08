@@ -40,6 +40,18 @@ const TIMEOUT = 30;
 const TICK = 32.84;
 var devs;
 var dev;
+
+const State = Object.freeze({
+  init: 'init',
+  discover: 'discover',
+  xmit: 'xmit',
+  xmitGC: 'xmitGC',
+  GCToBroad: 'GCToBroad',
+  BroadtoGC: 'BroadtoGC',
+  LirctoGC: 'LirctoGC',
+  rcve: 'rcve'
+});
+
 function shutdown_server() {
     // Node.js equivalent voor Werkzeug shutdown
     process.exit();
@@ -273,52 +285,7 @@ function Clean_Broadlink_Cache(maxAgeMs = 12 * 60 * 60 * 1000) {
         metaLog({type: LOG_TYPE.VERBOSE, content: `Cache cleaning completed. Removed ${removedCount} stale device(s).`});
 }
 
-
-// --- Routes ---
-
-app.get('/', (req, res) => res.send('Server Works!'));
-
-app.get('/QUIT', (req, res) => {
-    metaLog({type:LOG_TYPE.VERBOSE, content:"Received shutdown request"})
-    res.send('Server shutting down...');
-    shutdown_server();
-});
-
-app.get('/init', async (req, res) => {
-    // [["--type 0x520d --host 192.168.73.47 --mac e870729eab7a","--type 0x6539 --host 192.168.73.36 --mac a043b0542a78","--type 0x653c --host 192.168.73.34 --mac a043b031f30d"]]
-    //  [{"host":{"address":"192.168.73.47","family":"IPv4","port":80,"size":128},"mac":[232,112,114,158,171,122],"deviceType":21005,"model":"RM4C mini","manufacturer":"Broadlink","name":"NEEO-Beta","isLocked":false,"id":[0,0,0,0],"key":[9,118,40,52,63,233,158,35,118,92,21,19,172,207,139,2],"count":60487,"iv":{"type":"Buffer","data":[86,46,23,153,109,9,61,40,221,179,186,105,90,46,111,88]},"TYPE":"RM4MINI","socket":{"_events":{},"_eventsCount":0,"type":"udp4"}},{"host":{"address":"192.168.73.36","family":"IPv4","port":80,"size":128},"mac":[160,67,176,84,42,120],"deviceType":25913,"model":"RM4C mini","manufacturer":"Broadlink","name":"智能遥控","isLocked":false,"id":[0,0,0,0],"key":[9,118,40,52,63,233,158,35,118,92,21,19,172,207,139,2],"count":12266,"iv":{"type":"Buffer","data":[86,46,23,153,109,9,61,40,221,179,186,105,90,46,111,88]},"TYPE":"RM4MINI","socket":{"_events":{},"_eventsCount":0,"type":"udp4"}},{"host":{"address":"192.168.73.34","family":"IPv4","port":80,"size":128},"mac":[160,67,176,49,243,13],"deviceType":25916,"model":"RM4 pro","manufacturer":"Broadlink","name":"Wi-Fi pro","isLocked":false,"id":[0,0,0,0],"key":[9,118,40,52,63,233,158,35,118,92,21,19,172,207,139,2],"count":58771,"iv":{"type":"Buffer","data":[86,46,23,153,109,9,61,40,221,179,186,105,90,46,111,88]},"TYPE":"RM4MINI","socket":{"_events":{},"_eventsCount":0,"type":"udp4"}}] 
-    metaLog({type:LOG_TYPE.VERBOSE, content:"Broadlink_Driver: connecting-request"})
-    await Connect_Broadlink(req);  
-    metaLog({type:LOG_TYPE.DEBUG, content:"Broadlink_Driver discover",params:devs})
-    res.send(devs);
-});
-
-app.get('/discover', async (req, res) => {
-    metaLog({type:LOG_TYPE.VERBOSE, content:"Broadlink_Driver: discover all devices"})
-    await Discover_Broadlinks(15000)
-    res.json(devs);
-});
-
-app.get("/OverrideLogLevel", async (req, res, next) => {
-        let logLevel = req.query.logLevel
-        metaLog({type:LOG_TYPE.INFO, content:"Setting loglevel for BroadLinkManager through get to"+logLevel})
-        OverrideLoglevel(logLevel,logModule);
-        res.json({"Type": "OverrideLogLevel", "Status": "Processed"});        
-    });
-
-
-app.get('/xmit', async (req, res) => {
-    metaLog({type:LOG_TYPE.VERBOSE, content:"Broadlink_Driver: xmit-request"})
-    await Connect_Broadlink(req);  
-    let data = req.query.stream;
-    metaLog({type:LOG_TYPE.VERBOSE, content:"Broadlink_Driver: Sending data" + data})
-    await dev.sendData(Buffer.from(data, 'hex'));
-    res.send('OK');
-});
-
-let sendingQueue = Promise.resolve(); // Starting point of queue
-
-app.get('/xmitGC', async (req, res) => {
+async function xmitIR(TheAction,req,res) {
     let result = "ok";
     let mac = req.query.mac;
     if (mac == undefined)
@@ -336,8 +303,26 @@ app.get('/xmitGC', async (req, res) => {
 
             let data = req.query.stream;
             metaLog({type: LOG_TYPE.VERBOSE, content: "Broadlink_Driver: GC data " + data});
-            
-            let ConvData = Convert_GC_to_Broadlink(data);  
+            let ConvData;
+            if (TheAction === State.xmitGC) {
+                ConvData = Convert_GC_to_Broadlink(data);  
+            }
+            else 
+                if (TheAction === State.GCToBroad)
+                    {ConvData = Convert_GC_to_Broadlink(Stream); 
+                    return ConvData
+                    }
+                else 
+                    if (TheAction === State.BroadtoGC)
+                        {ConvData = Convert_GC_to_Broadlink(data); 
+                        return ConvData
+                        }
+                    else
+                        if (TheAction === State.LirctoGC)
+                            {ConvData = lirc2gc(data);
+                            return ConvData;
+                            }
+
             metaLog({type: LOG_TYPE.VERBOSE, content: "Broadlink_Driver: Conversion done, sending this data " + ConvData});
             
             result = await activeDev.sendData(Buffer.from(ConvData, 'hex'));
@@ -354,8 +339,68 @@ app.get('/xmitGC', async (req, res) => {
     // Wait for request to be completed, then send response
     await sendingQueue;
     res.send(result);
+}
+
+// --- Routes ---
+
+app.get('/', (req, res) => res.send('Server Works!'));
+
+app.get('/QUIT', (req, res) => {
+    metaLog({type:LOG_TYPE.VERBOSE, content:"Received shutdown request"})
+    res.send('Server shutting down...');
+    shutdown_server();
 });
-app.get('/GCToBroad', (req, res) => {
+
+app.get('/init', async (req, res) => {
+    // [["--type 0x520d --host 192.168.73.47 --mac e870729eab7a","--type 0x6539 --host 192.168.73.36 --mac a043b0542a78","--type 0x653c --host 192.168.73.34 --mac a043b031f30d"]]
+    //  [{"host":{"address":"192.168.73.47","family":"IPv4","port":80,"size":128},"mac":[232,112,114,158,171,122],"deviceType":21005,"model":"RM4C mini","manufacturer":"Broadlink","name":"NEEO-Beta","isLocked":false,"id":[0,0,0,0],"key":[9,118,40,52,63,233,158,35,118,92,21,19,172,207,139,2],"count":60487,"iv":{"type":"Buffer","data":[86,46,23,153,109,9,61,40,221,179,186,105,90,46,111,88]},"TYPE":"RM4MINI","socket":{"_events":{},"_eventsCount":0,"type":"udp4"}},{"host":{"address":"192.168.73.36","family":"IPv4","port":80,"size":128},"mac":[160,67,176,84,42,120],"deviceType":25913,"model":"RM4C mini","manufacturer":"Broadlink","name":"智能遥控","isLocked":false,"id":[0,0,0,0],"key":[9,118,40,52,63,233,158,35,118,92,21,19,172,207,139,2],"count":12266,"iv":{"type":"Buffer","data":[86,46,23,153,109,9,61,40,221,179,186,105,90,46,111,88]},"TYPE":"RM4MINI","socket":{"_events":{},"_eventsCount":0,"type":"udp4"}},{"host":{"address":"192.168.73.34","family":"IPv4","port":80,"size":128},"mac":[160,67,176,49,243,13],"deviceType":25916,"model":"RM4 pro","manufacturer":"Broadlink","name":"Wi-Fi pro","isLocked":false,"id":[0,0,0,0],"key":[9,118,40,52,63,233,158,35,118,92,21,19,172,207,139,2],"count":58771,"iv":{"type":"Buffer","data":[86,46,23,153,109,9,61,40,221,179,186,105,90,46,111,88]},"TYPE":"RM4MINI","socket":{"_events":{},"_eventsCount":0,"type":"udp4"}}] 
+
+    let currentState = State.init;
+
+
+    metaLog({type:LOG_TYPE.VERBOSE, content:"Broadlink_Driver: connecting-request"})
+    await Connect_Broadlink(req);  
+    metaLog({type:LOG_TYPE.DEBUG, content:"Broadlink_Driver discover",params:devs})
+    res.send(devs);
+});
+
+app.get('/discover', async (req, res) => {
+    metaLog({type:LOG_TYPE.VERBOSE, content:"Broadlink_Driver: reply all discovered devices requested"})
+    res.json(devs);
+});
+
+app.get("/OverrideLogLevel", async (req, res, next) => {
+        let logLevel = req.query.logLevel
+        metaLog({type:LOG_TYPE.INFO, content:"Setting loglevel for BroadLinkManager through get to"+logLevel})
+        OverrideLoglevel(logLevel,logModule);
+        res.json({"Type": "OverrideLogLevel", "Status": "Processed"});        
+    });
+
+
+app.get('/xmit', async (req, res) => {
+    metaLog({type:LOG_TYPE.VERBOSE, content:"Broadlink_Driver: xmit-request"})
+    res.send(await xmitIR(State.xmitGC,req,res) )
+    return;
+    await Connect_Broadlink(req);  
+    let data = req.query.stream;
+    metaLog({type:LOG_TYPE.VERBOSE, content:"Broadlink_Driver: Sending data" + data})
+    await dev.sendData(Buffer.from(data, 'hex'));
+    res.send('OK');
+});
+
+let sendingQueue = Promise.resolve(); // Starting point of queue
+
+app.get('/xmitGC', async (req, res) => {
+    let result = "ok";
+    let mac = req.query.mac;
+  /*  if (mac == undefined)
+        mac = req.query.ip*/
+    metaLog({type: LOG_TYPE.VERBOSE, content: "Broadlink_Driver: Send GC requested for " + mac});
+    res.send(await xmitIR(State.xmitGC,req,res) )
+
+//    res.send(result);
+});
+app.get('/GCToBroad', async (req, res) => {
     let Stream = req.query.stream;
     metaLog({type:LOG_TYPE.VERBOSE, content:"Broadlink_Driver: Conversion GC to Broadlink requested"})
     let ConvData = Convert_GC_to_Broadlink(Stream);    
@@ -363,7 +408,7 @@ app.get('/GCToBroad', (req, res) => {
     res.send(ConvData);
 });
 
-app.get('/BroadtoGC', (req, res) => {
+app.get('/BroadtoGC', async (req, res) => {
     metaLog({type:LOG_TYPE.VERBOSE, content:"Broadlink_Driver: Conversion Broadlink to GC requested"})
     let data = req.query.stream;
     let ConvData = Convert_GC_to_Broadlink(data); 
@@ -371,7 +416,7 @@ app.get('/BroadtoGC', (req, res) => {
     res.send(ConvData);
 });
 
-app.get('/LirctoGC', (req, res) => {
+app.get('/LirctoGC', async (req, res) => {
     metaLog({type:LOG_TYPE.VERBOSE, content:"Broadlink_Driver: Conversion LIRC to GC requested"})
     let data = req.query.stream.replace(/'/g, '');
     let ConvData = lirc2gc(data);

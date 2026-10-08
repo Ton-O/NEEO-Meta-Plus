@@ -2376,7 +2376,7 @@ class broadlinkProcessor {
       let BroadlinkHost=params.command.connection;
       let BroadlinkFunction=params.command.function ? params.command.function:"xmitGC" // if not specified, use generic "xmitgc" function
       let stream=params.command.message;
-      let BroadlinkProcessorCommand=BroadlinkProcessorHost+"/"+BroadlinkFunction+"?host="+BroadlinkHost+"&stream="+stream
+      let BroadlinkProcessorCommand=BroadlinkProcessorHost+"/"+BroadlinkFunction+"?mac="+BroadlinkHost+"&stream="+stream
       metaLog({type:LOG_TYPE.VERBOSE, content:'Execute this broadlink command '+BroadlinkProcessorCommand});
       got(BroadlinkProcessorCommand)
           .then(function (result) {
