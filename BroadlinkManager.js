@@ -287,7 +287,7 @@ function Clean_Broadlink_Cache(maxAgeMs = 12 * 60 * 60 * 1000) {
 
 async function xmitIR(TheAction,req,res) {
     let result = "ok";
-    let mac = req.query.mac;
+    let mac = req.query.mac.toUppercase();
     if (mac == undefined)
         mac = req.query.ip
     metaLog({type: LOG_TYPE.VERBOSE, content: "Broadlink_Driver: Send GC requested for " + mac});
