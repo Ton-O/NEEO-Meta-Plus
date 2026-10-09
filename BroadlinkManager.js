@@ -133,13 +133,13 @@ function Convert_Broadlink_to_GC(stream) {
     let result = lirc2gc(durations.map(d => d.toString(16)).join(' '));
     return result;
 }
-async function CheckDevs(mac)
+async function CheckDevs(mac,ip)
 {
     for(let ind=0;ind<devs.length;ind++)
-    if (devs[ind].mac == mac)
+    if (devs[ind].mac == mac || devs[ind].host.address == ip)
     {   dev=devs[ind];
         metaLog({type:LOG_TYPE.VERBOSE, content:"Broadlink device in cache:"+dev.mac})
-        if (dev.autenticated!=true)
+        if (dev.authenticated!=true)
         {   metaLog({type:LOG_TYPE.DEBUG, content:"AUTH required"})
             await    dev.auth()
             metaLog({type:LOG_TYPE.DEBUG, content:"AUTH succeeded"})
@@ -180,13 +180,8 @@ async function Discover_Broadlinks(timeout = 2500) {
                             return oldKey === newKey;
                         });
 
-                        if (existingIndex !== -1) {
-                            // AuthL: if olddevice is already authenticated, keep that state
-                            if (devs[existingIndex].authenticated === true) {
-                                newDev.authenticated = true;
-                            }
-                            
-                            // replace old entry by new one (for timeout-check)
+                        if (existingIndex !== -1) {                            
+                            // replace old entry by parts of the new one (for timeout-check and to update IP (host.address in Broadlink))
                             devs[existingIndex].host = newDev.host;
                             metaLog({type: LOG_TYPE.DEBUG, content: `Broadlink cache updated for device: ${newDev.mac}`});
                         } else {
@@ -223,38 +218,26 @@ async function Discover_Broadlinks(timeout = 2500) {
     return discoveryPromise;
 }
 
-async function Connect_Broadlink(req,timeout = 2500) {
+async function Connect_Broadlink(req,TheAction,timeout = 2500) {
 //    let host = req.query.host;
     let mac = req.query.mac;
+    let ip = req.query.ip;
+    metaLog({type: LOG_TYPE.VERBOSE, content: "Broadlink_Driver: "+TheAction+" requested for " + mac + "/" + ip});
     if (devs == undefined) {
         metaLog({type: LOG_TYPE.VERBOSE, content: "Broadlink device-list empty; discovering now"});
         await Discover_Broadlinks(timeout); 
     } else {
         for (let ind = 0; ind < devs.length; ind++) 
-            if (devs[ind].mac == mac) 
-                {metaLog({type: LOG_TYPE.DEBUG, content: "Reuse Broadlink device: " + devs[ind].mac});
-                return await CheckDevs(mac);
-                }
+            if (devs[ind].mac == mac || devs[ind].host.address == ip) 
+                return await CheckDevs(mac,ip);
         await Discover_Broadlinks(timeout); // Try to find the device again
     }
-    
-    metaLog({type: LOG_TYPE.VERBOSE, content: "Broadlink device not in cache/list; checking now " + mac});    
-    return await CheckDevs(mac);
-}
-
-async function CheckDevs(mac) {
-    for(let ind=0; ind < devs.length; ind++) {
-        if (devs[ind].mac == mac) {
-            let localDev = devs[ind]; 
-            if (localDev.authenticated != true) {   
-                await localDev.auth();
-                metaLog({type:LOG_TYPE.DEBUG, content:"AUTH succeeded"});
-                devs[ind].authenticated = true;
-            }
-            return localDev;
-        }
+    if (TheAction != State.init) {
+        metaLog({type: LOG_TYPE.VERBOSE, content: "Broadlink device not in cache/list; discovering now " + mac + "/" +ip});    
+        return await CheckDevs(mac,ip);
     }
-    return null;
+    else {console.log("returning devs")
+        return(devs);}
 }
 
 function Clean_Broadlink_Cache(maxAgeMs = 12 * 60 * 60 * 1000) {
@@ -287,15 +270,11 @@ function Clean_Broadlink_Cache(maxAgeMs = 12 * 60 * 60 * 1000) {
 
 async function xmitIR(TheAction,req,res) {
     let result = "ok";
-    let mac = req.query.mac.toUppercase();
-    if (mac == undefined)
-        mac = req.query.ip
-    metaLog({type: LOG_TYPE.VERBOSE, content: "Broadlink_Driver: Send GC requested for " + mac});
 
     // Add element to queue
     sendingQueue = sendingQueue.then(async () => {
         try {
-            let activeDev = await Connect_Broadlink(req);  
+            let activeDev = await Connect_Broadlink(req,TheAction);  
             
             if (!activeDev) {
                 throw new Error("Device not found on netwerk");
@@ -355,17 +334,14 @@ app.get('/init', async (req, res) => {
     // [["--type 0x520d --host 192.168.73.47 --mac e870729eab7a","--type 0x6539 --host 192.168.73.36 --mac a043b0542a78","--type 0x653c --host 192.168.73.34 --mac a043b031f30d"]]
     //  [{"host":{"address":"192.168.73.47","family":"IPv4","port":80,"size":128},"mac":[232,112,114,158,171,122],"deviceType":21005,"model":"RM4C mini","manufacturer":"Broadlink","name":"NEEO-Beta","isLocked":false,"id":[0,0,0,0],"key":[9,118,40,52,63,233,158,35,118,92,21,19,172,207,139,2],"count":60487,"iv":{"type":"Buffer","data":[86,46,23,153,109,9,61,40,221,179,186,105,90,46,111,88]},"TYPE":"RM4MINI","socket":{"_events":{},"_eventsCount":0,"type":"udp4"}},{"host":{"address":"192.168.73.36","family":"IPv4","port":80,"size":128},"mac":[160,67,176,84,42,120],"deviceType":25913,"model":"RM4C mini","manufacturer":"Broadlink","name":"智能遥控","isLocked":false,"id":[0,0,0,0],"key":[9,118,40,52,63,233,158,35,118,92,21,19,172,207,139,2],"count":12266,"iv":{"type":"Buffer","data":[86,46,23,153,109,9,61,40,221,179,186,105,90,46,111,88]},"TYPE":"RM4MINI","socket":{"_events":{},"_eventsCount":0,"type":"udp4"}},{"host":{"address":"192.168.73.34","family":"IPv4","port":80,"size":128},"mac":[160,67,176,49,243,13],"deviceType":25916,"model":"RM4 pro","manufacturer":"Broadlink","name":"Wi-Fi pro","isLocked":false,"id":[0,0,0,0],"key":[9,118,40,52,63,233,158,35,118,92,21,19,172,207,139,2],"count":58771,"iv":{"type":"Buffer","data":[86,46,23,153,109,9,61,40,221,179,186,105,90,46,111,88]},"TYPE":"RM4MINI","socket":{"_events":{},"_eventsCount":0,"type":"udp4"}}] 
 
-    let currentState = State.init;
-
-
     metaLog({type:LOG_TYPE.VERBOSE, content:"Broadlink_Driver: connecting-request"})
-    await Connect_Broadlink(req);  
-    metaLog({type:LOG_TYPE.DEBUG, content:"Broadlink_Driver discover",params:devs})
+    await Connect_Broadlink(req,State.init);  
     res.send(devs);
 });
 
 app.get('/discover', async (req, res) => {
     metaLog({type:LOG_TYPE.VERBOSE, content:"Broadlink_Driver: reply all discovered devices requested"})
+    metaLog({type:LOG_TYPE.DEBUG, content:devs})
     res.json(devs);
 });
 
@@ -378,28 +354,15 @@ app.get("/OverrideLogLevel", async (req, res, next) => {
 
 
 app.get('/xmit', async (req, res) => {
-    metaLog({type:LOG_TYPE.VERBOSE, content:"Broadlink_Driver: xmit-request"})
-    res.send(await xmitIR(State.xmitGC,req,res) )
-    return;
-    await Connect_Broadlink(req);  
-    let data = req.query.stream;
-    metaLog({type:LOG_TYPE.VERBOSE, content:"Broadlink_Driver: Sending data" + data})
-    await dev.sendData(Buffer.from(data, 'hex'));
-    res.send('OK');
+    res.send(await xmitIR(State.xmit,req,res) )
 });
 
 let sendingQueue = Promise.resolve(); // Starting point of queue
 
 app.get('/xmitGC', async (req, res) => {
-    let result = "ok";
-    let mac = req.query.mac;
-  /*  if (mac == undefined)
-        mac = req.query.ip*/
-    metaLog({type: LOG_TYPE.VERBOSE, content: "Broadlink_Driver: Send GC requested for " + mac});
     res.send(await xmitIR(State.xmitGC,req,res) )
-
-//    res.send(result);
 });
+
 app.get('/GCToBroad', async (req, res) => {
     let Stream = req.query.stream;
     metaLog({type:LOG_TYPE.VERBOSE, content:"Broadlink_Driver: Conversion GC to Broadlink requested"})
@@ -425,7 +388,7 @@ app.get('/LirctoGC', async (req, res) => {
 
 app.get('/rcve', async (req, res) => {
     metaLog({type:LOG_TYPE.VERBOSE, content:"Broadlink_Driver: Learning requested"})
-    await Connect_Broadlink(req);
+    await Connect_Broadlink(req,State.rcve);
     metaLog({type:LOG_TYPE.VERBOSE, content:"Broadlink_Driver: Learning for " + TIMEOUT + "ms"})
     await dev.enterLearning();
     let start = Date.now() / 1000;
@@ -488,5 +451,3 @@ async function main() {
 }
 
 main();
-
-    
