@@ -220,7 +220,7 @@ async function Discover_Broadlinks(timeout = 2500) {
 
 async function Connect_Broadlink(req,TheAction,timeout = 2500) {
 //    let host = req.query.host;
-    let mac = req.query.mac;
+    let mac = req.query.mac.toUpperCase();
     let ip = req.query.ip;
     metaLog({type: LOG_TYPE.VERBOSE, content: "Broadlink_Driver: "+TheAction+" requested for " + mac + "/" + ip});
     if (devs == undefined) {
