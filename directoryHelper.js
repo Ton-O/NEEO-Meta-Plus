@@ -128,10 +128,10 @@ class directoryHelper {
 
         }// Ton-O  Below seems to be a bug in directoryhandler: calling evalnext while handling an itemaction
         //         it may result in random jumps based on not propery initialised commandsetIndex
-        if (commandSetIndex<=self.feederH[self.currentFeederIndex].commandset.length) {
+        if (commandSetIndex<self.feederH[self.currentFeederIndex].commandset.length) {
            self.evalNext(deviceId, self.feederH[self.currentFeederIndex].commandset[commandSetIndex].evalnext, PastQueryValue, params.browseIdentifier);//assign the good value to know the feeder
           }else { 
-            metaLog({type:LOG_TYPE.ERROR, content:'BUG commandSetIndex out of range: ' + JSON.stringify(params), deviceId:deviceId});
+            metaLog({type:LOG_TYPE.VERBOSE, content:'BUG commandSetIndex out of range: ' + JSON.stringify(params), deviceId:deviceId});
           }
         // Ton-o keyboardsearch <----- expose variable; need to see if we still want to do this, or by evalwrite
         if (needSpecialcare.length > 1) { // Store result of Search into variable: save it and expose it
