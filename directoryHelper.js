@@ -99,10 +99,10 @@ class directoryHelper {
         }
          // End Ton-O
         let PastQueryId = params.browseIdentifier.split("$PastQueryId=")[1];
-        if (self.actionId != undefined) {
-          PastQueryId = self.actionId;
-          self.actionId = undefined;          
-        } 
+        // if (self.actionId != undefined) {
+        //   PastQueryId = self.actionId;
+        //   self.actionId = undefined;          
+        // } 
         // Ton-o keyboardsearch <-----  Normally Pastqueryvalue is filled from cachelist, except for keyboardsearch
         let PastQueryValue;  // Pastqueryvalue will be filled with either:
         if (needSpecialcare.length>1) {   // The result of the keyboard search so far
