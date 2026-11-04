@@ -2240,7 +2240,7 @@ class mqttProcessor {
       // Here, we need to add handler for ip-address of mqtt-server, if provided; else 'mqtt://' + settings.mqtt
       if (typeof (params.command) == 'string') { params.command = JSON.parse(params.command); }
       connectionIndex = _this.listenerConnections.findIndex((con) => {return (con.Listenerdescriptor == params.command.connection && con.ListenerName == params.listener.name)});
-      console.log("cn",connectionIndex)
+      //console.log("cn",connectionIndex)
       metaLog({type:LOG_TYPE.VERBOSE, content:'Connection Index:' ,params: connectionIndex});
       }catch(err){console.log(err)}
       let GetThisTopic
