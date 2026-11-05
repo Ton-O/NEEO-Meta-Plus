@@ -1,4 +1,3 @@
-
 const fs = require('fs').promises; 
 const { access } = require('node:fs/promises');
 const path = require ( 'path');
@@ -54,12 +53,11 @@ return new Promise(function (resolve, reject) {
         metaLog({type:LOG_TYPE.ALLWAYS, content:'`replace 10.0.01 with the ip-address of meta, and fill in code that is shown on screen`'});
         Coderequested=true;                 // set signal that we need a secret code (provided via web-interface of this container)
         CodeRequestedForHost=MyHost;
-        }
-    )
+    });
     myAndroidRemote.on('powered', (powered) => {
          globalPowered = powered;
          metaLog({type:LOG_TYPE.DEBUG, content:'Powered:',params: powered});
-     });
+    });
     myAndroidRemote.on('volume', (volume) => {
         metaLog({type:LOG_TYPE.DEBUG, content:'Volume:',params: volume.level});
         metaLog({type:LOG_TYPE.DEBUG, content:'Volume maximum:',params: volume.maximum});
@@ -69,7 +67,7 @@ return new Promise(function (resolve, reject) {
         metaLog({type:LOG_TYPE.DEBUG, content:'Current App:',params: current_app});
     });
     myAndroidRemote.on('error', (error) => {
-        metaLog({type:LOG_TYPE.ERROR, content:'Error:',params: err});
+        metaLog({type:LOG_TYPE.ERROR, content:'Error:',params: error});
     });
     myAndroidRemote.on('unpaired', () => {
         metaLog({type:LOG_TYPE.DEBUG, content:'Unpaired'});
@@ -82,9 +80,9 @@ return new Promise(function (resolve, reject) {
             resolve(myAndroidRemote) // add a short delay before actually using the remote. allows init of android-remote lib
         }, 500);
     });
-    myAndroidRemote.start().then (() => {
-        //myAndroidRemote
-    })
+
+     myAndroidRemote.start();
+
 }
 catch(err) {console.log("Erorr in getSession function:",err)}
   })
@@ -129,28 +127,28 @@ async function HandleDownload(MyType,MyElement,res)
         }
 }
 
-async function FillInCodeRequest(code,thisDevice)
+async function FillInCodeRequest(code, thisDevice)
 {
-    metaLog({type:LOG_TYPE.INFO, content:"Sending code",params: code});
+try {
+    metaLog({type: LOG_TYPE.INFO, content: "Sending code", params: code});
     myAndroidRemote.sendCode(code);
-    metaLog({type:LOG_TYPE.INFO, content:"Need to get new certificate"});
     let NewCert = MyCert;
-    if (NewCert.key.length == 0)  { 
-        metaLog({type:LOG_TYPE.INFO, content:"Need to get new certificate"});
-        NewCert = myAndroidRemote.getCertificate();
-        const theCert = `/opt/meta/.ssh/GoogleCert@${thisDevice}.pem`;
-        const theCertKey = `/opt/meta/.ssh/GoogleKey@${thisDevice}.pem`;
-        metaLog({type:LOG_TYPE.INFO, content:"Saving certificate as",params:theCert});
-        fs.writeFile(theCert,  JSON.stringify(NewCert.cert), (err) =>
-            { if (err)
-                throw err;
-            });  
-        fs.writeFile(theCertKey,    JSON.stringify(NewCert.key), (err) => 
-            {if (err) 
-                throw err;
-            });  
+    metaLog({type: LOG_TYPE.INFO, content: "Need to get new certificate"});
+    NewCert = myAndroidRemote.getCertificate();
+    const theCert = `/opt/meta/.ssh/GoogleCert@${thisDevice}.pem`;
+    const theCertKey = `/opt/meta/.ssh/GoogleKey@${thisDevice}.pem`;
+    metaLog({type: LOG_TYPE.INFO, content: "Saving certificate as", params: theCert});
+    
+    try {
+        await fs.writeFile(theCert, JSON.stringify(NewCert.cert));
+        await fs.writeFile(theCertKey, JSON.stringify(NewCert.key));
+        metaLog({type: LOG_TYPE.INFO, content: "Certificate successfully saved"});
+    } catch (err) {
+        metaLog({type: LOG_TYPE.ERROR, content: "Error saving certificate", params: err});
+        throw err;
     }
-
+}
+    catch(err) {console.log("err in fillincoderequest:",err)}
 }
 
 async function load_file(theCert,thekey)
@@ -159,7 +157,8 @@ async function load_file(theCert,thekey)
     try {    
         await fs.access(theCert, fs.constants.F_OK);
     } catch (err) {
-        metaLog({type:LOG_TYPE.INFO, content:"Certificate "+theCert+ " not found"});
+        metaLog({type:LOG_TYPE.INFO, content:"Certificate "+theCert+ " not found;returning 0"});
+        MyCert = {}
         return 0;
     }
     try {
@@ -170,7 +169,7 @@ async function load_file(theCert,thekey)
 
         MyCert.cert = JSON.parse(certData);
         MyCert.key = JSON.parse(keyData);     
-	metaLog({type:LOG_TYPE.INFO, content:"Loading successfull "+theCert});
+	    metaLog({type:LOG_TYPE.INFO, content:"Loading successfull "+theCert});
         return MyCert;
     } catch (err) {
         metaLog({type:LOG_TYPE.INFO, content:"Error loading "+theCert,params:err});
@@ -179,7 +178,7 @@ async function load_file(theCert,thekey)
 
 }
 
-async function LoadSpecificCert(thisDevice)
+async function loadCertificate(thisDevice)
 { try {
     const Part1 = "/opt/meta/.ssh/Google"
     var   Part2C = "Cert"
@@ -199,9 +198,12 @@ async function LoadSpecificCert(thisDevice)
     theCert = Part1+Part2C+Part9
     theKey  = Part1+Part2K+Part9
     metaLog({type:LOG_TYPE.VERBOSE, content:"No specific certificate found, trying to load generic one: ",params:theCert});
-    return await load_file(theCert,theKey)
+    let result = await load_file(theCert,theKey)
+    if (result == 0)
+         result = {}
+    return result
 }
-catch(err) {console.log("Error in LoadSpecificCert function:", err)}
+catch(err) {console.log("Error in loadCertificate function:", err)}
  }
 async function Handle_NewSecretCode(Newcode) 
 {let MyMessage;
@@ -252,14 +254,14 @@ async function main() {
         let MyResult = await Handle_NewSecretCode(NewCode);
         res.json({"Status": MyResult});        
     });
-    server.get("/api",  (req, res, next) => {
+    server.get("/api", async (req, res, next) => {
         MyHost = req.query.host
         metaLog({type:LOG_TYPE.INFO, content:"GoogleTV API Call for" ,params:MyHost});
-        HandleApi(req,res,next)
+        await HandleApi(req,res,next)
     });
     server.get("/init", async (req, res, next) => { // here we look for a Google-certificate created befiore for this SPECIFIC device.
         try {const parms = { host: MyIP, port: Myport, mac: MyMac } = req.query;
-            const resultaat = await LoadSpecificCert(parms.host);
+            const resultaat = await loadCertificate(parms.host);
             metaLog({type:LOG_TYPE.INFO, content:"Init Connection with" ,params:parms.host});
             res.send("Succesvol uitgevoerd");
         } catch (err) {
@@ -288,9 +290,9 @@ async function main() {
             res.json({"Status": "fail",reason: "Type of object not given"});        
         }
     });
-    server.post("/api",  (req, res, next) => {
+    server.post("/api", async (req, res, next) => {
         MyHost = req.body.host
-         HandleApi(req,res,next)
+         await HandleApi(req,res,next)
     });
 
 }
@@ -327,39 +329,43 @@ async function sendPower(desiredState) {
 };
 
 async function sendKey(key) {
-    metaLog({type:LOG_TYPE.VERBOSE, content:"Send key "+key,params:RemoteKeyCode[key]});
-    GetConnection(MyHost)
-    .catch(error => metaLog({type:LOG_TYPE.VERBOSE, content:"We do not have a connection setup yet",params:error}))
-    .then  ((androidRemote) => {metaLog({type:LOG_TYPE.DEBUG, content:'Got connection;SendKey'});
-        androidRemote.sendKey(RemoteKeyCode[key], RemoteDirection.SHORT)
-	metaLog({type:LOG_TYPE.VERBOSE, content:"Send key done "+key,params:RemoteKeyCode[key]});
-    })
-};
+    metaLog({type: LOG_TYPE.VERBOSE, content: "Send key " + key, params: RemoteKeyCode[key]});
+    
+    try {
+        const androidRemote = await GetConnection(MyHost);
+        metaLog({type: LOG_TYPE.DEBUG, content: 'Got connection; SendKey',params:key});
+        androidRemote.sendKey(RemoteKeyCode[key], RemoteDirection.SHORT);
+        metaLog({type: LOG_TYPE.VERBOSE, content: "Send key done " + key, params: RemoteKeyCode[key]});
+        
+    } catch (error) {
+        metaLog({type: LOG_TYPE.ERROR, content: "Failed to get connection or send key", params: error});
+    }
+}
 
 async function sendAppLink(AppLink) {
-    metaLog({type:LOG_TYPE.VERBOSE, content:"Send appLink: ",params:AppLink});
 
+    metaLog({type:LOG_TYPE.VERBOSE, content:"Send appLink: ",params:AppLink});
     GetConnection(MyHost).then  ((androidRemote) => {
         androidRemote.sendAppLink(AppLink);
     })
 };
 
- function HandleApi(req,res,next)
-{
+async function HandleApi(req,res,next)
+{ try{
     switch(req.body.action){
             case 'sendKey':
-                sendKey(req.body.key);
+                await sendKey(req.body.key);
                 break;						
             case 'sendAction':
                 metaLog({type:LOG_TYPE.DEBUG, content:"Received action-request ",params:req.body.theAction});
-                sendKey(req.body.theAction );
+                await sendKey(req.body.theAction );
                 break;            
             case 'sendPower':
                 metaLog({type:LOG_TYPE.DEBUG, content:"Received power-request ",params:req.body.DesiredState});
-                sendPower(req.body.DesiredState);
+                await sendPower(req.body.DesiredState);
                 break;            
             case 'sendAppLink':
-                sendAppLink(req.body.AppLink);
+                await sendAppLink(req.body.AppLink);
                 break;            
                 // am start -a android.intent.action.VIEW -n org.xbmc.kodi/.Splash
             default:
@@ -367,20 +373,25 @@ async function sendAppLink(AppLink) {
                 return;
                 break;
     }
+}
+catch(err) {console.log("handleapi error:", err)}
     res.json({"Status": "Ok"});
 }
 
- function GetConnection(MyHost) {
-  return new Promise(async function (resolve, reject) {
-
+async function GetConnection(MyHost) {
+    return new Promise(async function (resolve, reject) {
+try {
     metaLog({type:LOG_TYPE.DEBUG, content:"Checking availability of connection",params:MyHost});
     let connectionIndex = Connections.findIndex((con) => {return con.Host == MyHost});
     if  (connectionIndex < 0) {
         metaLog({type:LOG_TYPE.DEBUG, content:"Connection not yet created, doing now for "+MyHost});
-        //await LoadSpecificCert(MyHost);
-    const resultaat = await LoadSpecificCert(MyHost);
+        //await loadCertificate(MyHost);
 
-        getSession(MyHost,MyCert).then ((Connection) => { 
+        const resultaat = await loadCertificate(MyHost);
+        metaLog({type:LOG_TYPE.DEBUG, content:"LoadCertificate returned", resultaat});
+    if (resultaat == "") resultaat = {}
+        getSession(MyHost,MyCert).then ((Connection) => {     metaLog({type:LOG_TYPE.DEBUG, content:"getsession returned"});
+
                 GotSession(Connection);
                 myAndroidRemote = Connection;
                 resolve(Connection); 
@@ -394,8 +405,12 @@ async function sendAppLink(AppLink) {
         // metaLog({type:LOG_TYPE.DEBUG, content:"myAndroidRemote",params:myAndroidRemote});
         resolve(myAndroidRemote)
     }
+    }
+catch(err){console.log(err)}
+
     })
- }
+
+}
 function GotSession(Connection) {
     myAndroidRemote = Connection 
      
