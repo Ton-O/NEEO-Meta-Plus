@@ -2479,16 +2479,22 @@ class avahiProcessor {
                     address:   fields[7],
                     port:      fields[8],
                     txt:       fields[9],
-                    mac:       getMacAddress(fields[7]) // <--- MAC-address added (lookup via arp-table)                
+                    ip:       fields[7]
                 };
-                let regex =  RegExp(params.command);
-                if (regex.test(service.type)) 
-                { const isDuplicate = Services.some(s => s.name === service.name &&s.mac === service.mac);
-                  if (!isDuplicate) {
-                    metaLog({type:LOG_TYPE.DEBUG, content:'Service ' + params.command + ' found: '+ service.hostname})
-                    Services.push(service);
+                if (service.ip.length>=7||ip.length<=15) 
+                { service.mac =   getMacAddress(service.ip) // <--- MAC-address added (lookup via arp-table)                
+                  //console.log(service.name,service.address)
+                  let regex =  RegExp(params.command);
+                  if (regex.test(service.type)) 
+                  { const isDuplicate = Services.some(s => s.name === service.name &&s.mac === service.mac);
+                    if (!isDuplicate) {
+                      metaLog({type:LOG_TYPE.DEBUG, content:'Service ' + params.command + ' found: '+ service.hostname})
+                      Services.push(service);
+                    }
                   }
                 }
+                else
+                  metaLog({type:LOG_TYPE.DEBUG, content:"skipping IPV6 mac",params:service.ip})
               };
           });
         });
