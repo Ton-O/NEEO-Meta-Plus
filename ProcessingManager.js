@@ -1766,7 +1766,7 @@ class cliProcessor {
     metaLog({type:LOG_TYPE.VERBOSE, content:"CLIProcessor : ",params:params});
     return new Promise(function (resolve, reject) {
       try {
-        exec(params.command, (stdout, stderr) => {
+        exec(params.command, (error, stdout, stderr) => {
           metaLog({type:LOG_TYPE.VERBOSE, content:"CLI done"});
           if (stdout) {
             metaLog({type:LOG_TYPE.DEBUG, content:"CLI stdout:",params:stdout });
