@@ -80,9 +80,9 @@ class directoryHelper {
       var needSpecialcare = "";
       self.keybardBuffer = self.controller.vault.readVariables("$KEYBOARDSEARCH", deviceId)
       if (params.browseIdentifier != undefined && params.browseIdentifier != '') { //case where a directory was selected in the list
-        //Take the good feeder:
-        //Take the good commandset:
-        
+        //Take the correct feeder:
+        //Take the correct commandset:
+        metaLog({type:LOG_TYPE.DEBUG, content:"Return browsing directory"+ self.feederH[self.currentFeederIndex].name+"/"+self.feederH[self.currentFeederIndex].label, deviceId:deviceId});
         // But first!!! check to see if we are handling a keyboard-request (save the searchvalue from browse identifier)
           needSpecialcare = params.browseIdentifier.split("$SearchID=");
         if (needSpecialcare.length > 1) { // yes
@@ -99,7 +99,7 @@ class directoryHelper {
         }
          // End Ton-O
         let PastQueryId = params.browseIdentifier.split("$PastQueryId=")[1];
-        if (self.actionId != undefined) {//console.log("Overriding pastQueryId",PastQueryId,"with",self.actionId)
+        if (self.actionId != undefined) {
             PastQueryId = self.actionId;
             self.actionId = undefined;          
         } 
@@ -129,30 +129,33 @@ class directoryHelper {
         }// Ton-O  Below seems to be a bug in directoryhandler: calling evalnext while handling an itemaction
         //         it may result in random jumps based on not propery initialised commandsetIndex
         if (commandSetIndex<self.feederH[self.currentFeederIndex].commandset.length) {
-           self.evalNext(deviceId, self.feederH[self.currentFeederIndex].commandset[commandSetIndex].evalnext, PastQueryValue, params.browseIdentifier);//assign the good value to know the feeder
+          self.evalNext(deviceId, self.feederH[self.currentFeederIndex].commandset[commandSetIndex].evalnext, PastQueryValue, params.browseIdentifier);//assign the correct value to know the feeder
+          if (self.currentFeederIndex != undefined)
+           try {
+            metaLog({type:LOG_TYPE.VERBOSE, content:"evalNext requested to: "+ self.feederH[self.currentFeederIndex].name, deviceId:deviceId});
+           } catch(err) {console.log(err)}
           }else { 
             metaLog({type:LOG_TYPE.VERBOSE, content:'BUG commandSetIndex out of range: ' + JSON.stringify(params), deviceId:deviceId});
           }
+
         // Ton-o keyboardsearch <----- expose variable; need to see if we still want to do this, or by evalwrite
         if (needSpecialcare.length > 1) { // Store result of Search into variable: save it and expose it
           self.controller.vault.writeVariable("KEYBOARDSEARCH", self.keyboardBuffer, deviceId);
         }
       }
       else {
-        //console.log("navigating else branch");
+        
         if (params.history != undefined && params.history.length>0 && params.offset==0 && self.previousOffset == 0) {//case where we browse backward
+          
           self.currentFeederIndex = self.browseHistory[params.history.length];
           if (self.currentFeederIndex==undefined)
             self.currentFeederIndex = 0;
           metaLog({type:LOG_TYPE.VERBOSE, content:'current feeder ' + self.currentFeederIndex, deviceId:deviceId});
         }
-        else if ( params.offset != undefined && params.offset>0)  {
-          //console.log("offset > 0")
+        else if ( params.offset != undefined && params.offset>0)  
           self.previousOffset = params.offset;
-        }
         else if ( params.offset != undefined && params.offset==0 && self.previousOffset > 0) //we were scrolling and get back to begining of list either by up scroll or back button
-          {//console.log("Refresh list by user");
-            self.previousOffset = 0;}
+            self.previousOffset = 0;
         else {
           //console.log("last resort")
           self.currentFeederIndex = 0 
@@ -166,6 +169,7 @@ class directoryHelper {
       }
 
       self.actionId = undefined;          
+      // below we will populate the list to browse]
       self.fetchCurrentList(deviceId, self.feederH[self.currentFeederIndex], params)
           .then((list) => {resolve(list);})
           .catch((err) => { reject(err); });
@@ -175,7 +179,7 @@ class directoryHelper {
 
     this.fetchCurrentList = function (deviceId, allconfigs, params) {
       // This function processes all the entries retrieved and creates directory-enmtries from them 
-      metaLog({type:LOG_TYPE.VERBOSE, content:"params: " + JSON.stringify(params) + " - browseIdentifier: " + params.browseIdentifier + " - actionIdentifier: " + params.actionIdentifier + " - current feeder: " + self.currentFeederIndex, deviceId:deviceId});
+      metaLog({type:LOG_TYPE.VERBOSE, content:"fetchCurrentList params: " + JSON.stringify(params) + " - browseIdentifier: " + params.browseIdentifier + " - actionIdentifier: " + params.actionIdentifier + " - current feeder: " + self.currentFeederIndex, deviceId:deviceId});
       self.cacheList = [];
       return new Promise(function (resolve, reject) {
 //        self.currentCommandResult = [];//initialise as new commands will be done now.
@@ -186,7 +190,6 @@ class directoryHelper {
         try {
            
           self.fillTheList(deviceId, allconfigs, params, 0, 0).then(() => {//self.cacheList, allconfigs, params, indentCommand
-            metaLog({type:LOG_TYPE.VERBOSE, content:"params: " + JSON.stringify(params) + " - browseIdentifier: " + params.browseIdentifier + " - actionIdentifier: " + params.actionIdentifier + " - current feeder: " + self.currentFeederIndex, deviceId:deviceId});
             //Feed the neeo list
             self.ResultItems = []
             // End search
@@ -196,7 +199,6 @@ class directoryHelper {
             var NextEntry;
             var reLoop = false;
             var inBrowseList = [] // Array is a temp cache to eliminate duplicate entries with keyboardsearch
-
             if (self.cacheList.length > 0&&self.cacheList[0].itemtype == 'keyboardsearch')  { //Extra stage is only required if we have a keyboardsearch 
               //console.log("NewKeyboardSearch");
               try {
@@ -259,7 +261,7 @@ class directoryHelper {
             // populate the directory as usual from cachelist, except for keyboard, we then use ResultItems
             for (i = (params.offset || 0); (i < ((params.offset || 0) + 64) && (i < UsedNrItems)); i++) {
               // Ton-o keyboardsearch done for now 
-              if (self.cacheList[i].itemtype == 'tile') {
+              if (self.cacheList[i].itemtype == 'tile') {try {
                 let tiles = [];
                 tiles.push({
                     thumbnailUri: self.cacheList[i].image,
@@ -276,6 +278,8 @@ class directoryHelper {
                   });
                 }
                 neeoList.addListTiles(tiles);
+              }catch(err){console.log(err)}
+
               }
               else if (self.cacheList[i].itemtype == 'button') {
                 let buttonLine = [];
@@ -361,7 +365,7 @@ class directoryHelper {
             let commandSet = allconfigs.commandset[indentCommand];
             let processedCommand = self.controller.vault.readVariables(commandSet.command, deviceId);
             processedCommand = self.controller.assignTo(BROWSEID, processedCommand, params.browseIdentifier);
-            metaLog({type:LOG_TYPE.DEBUG, content:'Final processed Command:', deviceId:deviceId});
+            metaLog({type:LOG_TYPE.DEBUG, content:'Final command to process:', deviceId:deviceId});
             metaLog({type:LOG_TYPE.DEBUG, content:processedCommand, deviceId:deviceId});
             // Ton-O Keyboardsearch <--- added cache for keyboardsearch, no need for repetitive reads during keyboard-processing
             // need to add expiration for cache
@@ -419,7 +423,7 @@ class directoryHelper {
                 self.controller.queryProcessor(result, commandSet.queryresult, commandSet.type, deviceId).then ((tempResultList) => {
                   let resultList = [];
                   if (commandSet.itemtype == 'csv') {    //for all but static, cache result
-                      console.log("csv, now processing result",tempResultList)
+                      //console.log("csv, now processing result",tempResultList)
                       let bb;
                       if (!Array.isArray(tempResultList)) 
                          bb = tempResultList.split(",")
@@ -491,8 +495,7 @@ class directoryHelper {
     };
 
     this.handleCurrentAction = function (deviceId, params) {
-      metaLog({type:LOG_TYPE.INFO, content:'Handle directory action: ', deviceId:deviceId});
-      metaLog({type:LOG_TYPE.INFO, content:params, deviceId:deviceId});
+      metaLog({type:LOG_TYPE.INFO, content:'Handle directory action: '+params.actionIdentifier, deviceId:deviceId});
 
       return new Promise(function (resolve, reject) {
         //here, the action identifier is the result.  
@@ -539,19 +542,17 @@ class directoryHelper {
             tmpCommandSet = JSON.parse(tmpCommandSet);
   /*          // Ton-O Keyboardsearch <--- Seems to be a bug...... evalnext when handling an itemaction
             if (params.actionIdentifier==undefined||params.actionIdentifier=='') // bug!! don't do evalnext when itemaction is filled in
-              self.evalNext(deviceId, self.feederH[self.currentFeederIndex].commandset[commandSetIndex].evalnext, PastQueryValue, params.browseIdentifier);//assign the good value to know the feeder
+              self.evalNext(deviceId, self.feederH[self.currentFeederIndex].commandset[commandSetIndex].evalnext, PastQueryValue, params.browseIdentifier);//assign the correct value to know the feeder
             else {
               metaLog({type:LOG_TYPE.ERROR, content:"BUG: evalnext with itemaction suppressed:" + params.actionIdentifier, deviceId:deviceId});
               metaLog({type:LOG_TYPE.ERROR, content:self.feederH[self.currentFeederIndex].commandset[commandSetIndex].evalnext, deviceId:deviceId});
             }
             // Ton-O Keyboardsearch <--- Use SearchQueryValue in-stead of PastQueryValue (ResultList vs CacheList)
             */
-            if (needSpecialcare.length > 1) {
+            if (needSpecialcare.length > 1) 
               self.controller.evalWrite(tmpCommandSet.evalwrite, SearchQueryValue.SEARCHPARM, deviceId);
-            }
-            else
+            else 
               self.controller.evalWrite(tmpCommandSet.evalwrite, PastQueryValue, deviceId);
-
           }
           //finding the feeder which is actually an action feeder
           let ActionIndex = self.feederH.findIndex((feed) => {return (feed.name == params.actionIdentifier)});
@@ -583,7 +584,6 @@ class directoryHelper {
           
               self.controller.queryProcessor(resultC, commandSet.queryresult, commandSet.type, deviceId)
               .then ((result) => {
-
                 self.controller.evalWrite(commandSet.evalwrite, result, deviceId);
                 self.controller.evalDo(commandSet.evaldo, result, deviceId); 
 
