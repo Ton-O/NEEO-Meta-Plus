@@ -2440,6 +2440,16 @@ class avahiProcessor {
         metaLog({type:LOG_TYPE.VERBOSE, content:'Avahi process started for'+params.command})
         const avahi = spawn('avahi-browse', ['--all', '--ignore-local', '--resolve', '--terminate', '--parsable']);
         let buffer = '';
+        const unescapeAvahi = (str = '') => 
+            str
+            .replace(/\\\./g, '.')
+            .replace(/\\(\d{3})/g, (_, dec) => String.fromCharCode(Number(dec)));
+
+        const parseTxtRecords = (rawTxt = '') => {
+          const unescaped = unescapeAvahi(rawTxt);
+          const matches = unescaped.matchAll(/"([^=]+)=([^"]*)"/g);
+          return Object.fromEntries(Array.from(matches, ([, key, val]) => [key, val]));
+        };
 
         const getMacAddress = (ipAddress) => {
             if (!ipAddress) return 'unknown';
@@ -2467,27 +2477,35 @@ class avahiProcessor {
             buffer = lines.pop();
             lines.forEach(line => {                // Process only lines that start with '='
               if (line.startsWith('=')) {
-                const fields = line.split(';');
+                const [, iface,protocol,rawName,  type,domain,hostname,address,port,rawTxt] = line.split(';');
+                const txt = parseTxtRecords(rawTxt);
                 const service = {
-                    interface: fields[1],
-                    protocol:  fields[2],
-                    // In-line fix to restore all strange characters back to normal ones
-                    name:      fields[3] ? fields[3].replace(/\\\./g, '.').replace(/\\(\d{3})/g, (m, g) => String.fromCharCode(parseInt(g, 10))) : fields[3],
-                    type:      fields[4],
-                    domain:    fields[5],
-                    hostname:  fields[6],
-                    address:   fields[7],
-                    port:      fields[8],
-                    txt:       fields[9],
-                    ip:       fields[7]
+                  interface: iface,
+                  protocol,
+                  name:      unescapeAvahi(rawName),
+                  type,
+                  domain,
+                  hostname,
+                  address,
+                  port:      Number(port),
+                  txt,
+                  ip:        address
                 };
-                if (service.ip.length>=7||ip.length<=15) 
+
+                if (service.ip.length>=7||ip.length<=15)    // Let's not use IPV6 for now. 
                 { service.mac =   getMacAddress(service.ip) // <--- MAC-address added (lookup via arp-table)                
                   //console.log(service.name,service.address)
                   let regex =  RegExp(params.command);
                   if (regex.test(service.type)) 
                   { const isDuplicate = Services.some(s => s.name === service.name &&s.mac === service.mac);
                     if (!isDuplicate) {
+                        if (service.type=="_googlecast._tcp") {   // in-case of googlecast, fn and id can be useful
+                          try {
+                            service.fn = txt.fn || null;
+                            service.id = txt.id || null;
+                          }
+                          catch(err){}
+                        }
                       metaLog({type:LOG_TYPE.DEBUG, content:'Service ' + params.command + ' found: '+ service.hostname})
                       Services.push(service);
                     }
